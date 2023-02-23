@@ -1,25 +1,18 @@
-library(shiny)
-source("read_xls_table.R")
-
-
+source('engine.R')
 
 
 # Define UI for data upload app ----
-ui <- navbarPage("Calcium response plots adjustment", fluid = TRUE, position = "static-top", 
+ui <- navbarPage("Calcium response plots adjustment", fluid = TRUE, position = "static-top", # 0 level
 
-tabPanel("Data Analysis",
+tabPanel("Data Analysis", # 1 level - tabPanel Data Analysis
          
-         
+  # App title ----
+  titlePanel("Choose the excel file"), # 2 level - titlePanel "Name of the tab"
 
-# App title ----
-titlePanel("Choose the excel file"),
-
-
-  
   # Sidebar layout with input and output definitions ----
   tabsetPanel(
     
-    # Sidebar panel for inputs ----
+    # Sidebar panel for inputs: file input and preferences
     sidebarPanel(
       
       # Input: Select a file ----
@@ -33,13 +26,19 @@ titlePanel("Choose the excel file"),
       
 
       # Input: Checkbox if file has header ----
-      checkboxInput("340", "sheet 340", TRUE),
-      checkboxInput("380", "sheet 380", TRUE),
-      checkboxInput("Ratio", "sheet Ratio", TRUE),
-      
+      checkboxInput("c340", "sheet 340", TRUE),
+      checkboxInput("c380", "sheet 380", TRUE),
+      checkboxInput("cRatio", "sheet Ratio", TRUE),
       
       # Horizontal line ----
       tags$hr(),
+      
+      actionButton("correct_time", "Correct 'Time' column"),
+      tags$hr(),
+      actionButton("change_names", "Change columns names"),
+      # Horizontal line ----
+      tags$hr(),
+      verbatimTextOutput("demo_verbatim"),
       
       # Input: Select number of rows to display ----
       radioButtons("disp", "Display",
@@ -47,18 +46,11 @@ titlePanel("Choose the excel file"),
                                All = "all"),
                    selected = "head")
       
-              ),
-    # Main panel for displaying outputs ----
-    mainPanel(
-      
-      # Output: Data file ----
-      tableOutput("contents")
-      
-    )
-    ),
+              )
+    ), # 2 level - main layout with sidebar and tabset inside
     
-    # Main panel for displaying outputs ----
-    mainPanel(
+  # Main panel for displaying outputs from tabsetPanel level 2
+  mainPanel(
       # Tabs
       tabsetPanel(type = "tabs",
                   tabPanel("340", dataTableOutput("df_340")),
@@ -70,10 +62,16 @@ titlePanel("Choose the excel file"),
 
 
                   tabPanel("Custom Ratio", dataTableOutput("df_custom_ratio")),
-                  ),
-              )
-)
-)
+                  )
+      )# 2 level - tabsetPanel 
+
+
+  
+  
+  
+  
+  ) # 1 level - tabPanel Data Analysis
+) # 0 level - navbarPage
 
 
 
