@@ -4,10 +4,10 @@ source('engine.R')
 # Define UI for data upload app ----
 ui <- navbarPage("Calcium response plots adjustment", fluid = TRUE, position = "static-top", # 0 level
 
-tabPanel("Data Analysis", # 1 level - tabPanel Data Analysis
+tabPanel("Preliminary analysis", # 1 level - tabPanel Data Analysis
          
   # App title ----
-  titlePanel("Choose the excel file"), # 2 level - titlePanel "Name of the tab"
+  titlePanel("Upload and save"), # 2 level - titlePanel "Name of the tab"
 
   # Sidebar layout with input and output definitions ----
   tabsetPanel(
@@ -38,18 +38,22 @@ tabPanel("Data Analysis", # 1 level - tabPanel Data Analysis
       actionButton("change_names", "Change columns names"),
       # Horizontal line ----
       tags$hr(),
-      verbatimTextOutput("demo_verbatim"),
+      textInput('cellName', label = 'Enter new column names', value = "cell-"),
       
       # Input: Select number of rows to display ----
       radioButtons("disp", "Display",
                    choices = c(Head = "head",
                                All = "all"),
-                   selected = "head")
+                   selected = "head"),
+      
+      # Save as excel
+      downloadButton("SaveXlsBox1", "Save as excel file")
+    
       
               )
-    ), # 2 level - main layout with sidebar and tabset inside
+    ), # 2 level - main layout with sidebar and tabset inside / box 1
     
-  # Main panel for displaying outputs from tabsetPanel level 2
+  # Main panel for displaying outputs from tabsetPanel level 2 / box 1
   mainPanel(
       # Tabs
       tabsetPanel(type = "tabs",

@@ -4,7 +4,7 @@ library(tidyverse)
 
 
 # Reading XLS -------------------------------------------------------------
-reading_xls <- function(file, disp_opt, correct_time, change_names, sheet_n){
+reading_xls <- function(file, disp_opt, correct_time, change_names, cnames, sheet_n){
   
   # Function just read the excel file (specific sheet == sheet_n)
   
@@ -27,7 +27,7 @@ reading_xls <- function(file, disp_opt, correct_time, change_names, sheet_n){
   }
 
   if((change_names%%2) == 1) {
-    df <- rename_columns(df)
+    df <- rename_columns(df, cnames)
   }
   
   
@@ -54,13 +54,11 @@ time_col_name <- function(datafr) {
 
 # Correcting names columns ------------------------------------------------
 
-rename_columns <- function(df) {
+rename_columns <- function(df, cnames) {
   
   df_output <- df %>% 
     rename_with(.cols = contains("#"), # selects only the data columns
-                ~ paste0(
-                  "cell-",  
-                  stringr::str_sub(.x, 2, 3) # first 2 digits after #
+                ~ paste0(cnames, str_remove(stringr::str_split_i(.x, " ", 1), "#") 
                 )
     )
   return(df_output)
