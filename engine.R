@@ -44,8 +44,8 @@ reading_xls <- function(file, disp_opt, correct_time, change_names, cnames, shee
 }
 
 
-# Correcting Time columns -------------------------------------------------
 
+# Correcting Time columns -------------------------------------------------
 time_col_name <- function(datafr) {
   if (colnames(datafr)[1] == "Time [s]") {
     colnames(datafr)[1] =  "Time"
@@ -55,8 +55,8 @@ time_col_name <- function(datafr) {
 }
 
 
-# Correcting names columns ------------------------------------------------
 
+# Correcting names columns ------------------------------------------------
 rename_columns <- function(df, cnames) {
   
   df_output <- df %>% 
@@ -70,7 +70,6 @@ rename_columns <- function(df, cnames) {
 
 
 # Dividing values of 340 & 380 dataframes -> custom_ratio -----------------
-
 custom_ratio <- function(df1, df2) {
   df_custom_ratio <- df1/df2
   df_custom_ratio[1] <- df1[1]
@@ -80,15 +79,13 @@ custom_ratio <- function(df1, df2) {
 
 
 # Calculating basic statistics for initial time series --------------------
-
 basic_statistics <- function(df) {
   df <- df %>% 
     distinct(across(-1))
   
-  options(scipen=100)
-  options(digits=3)
   res <- stat.desc(df)
   res_t <- as.data.frame(t(as.matrix(res)))
+
   return(res_t)
   
 }

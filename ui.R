@@ -88,7 +88,7 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Data Analysis
     
               ), # /level 2, /box 2, tabsetPanel for statistics
 
-  
+# Main panel for displaying outputs from tabsetPanel /level 2 /box 2
   mainPanel(
   # Tabs
   tabsetPanel(type = "tabs",
@@ -104,6 +104,16 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Data Analysis
   )
 ), # /level 2, /box 2, mainPanel Statistics
   
+
+
+
+
+
+
+
+
+
+
 
 
   ) # 1 level - tabPanel Data Analysis
