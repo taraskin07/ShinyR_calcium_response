@@ -1,6 +1,9 @@
 library(shiny)
 library(readxl)
 library(tidyverse)
+library(writexl)
+library(pastecs)
+library(DT)
 
 
 # Reading XLS -------------------------------------------------------------
@@ -72,4 +75,20 @@ custom_ratio <- function(df1, df2) {
   df_custom_ratio <- df1/df2
   df_custom_ratio[1] <- df1[1]
   return(df_custom_ratio)
+}
+
+
+
+# Calculating basic statistics for initial time series --------------------
+
+basic_statistics <- function(df) {
+  df <- df %>% 
+    distinct(across(-1))
+  
+  options(scipen=100)
+  options(digits=3)
+  res <- stat.desc(df)
+  res_t <- as.data.frame(t(as.matrix(res)))
+  return(res_t)
+  
 }
