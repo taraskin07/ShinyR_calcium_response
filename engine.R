@@ -4,6 +4,11 @@ library(tidyverse)
 library(writexl)
 library(pastecs)
 library(DT)
+library(ggplot2)
+library(plotly)
+
+
+
 
 
 # Reading XLS -------------------------------------------------------------
@@ -88,4 +93,17 @@ basic_statistics <- function(df) {
 
   return(res_t)
   
+}
+
+
+
+
+# Plotting ggploly graph --------------------------------------------------
+
+ggplotly_render <- function(df_n) {
+  df <- df_n %>% 
+    pivot_longer(!Time, names_to = "cells", values_to = "r.u.") 
+  
+  p <- ggplot(df, aes(Time, r.u., group = cells, color = cells)) + geom_line(size=0.5)+ geom_point(size = 0.2)
+  return(ggplotly(p))
 }

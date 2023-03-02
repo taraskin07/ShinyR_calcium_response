@@ -106,7 +106,41 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Data Analysis
   
 
 
+# Preliminary analysis / box 3 - plots ------------------------------------
 
+  # Sidebar layout with input and output definitions /level 2 /box 2----
+  tabsetPanel(
+    # Sidebar panel for inputs: file input and preferences
+    sidebarPanel(
+      actionButton("plot_all", "Plot all graphs"),
+      actionButton("plot_single", "Plot single graph"),
+      tags$hr(),
+      numericInput("cell_to_plot", "Enter number of cell", 3),
+      verbatimTextOutput("value"),
+      actionButton("exclude_toggle", "Toggle lines"),
+      actionButton("exclude_reset", "Reset")
+      
+    ) # /level 3, /box 2, sidebarPanel for plots
+  ), # /level 2, /box 3, tabsetPanel for plots
+
+  # Main panel for displaying outputs from tabsetPanel /level 2 /box 2
+  mainPanel(
+    # Tabs
+    tabsetPanel(type = "tabs",
+                tabPanel("340", plotlyOutput("plot340"
+                                          ) # /level 5, /box 4, plotOutput
+                        ), # /level 4, /box 3, tabPanel340
+
+                # tabPanel("380", DT::dataTableOutput("df_380_basic_stat_out")),
+                # 
+                # 
+                # tabPanel("Ratio", DT::dataTableOutput("df_ratio_basic_stat_out")),
+                # 
+                # 
+                # tabPanel("Custom Ratio", DT::dataTableOutput("df_custom_ratio_basic_stat_out")),
+                
+                ) # /level 3, /box 3, tabsetPanel for plots
+            ), # /level 2, /box 3, mainPanel for plots
 
 
 

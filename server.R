@@ -89,9 +89,6 @@ server <- function(input, output) {
   
   
   # Save as excel file
-  
-  
-  
   output$SaveXlsBox1 <- downloadHandler(
     filename = function() { "ProcessedTable.xlsx"},
     content = function(file) {write_xlsx(list('340'=df_340_ready(), '380'=df_380_ready(), 'ratio' = df_ratio_ready(), 'custom_ratio' = df_custom_ratio_ready()), path = file)}
@@ -114,11 +111,11 @@ server <- function(input, output) {
                                        
                                        }) # # eventReactive / df_340_basic_stat
   
-  
   output$df_340_basic_stat_out <- DT::renderDataTable({
     basic_statistics(df_340_basic_stat())
-    
+
   }) # output$df_340_basic_stat
+  
   
   
   df_380_basic_stat <- eventReactive(eventExpr = {input$basicStat}, 
@@ -130,9 +127,9 @@ server <- function(input, output) {
                                        
                                      }) # # eventReactive / df_380_basic_stat
   
-  
   output$df_380_basic_stat_out <- DT::renderDataTable({
     basic_statistics(df_380_basic_stat())
+
     
   }) # output$df_380_basic_stat  
   
@@ -147,10 +144,12 @@ server <- function(input, output) {
                                        
                                      }) # # eventReactive / df_ratio_basic_stat
   
-  
   output$df_ratio_basic_stat_out <- DT::renderDataTable({
     basic_statistics(df_ratio_basic_stat())
+
   }) # output$df_ratio_basic_stat_out  
+  
+  
   
   df_custom_ratio_basic_stat <- eventReactive(eventExpr = {input$basicStat}, 
                                       valueExpr = {
@@ -162,8 +161,63 @@ server <- function(input, output) {
   
   output$df_custom_ratio_basic_stat_out <- DT::renderDataTable({
     basic_statistics(df_custom_ratio_basic_stat())
+
   }) # output$df_ratio_basic_stat_out  
   
+  
+
+# Preliminary analysis/ 3d box, plots------------------------------------------------
+
+    observeEvent(input$plot_all, {
+      output$plot340 <- renderPlotly({
+      req(input$plot_all, df_340_basic_stat())
+      ggplotly_render(df_340_basic_stat())})
+    })
+  
+    observeEvent(input$plot_single, {
+      output$plot340 <- renderPlotly({
+        req(input$cell_to_plot, df_340_basic_stat())
+        colm <- paste0('cell-', input$cell_to_plot)
+        ggplotly_render(df_340_basic_stat()[c('Time', colm)])})
+    })
+  
+  
+  # vals <- reactiveValues(
+  #   keepcolumns = rep(TRUE, nrow(df_340_ready()))
+  # )
+  # 
+  # output$plot340 <- renderPlot({
+  #   # Plot the kept and excluded points as two separate data sets
+  #   df <- df_340_ready()
+  #   keep    <- df[ ,vals$keepcolumns, drop = FALSE]
+  #   exclude <- df[ ,!vals$keepcolumns, drop = FALSE]
+  # 
+  #   df_tidy_keep <- keep %>%
+  #     pivot_longer(!Time, names_to = "cells", values_to = "r.u.")
+  #   p <- ggplot(df_tidy_keep, aes(Time, r.u., group = cells, color = cells)) + geom_line(size=0.5)+ geom_point(size = 0.2) + theme(legend.position = "none")
+  #   ggplotly(p)
+  # })
+  # 
+  # # Toggle points that are clicked
+  # observeEvent(input$plot340_click, {
+  #   res <- nearPoints(df_340_ready(), input$plot340_click, allRows = TRUE)
+  # 
+  #   vals$keepcolumns <- xor(vals$keepcolumns, res$selected_)
+  # })
+  # 
+  # # Toggle points that are brushed, when button is clicked
+  # observeEvent(input$exclude_toggle, {
+  #   res <- brushedPoints(df_340_ready(), input$plot340_brush, allRows = TRUE)
+  # 
+  #   vals$keepcolumns <- xor(vals$keepcolumns, res$selected_)
+  # })
+  # 
+  # # Reset all points
+  # observeEvent(input$exclude_reset, {
+  #   vals$keepcolumns <- rep(TRUE, nrow(df_340_ready()))
+  # })
+
+
   
   
   
