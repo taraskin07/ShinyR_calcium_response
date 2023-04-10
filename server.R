@@ -170,55 +170,88 @@ server <- function(input, output) {
 
     observeEvent(input$plot_all, {
       output$plot340 <- renderPlotly({
-      req(input$plot_all, df_340_basic_stat())
-      ggplotly_render(df_340_basic_stat())})
-    })
+        req(input$plot_all, df_340_basic_stat())
+        ggplotly_render(df_340_basic_stat())})
+      
+      
+      output$plot380 <- renderPlotly({
+        req(input$plot_all, df_380_basic_stat())
+        ggplotly_render(df_380_basic_stat())})
+      
+      
+      output$plot_ratio <- renderPlotly({
+        req(input$plot_all, df_ratio_basic_stat())
+        ggplotly_render(df_ratio_basic_stat())})
+      
+      
+      output$plot_custom_ratio <- renderPlotly({
+        req(input$plot_all, df_custom_ratio_basic_stat())
+        ggplotly_render(df_custom_ratio_basic_stat())
+      })
+    }) # /level 1, observeEvent input$plot_single
   
     observeEvent(input$plot_single, {
+      
       output$plot340 <- renderPlotly({
-        req(input$cell_to_plot, df_340_basic_stat())
-        colm <- paste0('cell-', input$cell_to_plot)
-        ggplotly_render(df_340_basic_stat()[c('Time', colm)])})
+        req(input$cell_to_plot, input$cellName, df_340_basic_stat())
+        ggplotly_render(get_col_names(df_340_basic_stat(), input$cellName, input$cell_to_plot))})
+      
+      
+      
+      output$plot380 <- renderPlotly({
+        req(input$cell_to_plot, input$cellName, df_380_basic_stat())
+        ggplotly_render(get_col_names(df_380_basic_stat(), input$cellName, input$cell_to_plot))})
+
+      
+      
+      
+      output$plot_ratio <- renderPlotly({
+        req(input$cell_to_plot, input$cellName, df_ratio_basic_stat())
+        ggplotly_render(get_col_names(df_ratio_basic_stat(), input$cellName, input$cell_to_plot))
+      })
+      
+      
+      
+      output$plot_custom_ratio <- renderPlotly({
+      req(input$cell_to_plot, input$cellName, df_custom_ratio_basic_stat())
+      ggplotly_render(get_col_names(df_custom_ratio_basic_stat(), input$cellName, input$cell_to_plot))
     })
   
   
-  # vals <- reactiveValues(
-  #   keepcolumns = rep(TRUE, nrow(df_340_ready()))
-  # )
-  # 
-  # output$plot340 <- renderPlot({
-  #   # Plot the kept and excluded points as two separate data sets
-  #   df <- df_340_ready()
-  #   keep    <- df[ ,vals$keepcolumns, drop = FALSE]
-  #   exclude <- df[ ,!vals$keepcolumns, drop = FALSE]
-  # 
-  #   df_tidy_keep <- keep %>%
-  #     pivot_longer(!Time, names_to = "cells", values_to = "r.u.")
-  #   p <- ggplot(df_tidy_keep, aes(Time, r.u., group = cells, color = cells)) + geom_line(size=0.5)+ geom_point(size = 0.2) + theme(legend.position = "none")
-  #   ggplotly(p)
-  # })
-  # 
-  # # Toggle points that are clicked
-  # observeEvent(input$plot340_click, {
-  #   res <- nearPoints(df_340_ready(), input$plot340_click, allRows = TRUE)
-  # 
-  #   vals$keepcolumns <- xor(vals$keepcolumns, res$selected_)
-  # })
-  # 
-  # # Toggle points that are brushed, when button is clicked
-  # observeEvent(input$exclude_toggle, {
-  #   res <- brushedPoints(df_340_ready(), input$plot340_brush, allRows = TRUE)
-  # 
-  #   vals$keepcolumns <- xor(vals$keepcolumns, res$selected_)
-  # })
-  # 
-  # # Reset all points
-  # observeEvent(input$exclude_reset, {
-  #   vals$keepcolumns <- rep(TRUE, nrow(df_340_ready()))
-  # })
+    }) # /level 1, observeEvent input$plot_single
 
+    # Now creating reactive values list of cells to include
+    rmcellValues <- reactiveValues()
+    
+    observeEvent(input$exclude_cell, {
+      rmcellValues$cList <- unique(c(isolate(rmcellValues$cList), isolate(paste0(input$cellName, input$cell_to_plot))))
+      
+      
+      output$list_of_cells<-renderPrint({
+        rmcellValues$cList
+      })
+      }) # /level 1, observeEvent input$exclude_cell
+    
+    observeEvent(input$exclude_reset, {
+      rmcellValues$cList <- c()
+      
+      
+      output$list_of_cells<-renderPrint({
+        rmcellValues$cList
+      })
+    }) # /level 1, observeEvent input$exclude_reset  
+      
+      # df_340_excluded <- eventReactive(eventExpr = {input$cell_to_plot}, 
+      #                                    
+      #                                    valueExpr = {
+      #                                      req(input$fluorescence)
+      #                                      req(input$c340)
+      #                                      df_340_excluded() 
+      #                                      
+      #                                    }) # # eventReactive / df_340_excluded
+    
+  
+  
+  
 
-  
-  
-  
 } # level 0

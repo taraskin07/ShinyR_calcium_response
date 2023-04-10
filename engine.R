@@ -107,3 +107,13 @@ ggplotly_render <- function(df_n) {
   p <- ggplot(df, aes(Time, r.u., group = cells, color = cells)) + geom_line(size=0.5)+ geom_point(size = 0.2)
   return(ggplotly(p))
 }
+
+
+# Choose the specific column of the DataFrame -----------------------------
+
+get_col_names <- function(df, cell_name, cell_number) {
+  col <- paste0(cell_name, cell_number)
+  time_col <- colnames(df[1])
+  return(df[c(time_col, col)])
+}
+

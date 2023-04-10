@@ -115,29 +115,31 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Data Analysis
       actionButton("plot_all", "Plot all graphs"),
       actionButton("plot_single", "Plot single graph"),
       tags$hr(),
-      numericInput("cell_to_plot", "Enter number of cell", 3),
-      verbatimTextOutput("value"),
-      actionButton("exclude_toggle", "Toggle lines"),
-      actionButton("exclude_reset", "Reset")
+      numericInput("cell_to_plot", "Enter number of cell", 1),
+      actionButton("exclude_cell", "Exclude cell"),
+      actionButton("exclude_reset", "Reset"),
+      tags$hr('Cells to be excluded:'),
+      verbatimTextOutput("list_of_cells", placeholder = TRUE),
       
     ) # /level 3, /box 2, sidebarPanel for plots
   ), # /level 2, /box 3, tabsetPanel for plots
 
-  # Main panel for displaying outputs from tabsetPanel /level 2 /box 2
+  # Main panel for displaying outputs from tabsetPanel /level 2 /box 3
   mainPanel(
     # Tabs
     tabsetPanel(type = "tabs",
-                tabPanel("340", plotlyOutput("plot340"
-                                          ) # /level 5, /box 4, plotOutput
-                        ), # /level 4, /box 3, tabPanel340
+                tabPanel("340", plotlyOutput("plot340") # /level 5, /box 3, plotlyOutput
+                        ), # /level 4, /box 3, tabPanel 340
 
-                # tabPanel("380", DT::dataTableOutput("df_380_basic_stat_out")),
-                # 
-                # 
-                # tabPanel("Ratio", DT::dataTableOutput("df_ratio_basic_stat_out")),
-                # 
-                # 
-                # tabPanel("Custom Ratio", DT::dataTableOutput("df_custom_ratio_basic_stat_out")),
+                tabPanel("380", plotlyOutput("plot380") # /level 5, /box 3, plotlyOutput
+                        ), # /level 4, /box 3, tabPanel 380
+                
+                tabPanel("Ratio", plotlyOutput("plot_ratio") # /level 5, /box 3, plotlyOutput
+                        ), # /level 4, /box 3, tabPanel Ratio
+                
+                
+                tabPanel("Custom Ratio", plotlyOutput("plot_custom_ratio") # /level 5, /box 3, plotlyOutput
+                        ), # /level 4, /box 3, tabPanel Custom Ratio
                 
                 ) # /level 3, /box 3, tabsetPanel for plots
             ), # /level 2, /box 3, mainPanel for plots
