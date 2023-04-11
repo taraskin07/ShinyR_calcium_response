@@ -239,7 +239,30 @@ server <- function(input, output) {
       output$list_of_cells<-renderPrint({
         rmcellValues$cList
       })
-    }) # /level 1, observeEvent input$exclude_reset  
+    }) # /level 1, observeEvent input$exclude_reset
+    
+    observeEvent(input$exclude_undo, {
+      req(rmcellValues$cList)
+      rmcellValues$cList <- rmcellValues$cList[-length(rmcellValues$cList)]
+      
+      
+      output$list_of_cells<-renderPrint({
+        rmcellValues$cList
+      })
+    }) # /level 1, observeEvent input$exclude_undo
+    
+    observeEvent(input$include_cell, {
+      req(rmcellValues$cList)
+      rmcellValues$cList <- rmcellValues$cList[!rmcellValues$cList == isolate(paste0(input$cellName, input$cell_to_plot))]
+      
+      
+      output$list_of_cells<-renderPrint({
+        rmcellValues$cList
+      })
+    }) # /level 1, observeEvent input$exclude_undo
+    
+    
+    
       
       # df_340_excluded <- eventReactive(eventExpr = {input$cell_to_plot}, 
       #                                    

@@ -117,7 +117,10 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Data Analysis
       tags$hr(),
       numericInput("cell_to_plot", "Enter number of cell", 1),
       actionButton("exclude_cell", "Exclude cell"),
+      actionButton("exclude_undo", "Undo"),
+      actionButton("include_cell", "Include cell"),
       actionButton("exclude_reset", "Reset"),
+
       tags$hr('Cells to be excluded:'),
       verbatimTextOutput("list_of_cells", placeholder = TRUE),
       
