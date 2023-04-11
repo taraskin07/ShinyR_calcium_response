@@ -114,8 +114,10 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Data Analysis
     sidebarPanel(
       actionButton("plot_all", "Plot all graphs"),
       actionButton("plot_single", "Plot single graph"),
+      
       tags$hr(),
       numericInput("cell_to_plot", "Enter number of cell", 1),
+      
       actionButton("exclude_cell", "Exclude cell"),
       actionButton("exclude_undo", "Undo"),
       actionButton("include_cell", "Include cell"),
@@ -123,6 +125,10 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Data Analysis
 
       tags$hr('Cells to be excluded:'),
       verbatimTextOutput("list_of_cells", placeholder = TRUE),
+      
+      tags$hr('Cells to be excluded:'),
+      actionButton("new_dataframes", "Obtain new tables"),
+      actionButton("plot_new_all", "Plot all new graphs"),
       
     ) # /level 3, /box 2, sidebarPanel for plots
   ), # /level 2, /box 3, tabsetPanel for plots

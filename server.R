@@ -220,8 +220,13 @@ server <- function(input, output) {
   
     }) # /level 1, observeEvent input$plot_single
 
+    
     # Now creating reactive values list of cells to include
+    
     rmcellValues <- reactiveValues()
+    
+    
+    # Buttons to Exclude/Undo/Include/Reset cells 
     
     observeEvent(input$exclude_cell, {
       rmcellValues$cList <- unique(c(isolate(rmcellValues$cList), isolate(paste0(input$cellName, input$cell_to_plot))))
@@ -262,16 +267,30 @@ server <- function(input, output) {
     }) # /level 1, observeEvent input$exclude_undo
     
     
+    # Button to obtain new dataframes without bad cells information
     
+
       
-      # df_340_excluded <- eventReactive(eventExpr = {input$cell_to_plot}, 
-      #                                    
-      #                                    valueExpr = {
-      #                                      req(input$fluorescence)
-      #                                      req(input$c340)
-      #                                      df_340_excluded() 
-      #                                      
-      #                                    }) # # eventReactive / df_340_excluded
+      df_340_excluded <- eventReactive(eventExpr = {input$new_dataframes}, 
+
+                                                    valueExpr = {
+                                                      
+                                                    req(input$fluorescence)
+                                                    req(input$c340)
+                                                    subset(df_340_ready(), select = colnames(df_340_ready()) != rmcellValues$cList)
+                                                    
+                                                    }
+                                       ) # # eventReactive / df_340_excluded
+      
+
+    
+    
+    observeEvent(input$plot_new_all, {
+      output$plot340 <- renderPlotly({
+        req(input$plot_new_all, df_340_excluded())
+        ggplotly_render(df_340_excluded())})
+    })
+
     
   
   
