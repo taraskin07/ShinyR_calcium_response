@@ -100,6 +100,7 @@ server <- function(input, output) {
   #   (input$correct_time%%2) == 1
   # })
   
+  
 # Preliminary analysis/ 2d box -------------------------------------------  
   
   df_340_basic_stat <- eventReactive(eventExpr = {input$basicStat}, 
@@ -267,9 +268,13 @@ server <- function(input, output) {
     }) # /level 1, observeEvent input$exclude_undo
     
     
-    # Button to obtain new dataframes without bad cells information
     
 
+# Excluding cells ---------------------------------------------------------
+
+    
+    # Button to obtain new dataframes without bad cells information
+    
       
       df_340_excluded <- eventReactive(eventExpr = {input$new_dataframes}, 
 
