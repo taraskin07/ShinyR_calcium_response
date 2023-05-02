@@ -281,8 +281,8 @@ server <- function(input, output) {
                                                     valueExpr = {
                                                       
                                                     req(input$fluorescence)
-                                                    req(input$c340)
-                                                    subset(df_340_ready(), select = colnames(df_340_ready()) != rmcellValues$cList)
+                                                    req(input$c340)                  
+                                                    subset(df_340_ready(), select = !(colnames(df_340_ready()) %in% rmcellValues$cList))
                                                     
                                                     }
                                        ) # # eventReactive / df_340_excluded
@@ -298,7 +298,26 @@ server <- function(input, output) {
 
     
   
-  
-  
 
+# Debugging section -------------------------------------------------------
+
+    output$df_340_ready_db <- DT::renderDataTable({
+      req(input$fluorescence)
+      req(input$c340)
+      req(input$new_dataframes)
+      df_340_ready()
+      }) 
+    
+    
+    output$df_340_excluded_db <- DT::renderDataTable({
+      req(input$fluorescence)
+      req(input$c340)
+      req(input$new_dataframes)
+      df_340_excluded()
+    })
+    
+    
+    output$rmcellValues_cList <- renderPrint({
+      rmcellValues$cList
+    })
 } # level 0

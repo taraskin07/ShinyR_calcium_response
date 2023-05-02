@@ -174,4 +174,43 @@ df_tidy_340
 
 p <- ggplot(df_tidy_340, aes(Time, r.u., group = cells, color = cells)) + geom_line(linewidth=0.5)+ geom_point(size = 0.2) + theme(legend.position = "none")
 ggplotly(p)
+
+
+
+
+
+
+library(readxl)
+df_to_check <- read_excel("test/ProcessedTable.xlsx")
+
+clnms <-colnames(df_to_check)
+print(clnms)
+
+clist <- list("cell-1", "cell-20", "cell-3")
+print(clist)
+
+what <- subset(df_to_check, select = !(colnames(df_to_check) %in% clist))
+
+print(what)
+
+!(colnames(df_to_check) %in% clist)
+
+!(data %in% c(value1, value2, value3, ...))
+
+typeof(clist)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
        

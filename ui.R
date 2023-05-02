@@ -157,11 +157,34 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Data Analysis
 
 
 
+# Preliminary analysis / box 3 - Debugging window --------------------------------------------------------
+
+
+
+# Main panel for displaying outputs from tabsetPanel /level 2 /box 3
+mainPanel(
+  # Tabs
+  tabsetPanel(type = "tabs",
+              tabPanel("df_340_ready_db", DT::dataTableOutput("df_340_ready_db") # 
+              ), # 
+              
+              tabPanel("df_340_excluded_db", DT::dataTableOutput("df_340_excluded_db") # 
+              ), # 0
+              # 
+              tabPanel("rmcellValues_cList", verbatimTextOutput("rmcellValues_cList") # 
+              ), # 
+              # 
+              # 
+              # tabPanel("Custom Ratio", plotlyOutput("") # /level 5, /box 3, plotlyOutput
+              # ), # /level 4, /box 3, tabPanel Custom Ratio
+              
+  ) # /level 3, /box 3, tabsetPanel for plots
+), # /level 2, /box 3, mainPanel for plots
 
 
 
 
-  ) # 1 level - tabPanel Data Analysis
+  ) # 1 level - tabPanel Preliminary analysis
 ) # 0 level - navbarPage
 
 
