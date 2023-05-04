@@ -4,10 +4,16 @@ source('engine.R')
 # Define UI for data upload app ----
 ui <- navbarPage("Calcium response plots adjustment", fluid = TRUE, position = "static-top", # 0 level
 
-tabPanel("Preliminary analysis", # /level 1 - tabPanel Data Analysis
+
+                 
+ # --------------------------------------------------------------------------
+ # --------------------------------------------------------------------------
+ # Preliminary analysis -----------------------------------------------------                                  
+                 
+tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
          
   # App title ----
-  titlePanel("Upload and save"), # 2 level - titlePanel "Name of the tab"
+  titlePanel("Upload and save"), # 2 level - titlePanel "Upload and save"
 
 # Preliminary analysis / box 1 --------------------------------------------
 
@@ -196,7 +202,122 @@ mainPanel(
 
 
 
-  ) # 1 level - tabPanel Preliminary analysis
+  ), # 1 level - tabPanel Preliminary analysis
+
+
+
+
+
+
+
+
+
+
+# -------------------------------------------------------------------------
+# -------------------------------------------------------------------------
+# Analyzing amplitude -----------------------------------------------------
+
+tabPanel("Analyzing amplitude", # /level 1 - tabPanel Analyzing amplitude
+         
+         # App title ----
+         titlePanel("Upload clean excel file"), # 2 level - titlePanel "Upload clean excel file"
+         
+
+         
+# Analyzing amplitude / box 1 --------------------------------------------
+
+# Sidebar layout with input and output definitions /level 2 /box 1----
+tabsetPanel(
+  
+  # Sidebar panel for inputs: file input and preferences
+  sidebarPanel(
+    
+    # Input: Select a file ----
+    fileInput("clean_file", "Choose excel File with 'clean' data",
+              multiple = FALSE,
+              accept = c(".xls",
+                         ".xlsx")),
+    
+    # Horizontal line ----
+    tags$hr(),
+    
+    
+    # Input: Checkbox if file has header ----
+    checkboxInput("cl340", "sheet 340", TRUE),
+    checkboxInput("cl380", "sheet 380", TRUE),
+    checkboxInput("clRatio", "sheet Ratio", TRUE),
+    
+  )
+), # Analyzing amplitude /level 2 /box 1  - main layout with sidebar and tabset inside, tabsetPanel / box 1
+
+# Main panel for displaying outputs from tabsetPanel /level 2 /box 1
+mainPanel(
+  # Tabs
+  tabsetPanel(type = "tabs",
+              
+              tabPanel("340", DT::dataTableOutput("cl_340")),
+              
+              tabPanel("380", DT::dataTableOutput("cl_380")),
+              
+              
+              tabPanel("Ratio", DT::dataTableOutput("cl_ratio")),
+              
+              
+              tabPanel("Custom Ratio", DT::dataTableOutput("cl_custom_ratio")),
+  )
+), # Analyzing amplitude /level 2 /box 1, mainPanel 340-380-Ratio-Custom ratio 
+
+
+
+# Analyzing amplitude / box 2 - STATISTICS for CLEAN DATA ----------------
+
+
+# Sidebar layout with input and output definitions - Analyzing amplitude /level 2 /box 2
+tabsetPanel(
+  
+  # Sidebar panel for inputs: file input and preferences
+  sidebarPanel(
+    actionButton("amplitudeStat", "Calculate amplitudes"),
+    tags$hr(),
+    
+    # Save BASIC STATISTICS as excel file
+    tags$br('Save amplitudes info in excel file'),
+    downloadButton("SaveXlsAmpl", "Save as excel file"),
+    
+    
+  ) # /level 3, /box 2, sidebarPanel for statistics
+  
+), # /level 2, /box 2, tabsetPanel for statistics
+
+# Main panel for displaying outputs from tabsetPanel /level 2 /box 2
+# mainPanel(
+#   # Tabs
+#   tabsetPanel(type = "tabs",
+#               tabPanel("340", DT::dataTableOutput("df_340_amplitude_out")),
+# 
+#               tabPanel("380", DT::dataTableOutput("df_380_amplitude_out")),
+# 
+# 
+#               tabPanel("Ratio", DT::dataTableOutput("df_ratio_amplitude_out")),
+# 
+# 
+#               tabPanel("Custom Ratio", DT::dataTableOutput("df_custom_ratio_amplitude_out")),
+#   )
+# ), # /level 2, /box 2, mainPanel Statistics
+
+
+
+
+
+
+
+
+
+
+
+
+  ), # 1 level - tabPanel Analyzing amplitude
+
 ) # 0 level - navbarPage
 
 

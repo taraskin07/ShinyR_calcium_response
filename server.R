@@ -8,8 +8,14 @@ source('engine.R')
 
 # Define server logic to read selected file ----
 server <- function(input, output) {
-  
 
+  
+# --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# Preliminary analysis -----------------------------------------------------    
+
+  
+  
 # Preliminary analysis/ 1st box -------------------------------------------
 
   # All 4 tables rendering
@@ -21,7 +27,7 @@ server <- function(input, output) {
                                 valueExpr = {
                                   req(input$fluorescence)
                                   req(input$c340)
-                                  reading_xls(input$fluorescence, disp_opt="all", input$correct_time, input$change_names, input$cellName, sheet_n = '340')
+                                  reading_xls(input$fluorescence, disp_opt=input$disp, input$correct_time, input$change_names, input$cellName, sheet_n = '340')
                                 }) #level 1 - df_340_ready
   
   output$df_340 <- DT::renderDataTable({
@@ -40,7 +46,7 @@ server <- function(input, output) {
                                 valueExpr = {
                                   req(input$fluorescence)
                                   req(input$c380)
-                                  reading_xls(input$fluorescence, disp_opt="all", input$correct_time, input$change_names, input$cellName, sheet_n = '380')
+                                  reading_xls(input$fluorescence, disp_opt=input$disp, input$correct_time, input$change_names, input$cellName, sheet_n = '380')
                                             }) # level 1 - df_380_ready
   
   output$df_380 <- DT::renderDataTable({    
@@ -59,7 +65,7 @@ server <- function(input, output) {
                                 valueExpr = {
                                   req(input$fluorescence)
                                   req(input$cRatio)
-                                  reading_xls(input$fluorescence, disp_opt="all", input$correct_time, input$change_names, input$cellName, sheet_n = 'Ratio')
+                                  reading_xls(input$fluorescence, disp_opt=input$disp, input$correct_time, input$change_names, input$cellName, sheet_n = 'Ratio')
     }) # level 1 - df_ratio_ready
   
   output$df_ratio <- DT::renderDataTable({
@@ -95,13 +101,9 @@ server <- function(input, output) {
   )
   
   
-  # # Additional box
-  # output$demo_verbatim <- renderText({
-  #   (input$correct_time%%2) == 1
-  # })
   
   
-# Preliminary analysis/ 2d box -------------------------------------------  
+# Preliminary analysis/ 2d box - STATISTICS -------------------------------------------  
   
   df_340_basic_stat <- eventReactive(eventExpr = {input$basicStat}, 
                                      
@@ -419,4 +421,108 @@ server <- function(input, output) {
     output$rmcellValues_cList <- renderPrint({
       rmcellValues$cList
     })
+    
+    
+# -------------------------------------------------------------------------
+# -------------------------------------------------------------------------
+# Analyzing amplitude -----------------------------------------------------    
+    
+    
+    # All 4 tables of CLEAN DATA rendering
+    
+
+# 340
+
+    df_340_clean <- eventReactive(eventExpr = {input$clean_file
+      input$cl340},
+      valueExpr = {
+        req(input$clean_file)
+        req(input$cl340)
+        read_excel(input$clean_file$datapath,
+                   sheet='340')
+        
+                  }
+                                  ) #level 1 - df_340_clean
+    
+    output$cl_340 <- DT::renderDataTable({
+      req(input$clean_file)
+      req(input$cl340)
+      df_340_clean()
+                                            }) # level 1 - output$cl_340
+    
+
+# 380 
+
+   
+    df_380_clean <- eventReactive(eventExpr = {input$clean_file
+      input$cl380},
+      valueExpr = {
+        req(input$clean_file)
+        req(input$cl380)
+        read_excel(input$clean_file$datapath,
+                   sheet='380')
+        
+      }
+    ) #level 1 - df_380_clean
+    
+    
+    output$cl_380 <- DT::renderDataTable({
+      req(input$clean_file)
+      req(input$cl380)
+      df_380_clean()
+    }) # level 1 - output$cl_380
+    
+    
+
+# Ratio 
+    
+    
+    df_ratio_clean <- eventReactive(eventExpr = {input$clean_file
+      input$clRatio},
+      valueExpr = {
+        req(input$clean_file)
+        req(input$clRatio)
+        read_excel(input$clean_file$datapath,
+                   sheet='ratio')
+        
+      }
+    ) #level 1 - df_ratio_clean
+    
+    
+    output$cl_ratio <- DT::renderDataTable({
+      req(input$clean_file)
+      req(input$clRatio)
+      df_ratio_clean()
+    }) # level 1 - output$cl_ratio
+
+
+    
+# Custom Ratio 
+    
+    
+    df__custom_ratio_clean <- eventReactive(eventExpr = {input$clean_file
+      input$cl340
+      input$cl380},
+      valueExpr = {
+        req(input$clean_file)
+        req(input$cl340)
+        req(input$cl380)
+        read_excel(input$clean_file$datapath,
+                   sheet='custom_ratio')
+        
+      }
+    ) #level 1 - df_custom_ratio_clean
+    
+    
+    output$cl_custom_ratio <- DT::renderDataTable({
+      req(input$clean_file)
+      req(input$cl340)
+      req(input$cl380)
+      df__custom_ratio_clean()
+    }) # level 1 - output$cl_custom_ratio    
+   
+    # Calculating amplitudes
+    
+    
+    
 } # level 0

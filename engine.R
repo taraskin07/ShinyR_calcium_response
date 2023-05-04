@@ -8,7 +8,9 @@ library(ggplot2)
 library(plotly)
 
 
-
+# --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# Preliminary analysis ----------------------------------------------------- 
 
 
 # Reading XLS -------------------------------------------------------------
@@ -125,3 +127,36 @@ cell_number_row <- function(df) {
   df <- df[, c(ncol(df), 1:(ncol(df)-1))]
   return(df)
 }
+
+
+
+
+
+# -------------------------------------------------------------------------
+# -------------------------------------------------------------------------
+# Analyzing amplitude ----------------------------------------------------- 
+
+
+
+
+# Reading CLEAN XLS -------------------------------------------------------------
+reading_clean_xls <- function(file, sheet_n){
+  
+  # Function just read the excel file (specific sheet == sheet_n)
+  
+  
+  # when reading semicolon separated files,
+  # having a comma separator causes `read.csv` to error
+  tryCatch(
+    {
+      df <- read_excel(file$datapath,
+                       sheet=sheet_n)
+    },
+    error = function(e) {
+      # return a safeError if a parsing error occurs
+      stop(safeError(e))
+    }
+  )
+  
+} # reading_clean_xls
+
