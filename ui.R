@@ -277,7 +277,12 @@ tabsetPanel(
   
   # Sidebar panel for inputs: file input and preferences
   sidebarPanel(
+    tags$br("Enter timeframe for the baseline and response"),
+    tags$hr(),
+    numericInput("min_time", "Starting point: (sec)", 0),
+    numericInput("max_time", "End of calcium response: (sec)", 240),
     actionButton("amplitudeStat", "Calculate amplitudes"),
+    tags$br(),
     tags$hr(),
     
     # Save BASIC STATISTICS as excel file
@@ -290,20 +295,20 @@ tabsetPanel(
 ), # /level 2, /box 2, tabsetPanel for statistics
 
 # Main panel for displaying outputs from tabsetPanel /level 2 /box 2
-# mainPanel(
-#   # Tabs
-#   tabsetPanel(type = "tabs",
-#               tabPanel("340", DT::dataTableOutput("df_340_amplitude_out")),
+mainPanel(
+  # Tabs
+  tabsetPanel(type = "tabs",
+              tabPanel("340", DT::dataTableOutput("df_340_amplitude_out")),
 # 
 #               tabPanel("380", DT::dataTableOutput("df_380_amplitude_out")),
 # 
 # 
-#               tabPanel("Ratio", DT::dataTableOutput("df_ratio_amplitude_out")),
+              tabPanel("Ratio", DT::dataTableOutput("df_ratio_amplitude_out")),
 # 
 # 
-#               tabPanel("Custom Ratio", DT::dataTableOutput("df_custom_ratio_amplitude_out")),
-#   )
-# ), # /level 2, /box 2, mainPanel Statistics
+              tabPanel("Custom Ratio", DT::dataTableOutput("df_custom_ratio_amplitude_out")),
+  )
+), # /level 2, /box 2, mainPanel Statistics
 
 
 

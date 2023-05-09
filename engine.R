@@ -160,3 +160,44 @@ reading_clean_xls <- function(file, sheet_n){
   
 } # reading_clean_xls
 
+
+
+
+# Calculating amplitude ---------------------------------------------------
+
+find_amplitude <- function(clean_df, min_time, max_time) {
+  
+  # Obtaining long-format dataframe
+  df_long <- clean_df %>% 
+    pivot_longer(!Time, names_to = "cell", values_to = "value")
+  
+  # For future sorting saving correct order of cell names
+  cell_index <- colnames(clean_df[-1])
+
+  # Obtaining subset for baseline in accordance with min_time and max_time
+  subset_timerange <- subset(df_long, (Time > min_time & Time < max_time))
+  
+  # Maximum values for initial datase
+  result_max <- summarize(group_by(df_long, cell),
+                          Maximum = max(value, na.rm = T),
+                          Max_Time = paste(Time[which(value == Maximum)], collapse = ", "),
+                          Global_Min_Values = min(value, na.rm = T),
+                          Global_Min_Time = paste(Time[which(value == Global_Min_Values)], collapse = ", "))
+  
+  
+  # Minimum values for baseline subset
+  result_min <- summarize(group_by(subset_timerange, cell),
+                          Baseline_Minimum = min(value, na.rm = T),
+                          Baseline_Min_Time = paste(Time[which(value == Baseline_Minimum)], collapse = ", "))
+  
+  # Inner join of two resulting tables
+  result_amplitude <- merge(result_max, result_min, by = "cell")
+  
+  # Adding additional columns
+  result_amplitude_final <- result_amplitude %>% 
+    add_column(Amplitude = (result_amplitude$Maximum - result_amplitude$Baseline_Minimum)) %>% 
+    arrange(factor(cell, cell_index)) %>% 
+    select(cell, Global_Min_Values, Baseline_Minimum, Maximum, Amplitude, Baseline_Min_Time, Max_Time, Global_Min_Time)
+  
+  return(result_amplitude_final)
+}

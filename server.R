@@ -500,7 +500,7 @@ server <- function(input, output) {
 # Custom Ratio 
     
     
-    df__custom_ratio_clean <- eventReactive(eventExpr = {input$clean_file
+    df_custom_ratio_clean <- eventReactive(eventExpr = {input$clean_file
       input$cl340
       input$cl380},
       valueExpr = {
@@ -518,11 +518,72 @@ server <- function(input, output) {
       req(input$clean_file)
       req(input$cl340)
       req(input$cl380)
-      df__custom_ratio_clean()
+      df_custom_ratio_clean()
     }) # level 1 - output$cl_custom_ratio    
    
+    
+    
     # Calculating amplitudes
     
+# 340
+    
+    df_340_amplitude <- eventReactive(eventExpr = {input$amplitudeStat
+      input$cl340},
+      valueExpr = {
+        req(input$clean_file)
+        req(input$cl340)
+        find_amplitude(df_340_clean(), input$min_time, input$max_time)
+        
+      }
+    )
+    
+    output$df_340_amplitude_out <- DT::renderDataTable({
+      req(input$clean_file)
+      req(input$amplitudeStat)
+      req(input$cl340)
+      df_340_amplitude()
+    })
     
     
+# Ratio
+    
+    df_ratio_amplitude <- eventReactive(eventExpr = {input$amplitudeStat
+      input$clRatio},
+      valueExpr = {
+        req(input$clean_file)
+        req(input$clRatio)
+        find_amplitude(df_ratio_clean(), input$min_time, input$max_time)
+        
+      }
+    )
+    
+    output$df_ratio_amplitude_out <- DT::renderDataTable({
+      req(input$clean_file)
+      req(input$amplitudeStat)
+      req(input$clRatio)
+      df_ratio_amplitude()
+    })
+    
+    
+# Custom Ratio
+    
+    df_custom_ratio_amplitude <- eventReactive(eventExpr = {input$amplitudeStat
+      input$cl340
+      input$cl380},
+      valueExpr = {
+        req(input$clean_file)
+        req(input$cl340)
+        req(input$cl380)
+        find_amplitude(df_custom_ratio_clean(), input$min_time, input$max_time)
+        
+      }
+    )
+    
+    output$df_custom_ratio_amplitude_out <- DT::renderDataTable({
+      req(input$clean_file)
+      req(input$amplitudeStat)
+      req(input$cl340)
+      req(input$cl380)
+      df_custom_ratio_amplitude()
+    })
 } # level 0

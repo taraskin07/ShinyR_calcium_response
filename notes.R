@@ -215,26 +215,79 @@ typeof(mb)
 
 library(xts)
 
+
+
+# Amplitude ---------------------------------------------------------------
+
+
+
+
+
+
+
+
+gr <- df %>%
+  group_by(cell) %>% 
+  filter(df, Time < 200) %>% 
+  (~ sub_range) %>% 
+  # summarise(
+  #   Max = max(value, na.rm = T),
+  #   TimeMax = paste(Time[which(value == Max)], collapse = ", "),
+  #   Min = min(sub_range$value, na.rm = T),
+  #   TimeMin = paste(Time[which(value == Min)], collapse = ", "),
+  #   # Amplitude = diff(pull(Max), pull(Min))
+  #   Filter = filter(df, Time < 200),
+  # 
+  #   
+  #   ) %>%
+  # arrange(cell)
+  # print(sub_range)
+
+# library('gtools')
+
+library(readxl)
 cl_df <- read_excel("test/CleanTable.xlsx", sheet = "ratio")
 
 
 df <- cl_df %>% 
   pivot_longer(!Time, names_to = "cell", values_to = "value")
-  
+
 View(df)
+
+subset_timerange <- subset(df, (Time < 200 & Time > 5))
+
+View(subset_timerange)
+
+cell_index <- colnames(cl_df[-1])
+cell_index
+
+timerange_grouped <- group_by(subset_timerange, cell)
+
+result_max <- summarize(group_by(df, cell),
+  Max = max(value, na.rm = T),
+  TimeMax = paste(Time[which(value == Max)], collapse = ", "))
+
+result_min <- summarize(group_by(subset_timerange, cell),
+                        Min = min(value, na.rm = T),
+                        TimeMin = paste(Time[which(value == Min)], collapse = ", "))
+
+
+result_amplitude <- merge(result_max, result_min, by = "cell")
+result_amplitude_final <- result_amplitude %>% 
+  add_column(Amplitude = result_amplitude$Max - result_amplitude$Min) %>% 
+  arrange(factor(cell, cell_index))
+  
+
 
 gr <- df %>%
   group_by(cell) %>% 
-  summarise(
+  summarize(
     Max = max(value, na.rm = T),
-    TimeMax = paste(Time[which(value == max(value))], collapse = ", "),
-    Min = min(value, na.rm = T),
-    TimeMin = df$Time[[which.min(value)]],
-    Amplitude = range(value),
-
+    TimeMax = paste(Time[which(value == Max)], collapse = ", "),
     
-    ) %>%
-  arrange(cell)
+    ) %>% 
+
+    arrange(factor(cell, cell_index))
 
 View(gr)
 
@@ -243,35 +296,16 @@ View(gr)
 
 
 
+# Testing find_amplitude --------------------------------------------------
+
+clean_df <- read_excel("test/CleanTable.xlsx", sheet = "ratio")
+clean_df <- read_excel("test/CleanTable.xlsx", sheet = "340")
+
+amplitude <- find_amplitude(clean_df, 23, 202)
+
+colnames(amplitude)
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-# xts_data = as.xts(cl_df)
-# 
-# z_o <- zoo(x = cl_df, order.by = cl_df$Time)
-# View(z_o)
-# 
-# sm <- tbl_custom_summary(
-#   z_o,
-#   by = NULL,
-#   label = NULL,
-#   stat_fns =max,
-# 
-# )
-# 
-# 
-# 
-# 
-# mx <- aggregate(z_o, by=index(z_o), FUN = max)        
-# View(mx)
