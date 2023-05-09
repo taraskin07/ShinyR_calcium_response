@@ -6,8 +6,7 @@ ui <- navbarPage("Calcium response plots adjustment", fluid = TRUE, position = "
 
 
                  
- # --------------------------------------------------------------------------
- # --------------------------------------------------------------------------
+
  # Preliminary analysis -----------------------------------------------------                                  
                  
 tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
@@ -213,8 +212,7 @@ mainPanel(
 
 
 
-# -------------------------------------------------------------------------
-# -------------------------------------------------------------------------
+
 # Analyzing amplitude -----------------------------------------------------
 
 tabPanel("Analyzing amplitude", # /level 1 - tabPanel Analyzing amplitude
@@ -280,12 +278,12 @@ tabsetPanel(
     tags$br("Enter timeframe for the baseline and response"),
     tags$hr(),
     numericInput("min_time", "Starting point: (sec)", 0),
-    numericInput("max_time", "End of calcium response: (sec)", 240),
+    numericInput("max_time", "End of calcium response: (sec)", 120),
     actionButton("amplitudeStat", "Calculate amplitudes"),
     tags$br(),
     tags$hr(),
     
-    # Save BASIC STATISTICS as excel file
+    # Save AMPLITUDES as excel file
     tags$br('Save amplitudes info in excel file'),
     downloadButton("SaveXlsAmpl", "Save as excel file"),
     
@@ -294,34 +292,42 @@ tabsetPanel(
   
 ), # /level 2, /box 2, tabsetPanel for statistics
 
-# Main panel for displaying outputs from tabsetPanel /level 2 /box 2
+
+# Main panel for displaying outputs from tabsetPanel Analyzing amplitude /level 2 /box 2
 mainPanel(
   # Tabs
   tabsetPanel(type = "tabs",
               tabPanel("340", DT::dataTableOutput("df_340_amplitude_out")),
-# 
-#               tabPanel("380", DT::dataTableOutput("df_380_amplitude_out")),
-# 
-# 
+ 
+              tabPanel("380", DT::dataTableOutput("df_380_amplitude_out")),
+
+
               tabPanel("Ratio", DT::dataTableOutput("df_ratio_amplitude_out")),
-# 
-# 
+ 
+ 
               tabPanel("Custom Ratio", DT::dataTableOutput("df_custom_ratio_amplitude_out")),
   )
-), # /level 2, /box 2, mainPanel Statistics
-
-
-
-
-
-
-
-
-
-
-
+), # /level 2, /box 2, mainPanel Analyzing amplitude
 
   ), # 1 level - tabPanel Analyzing amplitude
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ) # 0 level - navbarPage
 

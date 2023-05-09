@@ -10,8 +10,7 @@ source('engine.R')
 server <- function(input, output) {
 
   
-# --------------------------------------------------------------------------
-# --------------------------------------------------------------------------
+
 # Preliminary analysis -----------------------------------------------------    
 
   
@@ -326,7 +325,7 @@ server <- function(input, output) {
                                                       
                                                     req(input$fluorescence)
                                                     req(input$c340)                  
-                                                    subset(df_340_ready(), select = !(colnames(df_340_ready()) %in% rmcellValues$cList))
+                                                    subset(df_340_basic_stat(), select = !(colnames(df_340_basic_stat()) %in% rmcellValues$cList))
                                                     
                                                     }
                                        ) # # eventReactive / df_340_excluded
@@ -338,7 +337,7 @@ server <- function(input, output) {
                                          
                                          req(input$fluorescence)
                                          req(input$c380)                  
-                                         subset(df_380_ready(), select = !(colnames(df_380_ready()) %in% rmcellValues$cList))
+                                         subset(df_380_basic_stat(), select = !(colnames(df_380_basic_stat()) %in% rmcellValues$cList))
                                        
                                                     }
                                       ) # # eventReactive / df_380_excluded
@@ -350,7 +349,7 @@ server <- function(input, output) {
                                          
                                          req(input$fluorescence)
                                          req(input$cRatio)                  
-                                         subset(df_ratio_ready(), select = !(colnames(df_ratio_ready()) %in% rmcellValues$cList))
+                                         subset(df_ratio_basic_stat(), select = !(colnames(df_ratio_basic_stat()) %in% rmcellValues$cList))
                                          
                                        }
       ) # # eventReactive / df_ratio_excluded
@@ -363,7 +362,7 @@ server <- function(input, output) {
                                            req(input$fluorescence)
                                            req(input$c340)   
                                            req(input$c380)
-                                           subset(df_custom_ratio_ready(), select = !(colnames(df_custom_ratio_ready()) %in% rmcellValues$cList))
+                                           subset(df_custom_ratio_basic_stat(), select = !(colnames(df_custom_ratio_basic_stat()) %in% rmcellValues$cList))
                                            
                                          }
       ) # # eventReactive / df_custom_ratio_excluded
@@ -395,8 +394,8 @@ server <- function(input, output) {
       # Save DATA WITHOUT BAD CELLS as excel file
     
       output$SaveXlsBoxNoBadCells <- downloadHandler(
-        filename = function() { "CleanTable.xlsx"},
-        content = function(file) {write_xlsx(list('340'=df_340_excluded(), '380'=df_380_excluded(), 'ratio' = df_ratio_excluded(), 'custom_ratio' = df_custom_ratio_excluded()), path = file)}
+        filename = function() {"CleanTable.xlsx"},
+        content = function(file) {write_xlsx(list('340'=df_340_excluded(), '380'=df_380_excluded(), 'ratio' = df_ratio_excluded(), 'custom_ratio' = df_custom_ratio_excluded(), 'excluded_cells' = as.data.frame(rmcellValues$cList)), path = file)}
       )
     
 
@@ -423,8 +422,7 @@ server <- function(input, output) {
     })
     
     
-# -------------------------------------------------------------------------
-# -------------------------------------------------------------------------
+
 # Analyzing amplitude -----------------------------------------------------    
     
     
@@ -500,13 +498,9 @@ server <- function(input, output) {
 # Custom Ratio 
     
     
-    df_custom_ratio_clean <- eventReactive(eventExpr = {input$clean_file
-      input$cl340
-      input$cl380},
+    df_custom_ratio_clean <- eventReactive(eventExpr = {input$clean_file},
       valueExpr = {
         req(input$clean_file)
-        req(input$cl340)
-        req(input$cl380)
         read_excel(input$clean_file$datapath,
                    sheet='custom_ratio')
         
@@ -567,13 +561,9 @@ server <- function(input, output) {
     
 # Custom Ratio
     
-    df_custom_ratio_amplitude <- eventReactive(eventExpr = {input$amplitudeStat
-      input$cl340
-      input$cl380},
+    df_custom_ratio_amplitude <- eventReactive(eventExpr = {input$amplitudeStat},
       valueExpr = {
         req(input$clean_file)
-        req(input$cl340)
-        req(input$cl380)
         find_amplitude(df_custom_ratio_clean(), input$min_time, input$max_time)
         
       }
@@ -586,4 +576,87 @@ server <- function(input, output) {
       req(input$cl380)
       df_custom_ratio_amplitude()
     })
+    
+    
+    
+    # IN THIS CASE WE NEED TO FIND MINIMUM INSTEAD! 
+# 380
+    
+    df_380_amplitude <- eventReactive(eventExpr = {input$amplitudeStat
+      input$cl380},
+      valueExpr = {
+        req(input$clean_file)
+        req(input$cl380)
+        find_amplitude_380(df_380_clean(), input$min_time, input$max_time)
+        
+      }
+    )
+    
+    output$df_380_amplitude_out <- DT::renderDataTable({
+      req(input$clean_file)
+      req(input$amplitudeStat)
+      req(input$cl380)
+      df_380_amplitude()
+    })    
+    
+    
+# Summary for amplitudes
+    
+    # 340
+    df_340_summary <- eventReactive(eventExpr = {input$amplitudeStat},
+                                    valueExpr = {
+                                      req(input$clean_file)
+                                      summarize_amplitudes(df_340_amplitude())
+                                    })
+    
+    # 380
+    df_380_summary <- eventReactive(eventExpr = {input$amplitudeStat},
+                                    valueExpr = {
+                                      req(input$clean_file)
+                                      summarize_amplitudes(df_380_amplitude())
+                                    })
+    
+    # Ratio
+    df_ratio_summary <- eventReactive(eventExpr = {input$amplitudeStat},
+                                    valueExpr = {
+                                      req(input$clean_file)
+                                      summarize_amplitudes(df_ratio_amplitude())
+                                    })
+    
+    # Custom Ratio
+    df_custom_ratio_summary <- eventReactive(eventExpr = {input$amplitudeStat},
+                                    valueExpr = {
+                                      req(input$clean_file)
+                                      summarize_amplitudes(df_custom_ratio_amplitude())
+                                    })
+    
+    
+# Save DATA ANALIZING AMPLITUDES as excel file
+    
+    output$SaveXlsAmpl <- downloadHandler(
+      filename = function() {"Amplitudes.xlsx"},
+      content = function(file) {write_xlsx(list('340'=df_340_amplitude(), 
+                                                '380'=df_380_amplitude(), 
+                                                'ratio' = df_ratio_amplitude(), 
+                                                'custom_ratio' = df_custom_ratio_amplitude(),
+                                                '340_summary' = df_340_summary(),
+                                                '380_summary' = df_380_summary(),
+                                                'ratio_summary' = df_ratio_summary(),
+                                                'custom_ratio_summary' = df_custom_ratio_summary()
+                                                ), path = file)}
+    )
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 } # level 0

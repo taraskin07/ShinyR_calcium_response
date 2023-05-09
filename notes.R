@@ -300,12 +300,47 @@ View(gr)
 
 clean_df <- read_excel("test/CleanTable.xlsx", sheet = "ratio")
 clean_df <- read_excel("test/CleanTable.xlsx", sheet = "340")
+clean_df_380 <- read_excel("test/CleanTable.xlsx", sheet = "380")
 
-amplitude <- find_amplitude(clean_df, 23, 202)
+amplitude <- find_amplitude(clean_df, 0, 120)
+amplitude <- find_amplitude_380(clean_df_380, 0, 120)
+
+ampl_calculating <- amplitude %>% 
+  summarize(
+    Amplitude_average = decim(mean(Amplitude, na.rm = T), 3),
+    Amplitude_SD = decim(sd(Amplitude, na.rm = T), 3),
+    Amplitude_3SD = decim(3*Amplitude_SD, 3),
+    Amplitude_SE_percent = decim(100*Amplitude_SD/Amplitude_average, 1),
+    Average_Baseline_SE = decim(mean(Baseline_SE, na.rm = T), 1),
+    Amount_of_cells = nrow(amplitude)
+  )
+
 
 colnames(amplitude)
 
 
+asdgvaegva <- summarize_amplitudes(amplitude)
 
 
+
+# ROUNDING VALUES
+
+
+decim <- function(number, digits) {
+  
+  
+  round_result <- as.numeric(format(round(number, digits), nsmall = digits))
+  
+  return(round_result)
+}
+
+
+x <- 4.3457
+x <- '4.345'
+x <- 4.345
+x <- 41345134651.345
+x <- 4.345
+
+typeof(decim3(x))
+decim(x, 3)
 
