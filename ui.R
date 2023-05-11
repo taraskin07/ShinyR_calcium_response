@@ -66,13 +66,11 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
       # Tabs
       tabsetPanel(type = "tabs",
                   
+                  tabPanel("Ratio", DT::dataTableOutput("df_ratio")),
+                  
                   tabPanel("340", DT::dataTableOutput("df_340")),
 
                   tabPanel("380", DT::dataTableOutput("df_380")),
-
- 
-                  tabPanel("Ratio", DT::dataTableOutput("df_ratio")),
-
 
                   tabPanel("Custom Ratio", DT::dataTableOutput("df_custom_ratio")),
                   )
@@ -103,12 +101,12 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
   mainPanel(
   # Tabs
   tabsetPanel(type = "tabs",
+              
+              tabPanel("Ratio", DT::dataTableOutput("df_ratio_basic_stat_out")),
+              
               tabPanel("340", DT::dataTableOutput("df_340_basic_stat_out")),
 
               tabPanel("380", DT::dataTableOutput("df_380_basic_stat_out")),
-
-
-              tabPanel("Ratio", DT::dataTableOutput("df_ratio_basic_stat_out")),
 
 
               tabPanel("Custom Ratio", DT::dataTableOutput("df_custom_ratio_basic_stat_out")),
@@ -155,14 +153,16 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
     # Tabs
     tabsetPanel(type = "tabs",
                 
+                tabPanel("Ratio", plotlyOutput("plot_ratio") # /level 5, /box 3, plotlyOutput
+                ), # /level 4, /box 3, tabPanel Ratio
+                
+                
                 tabPanel("340", plotlyOutput("plot340") # /level 5, /box 3, plotlyOutput
                         ), # /level 4, /box 3, tabPanel 340
 
                 tabPanel("380", plotlyOutput("plot380") # /level 5, /box 3, plotlyOutput
                         ), # /level 4, /box 3, tabPanel 380
                 
-                tabPanel("Ratio", plotlyOutput("plot_ratio") # /level 5, /box 3, plotlyOutput
-                        ), # /level 4, /box 3, tabPanel Ratio
                 
                 tabPanel("Custom Ratio", plotlyOutput("plot_custom_ratio") # /level 5, /box 3, plotlyOutput
                         ), # /level 4, /box 3, tabPanel Custom Ratio
@@ -253,13 +253,11 @@ mainPanel(
   # Tabs
   tabsetPanel(type = "tabs",
               
+              tabPanel("Ratio", DT::dataTableOutput("cl_ratio")),
+              
               tabPanel("340", DT::dataTableOutput("cl_340")),
               
               tabPanel("380", DT::dataTableOutput("cl_380")),
-              
-              
-              tabPanel("Ratio", DT::dataTableOutput("cl_ratio")),
-              
               
               tabPanel("Custom Ratio", DT::dataTableOutput("cl_custom_ratio")),
   )
@@ -297,14 +295,13 @@ tabsetPanel(
 mainPanel(
   # Tabs
   tabsetPanel(type = "tabs",
+              
+              tabPanel("Ratio", DT::dataTableOutput("df_ratio_amplitude_out")),
+              
               tabPanel("340", DT::dataTableOutput("df_340_amplitude_out")),
  
               tabPanel("380", DT::dataTableOutput("df_380_amplitude_out")),
 
-
-              tabPanel("Ratio", DT::dataTableOutput("df_ratio_amplitude_out")),
- 
- 
               tabPanel("Custom Ratio", DT::dataTableOutput("df_custom_ratio_amplitude_out")),
   )
 ), # /level 2, /box 2, mainPanel Analyzing amplitude
