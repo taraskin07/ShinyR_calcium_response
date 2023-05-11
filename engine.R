@@ -51,6 +51,13 @@ reading_xls <- function(file, disp_opt, correct_time, change_names, cnames, shee
 }
 
 
+# Extracting name ---------------------------------------------------------
+
+filename <- function(file_name, str_name){
+  name <- unlist(strsplit(toString(file_name), split = '[.]'))
+  res_name <- paste(name[1], str_name, sep='-')
+  return(res_name)
+}
 
 # Correcting Time columns -------------------------------------------------
 time_col_name <- function(datafr) {
@@ -104,9 +111,9 @@ basic_statistics <- function(df) {
 
 ggplotly_render <- function(df_n) {
   df <- df_n %>% 
-    pivot_longer(!Time, names_to = "cells", values_to = "r.u.") 
+    pivot_longer(!Time, names_to = "cells", values_to = "Signal") 
   
-  p <- ggplot(df, aes(Time, r.u., group = cells, color = cells)) + geom_line(size=0.5)+ geom_point(size = 0.2)
+  p <- ggplot(df, aes(Time, Signal, group = cells, color = cells)) + geom_line(size=0.5)+ geom_point(size = 0.2)
   return(ggplotly(p))
 }
 
@@ -189,7 +196,7 @@ find_amplitude <- function(clean_df, min_time, max_time) {
   result_min <- summarize(group_by(subset_timerange, cell),
                           Baseline_Average = decim((mean(value, na.rm = T)), 3), 
                           Baseline_SD = decim(sd(value, na.rm = T), 3),
-                          Baseline_SE = decim(100*sd(value, na.rm = T)/mean(value, na.rm = T), 0),
+                          Baseline_CV = decim(100*sd(value, na.rm = T)/mean(value, na.rm = T), 0),
                           Baseline_Minimum = decim(min(value, na.rm = T), 3),
                           Baseline_Min_Time = paste(Time[which(value == Baseline_Minimum)], collapse = ", "))
   
@@ -201,7 +208,7 @@ find_amplitude <- function(clean_df, min_time, max_time) {
     add_column(Difference = (result_amplitude$Maximum - result_amplitude$Baseline_Minimum)) %>% 
     add_column(Amplitude = (result_amplitude$Maximum - as.numeric(result_amplitude$Baseline_Average))) %>% 
     arrange(factor(cell, cell_index)) %>% 
-    select(cell, Amplitude, Maximum, Baseline_Average, Baseline_SD, Baseline_SE, Baseline_Minimum, Difference, Global_Min_Values, Global_Min_Time, Baseline_Min_Time, Max_Time)
+    select(cell, Amplitude, Maximum, Baseline_Average, Baseline_SD, Baseline_CV, Baseline_Minimum, Difference, Global_Min_Values, Global_Min_Time, Baseline_Min_Time, Max_Time)
   
   return(result_amplitude_final)
 
@@ -237,7 +244,7 @@ find_amplitude_380 <- function(clean_df, min_time, max_time) {
   result_max <- summarize(group_by(subset_timerange, cell),
                           Baseline_Average = decim((mean(value, na.rm = T)), 3), 
                           Baseline_SD = decim(sd(value, na.rm = T), 3),
-                          Baseline_SE = decim(100*sd(value, na.rm = T)/mean(value, na.rm = T), 0),
+                          Baseline_CV = decim(100*sd(value, na.rm = T)/mean(value, na.rm = T), 0),
                           Baseline_Maximum = decim(max(value, na.rm = T), 3),
                           Baseline_Max_Time = paste(Time[which(value == Baseline_Maximum)], collapse = ", "))
   
@@ -249,7 +256,7 @@ find_amplitude_380 <- function(clean_df, min_time, max_time) {
     add_column(Difference = -(result_amplitude$Minimum - result_amplitude$Baseline_Maximum)) %>% 
     add_column(Amplitude = -(result_amplitude$Minimum - as.numeric(result_amplitude$Baseline_Average))) %>% 
     arrange(factor(cell, cell_index)) %>% 
-    select(cell, Amplitude, Minimum, Baseline_Average, Baseline_SD, Baseline_SE, Baseline_Maximum, Difference, Global_Max_Values, Global_Max_Time, Baseline_Max_Time, Min_Time)
+    select(cell, Amplitude, Minimum, Baseline_Average, Baseline_SD, Baseline_CV, Baseline_Maximum, Difference, Global_Max_Values, Global_Max_Time, Baseline_Max_Time, Min_Time)
   
   return(result_amplitude_final)
 
@@ -285,8 +292,8 @@ ampl_calculating <- amplitude %>%
     Amplitude_average = decim(mean(Amplitude, na.rm = T), 3),
     Amplitude_SD = decim(sd(Amplitude, na.rm = T), 3),
     Amplitude_3SD = decim(3*Amplitude_SD, 3),
-    Amplitude_SE_percent = decim(100*Amplitude_SD/Amplitude_average, 1),
-    Average_Baseline_SE_percent = decim(mean(Baseline_SE, na.rm = T), 1),
+    Amplitude_CV_percent = decim(100*Amplitude_SD/Amplitude_average, 1),
+    Average_Baseline_CV_percent = decim(mean(Baseline_CV, na.rm = T), 1),
     Amount_of_cells = nrow(amplitude)
   )
 

@@ -344,3 +344,15 @@ x <- 4.345
 typeof(decim3(x))
 decim(x, 3)
 
+
+
+
+# name constructor --------------------------------------------------------
+
+fn <- "ProcessedTable.xlsx"
+
+filename(fn,fn)
+
+strsplit('ProcessedTable.xlsx', split = "[.]")
+
+

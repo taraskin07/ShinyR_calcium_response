@@ -52,7 +52,7 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
       radioButtons("disp", "Display",
                    choices = c(Head = "head",
                                All = "all"),
-                   selected = "head"),
+                   selected = "all"),
       
       # Save as excel file
       downloadButton("SaveXlsBox1", "Save as excel file")

@@ -95,7 +95,7 @@ server <- function(input, output) {
   
   # Save as excel file
   output$SaveXlsBox1 <- downloadHandler(
-    filename = function() { "ProcessedTable.xlsx"},
+    filename = function() { filename(input$fluorescence, "ProcessedTable.xlsx")},
     content = function(file) {write_xlsx(list('340'=df_340_ready(), '380'=df_380_ready(), 'ratio' = df_ratio_ready(), 'custom_ratio' = df_custom_ratio_ready()), path = file)}
   )
   
@@ -206,7 +206,7 @@ server <- function(input, output) {
   
   # Save BASIC STATISTICS as excel file
   output$SaveXlsBoxStat <- downloadHandler(
-    filename = function() {"BasicStatisticsTable.xlsx"},
+    filename = function() {filename(input$fluorescence, "BasicStatisticsTable.xlsx")},
     content = function(file) {write_xlsx(list('340'=cell_number_row(df_340_basic_stat_table()), '380'=cell_number_row(df_380_basic_stat_table()), 'ratio' = cell_number_row(df_ratio_basic_stat_table()), 'custom_ratio' = cell_number_row(df_custom_ratio_basic_stat_table())), path = file)}
     )
 
@@ -394,7 +394,7 @@ server <- function(input, output) {
       # Save DATA WITHOUT BAD CELLS as excel file
     
       output$SaveXlsBoxNoBadCells <- downloadHandler(
-        filename = function() {"CleanTable.xlsx"},
+        filename = function() {filename(input$fluorescence, "CleanTable.xlsx")},
         content = function(file) {write_xlsx(list('340'=df_340_excluded(), '380'=df_380_excluded(), 'ratio' = df_ratio_excluded(), 'custom_ratio' = df_custom_ratio_excluded(), 'excluded_cells' = as.data.frame(rmcellValues$cList)), path = file)}
       )
     
@@ -634,7 +634,7 @@ server <- function(input, output) {
 # Save DATA ANALIZING AMPLITUDES as excel file
     
     output$SaveXlsAmpl <- downloadHandler(
-      filename = function() {"Amplitudes.xlsx"},
+      filename = function() {filename(input$fluorescence, "Amplitudes.xlsx")},
       content = function(file) {write_xlsx(list('340'=df_340_amplitude(), 
                                                 '380'=df_380_amplitude(), 
                                                 'ratio' = df_ratio_amplitude(), 
