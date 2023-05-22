@@ -1,101 +1,3 @@
-fileInput("fluorescence", "Choose the excel File",
-          multiple = FALSE,
-          accept = c(".xls",
-                     ".xlsx"))
-
-module_UI_input_excel_data <- function(id, label = "Choose the excel File") {
-  # `NS(id)` returns a namespace function, which was save as `ns` and will
-  # invoke later.
-  ns <- NS(id)
-  
-  tagList(
-    # Input: Select a file ----
-    fileInput(ns("fluorescence"), label = "Choose the excel File",
-              multiple = FALSE,
-              accept = c(".xls",
-                         ".xlsx")),
-    
-    # Horizontal line ----
-    tags$hr(),
-    
-    
-    # Input: Checkbox if file has header ----
-    checkboxInput(ns("340"), "sheet 340", TRUE),
-    checkboxInput(ns("380"), "sheet 380", TRUE),
-    checkboxInput(ns("Ratio"), "sheet Ratio", TRUE),
-    
-    
-    # Horizontal line ----
-    tags$hr(),
-    
-    # Input: Select number of rows to display ----
-    radioButtons(ns("disp"), "Display",
-                 choices = c(Head = "head",
-                             All = "all"),
-                 selected = "head")
-  )
-}
-
-
-module_UI_input_excel_data(id='fluorescence_data')
-
-
-
-# Module UI function
-module_UI_myModule <- function(id, label = "my_label") {
-  # `NS(id)` returns a namespace function, which was save as `ns` and will
-  # invoke later.
-  ns <- NS(id)
-  
-  tagList(
-    fileInput(ns("file"), label),
-    checkboxInput(ns("heading"), "Has heading")
-  )
-}
-
-
-# Module server function
-module_Server_myModule <- function(id, any_variable) {
-  moduleServer(
-    id,
-    ## Below is the module function
-    function(input, output, session) {
-      # The selected file, if any
-      userFile <- reactive({
-        # If no file is selected, don't do anything
-        validate(need(input$file, message = FALSE))
-        input$file
-      })
-      
-      # The user's data, parsed into a data frame
-      dataframe <- reactive({
-        read.csv(userFile()$datapath,
-                 header = input$heading,
-                 quote = input$quote,
-                 stringsAsFactors = stringsAsFactors)
-      })
-      
-      # We can run observers in here if we want to
-      observe({
-        msg <- sprintf("File %s was uploaded", userFile()$name)
-        cat(msg, "\n")
-      })
-      
-      # Return the reactive that yields the data frame
-      return(dataframe)
-    }
-  )    
-}
-
-
-
-
-
-
-
-
-
-
 
 
 library(readxl)
@@ -356,3 +258,46 @@ filename(fn,fn)
 strsplit('ProcessedTable.xlsx', split = "[.]")
 
 
+
+# Correcting numbers ------------------------------------------------------
+
+dfr <- read_excel("files/2022-02-25-mpkCCD002-Raw(UTP).xlsx", sheet = "Ratio")
+
+dfr_r <- rename_columns(dfr, 'something-')
+
+
+adding_zeroes <- function(vctr) {
+  
+  if (stringr::str_length(vctr)==1) {strnum <- paste0('00', vctr)
+  } else if (stringr::str_length(vctr)==2) {strnum <- paste0('0', vctr)
+  } else {strnum <- toString(vctr)}
+  
+  return(strnum)
+}
+
+adding_zeroes_vect <- Vectorize(adding_zeroes)
+
+rename_columns_zeros <- function(df, cnames) {
+  
+  df_output <- df %>% 
+    rename_with(.cols = contains("#"), # selects only the data columns
+                ~ paste0(cnames, unname(sapply(str_remove(stringr::str_split_i(.x, " ", 1), "#"), adding_zeroes)) 
+                )
+    )
+  return(df_output)
+}
+
+str_remove(stringr::str_split_i(colnames(dfr)[-1], " ", 1), "#")
+sdfads <- adding_zeroes_vect(str_remove(stringr::str_split_i(colnames(dfr)[-1], " ", 1), "#"))
+sdfads[1]
+
+typeof(sdfads[1])
+strres <- adding_zeroes_vect(c('1', '20', '456'))
+
+adding_zeroes_vect(strres)
+
+unname(sapply(strres, adding_zeroes))
+
+adsasdasd <- rename_columns_zeros(dfr,'something-')
+
+paste0('something-', strres)

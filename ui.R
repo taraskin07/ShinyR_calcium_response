@@ -42,11 +42,22 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
       tags$hr(),
       
       actionButton("correct_time", "Correct 'Time' column"),
+      tags$br(),
       tags$hr(),
-      actionButton("change_names", "Change columns names"),
+      radioButtons("change_names", "Change columns names",
+                   choices = c(No_changes = "no_changes",
+                               Number_only = "number",
+                               Zeroes_in_front = "zeroes"),
+                   selected = "no_changes"),
+
       # Horizontal line ----
       tags$hr(),
+      
       textInput('cellName', label = 'Enter new column names', value = "cell-"),
+      actionButton("change_names_button", "Change columns names"),
+      
+      tags$hr(),
+      
       
       # Input: Select number of rows to display ----
       radioButtons("disp", "Display",

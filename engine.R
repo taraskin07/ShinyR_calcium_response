@@ -36,7 +36,10 @@ reading_xls <- function(file, disp_opt, correct_time, change_names, cnames, shee
     df <- time_col_name(df)
   }
 
-  if((change_names%%2) == 1) {
+  
+  if(change_names== "zeroes") {
+    df <- rename_columns_zeros(df, cnames)
+  } else if(change_names== "number") {
     df <- rename_columns(df, cnames)
   }
   
@@ -81,6 +84,16 @@ rename_columns <- function(df, cnames) {
   return(df_output)
 }
 
+
+rename_columns_zeros <- function(df, cnames) {
+  
+  df_output <- df %>% 
+    rename_with(.cols = contains("#"), # selects only the data columns
+                ~ paste0(cnames, unname(sapply(str_remove(stringr::str_split_i(.x, " ", 1), "#"), adding_zeroes)) 
+                )
+    )
+  return(df_output)
+}
 
 
 # Dividing values of 340 & 380 dataframes -> custom_ratio -----------------

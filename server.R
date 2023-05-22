@@ -22,6 +22,7 @@ server <- function(input, output) {
                                              input$disp
                                              input$correct_time
                                              input$change_names
+                                             input$change_names_button
                                              input$c340},
                                 valueExpr = {
                                   req(input$fluorescence)
@@ -41,6 +42,7 @@ server <- function(input, output) {
                                              input$disp
                                              input$correct_time
                                              input$change_names
+                                             input$change_names_button
                                              input$c380},
                                 valueExpr = {
                                   req(input$fluorescence)
@@ -60,6 +62,7 @@ server <- function(input, output) {
                                                input$disp
                                                input$correct_time
                                                input$change_names
+                                               input$change_names_button
                                                input$cRatio},
                                 valueExpr = {
                                   req(input$fluorescence)
@@ -77,6 +80,7 @@ server <- function(input, output) {
                                                       input$disp
                                                       input$correct_time
                                                       input$change_names
+                                                      input$change_names_button
                                                       input$c340
                                                       input$c380},
                                           valueExpr = {
@@ -237,27 +241,27 @@ server <- function(input, output) {
     observeEvent(input$plot_single, {
       
       output$plot340 <- renderPlotly({
-        req(input$cell_to_plot, input$cellName, df_340_basic_stat())
+        req(input$cell_to_plot, df_340_basic_stat())
         ggplotly_render(get_col_names(df_340_basic_stat(), input$cellName, input$cell_to_plot))})
       
       
       
       output$plot380 <- renderPlotly({
-        req(input$cell_to_plot, input$cellName, df_380_basic_stat())
+        req(input$cell_to_plot, df_380_basic_stat())
         ggplotly_render(get_col_names(df_380_basic_stat(), input$cellName, input$cell_to_plot))})
 
       
       
       
       output$plot_ratio <- renderPlotly({
-        req(input$cell_to_plot, input$cellName, df_ratio_basic_stat())
+        req(input$cell_to_plot, df_ratio_basic_stat())
         ggplotly_render(get_col_names(df_ratio_basic_stat(), input$cellName, input$cell_to_plot))
       })
       
       
       
       output$plot_custom_ratio <- renderPlotly({
-      req(input$cell_to_plot, input$cellName, df_custom_ratio_basic_stat())
+      req(input$cell_to_plot, df_custom_ratio_basic_stat())
       ggplotly_render(get_col_names(df_custom_ratio_basic_stat(), input$cellName, input$cell_to_plot))
     })
   
