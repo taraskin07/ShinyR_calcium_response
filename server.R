@@ -242,27 +242,27 @@ server <- function(input, output) {
       
       output$plot340 <- renderPlotly({
         req(input$cell_to_plot, df_340_basic_stat())
-        ggplotly_render(get_col_names(df_340_basic_stat(), input$cellName, input$cell_to_plot))})
+        ggplotly_render(get_col_names(df_340_basic_stat(), input$cellName, input$cell_to_plot, format = input$change_names))})
       
       
       
       output$plot380 <- renderPlotly({
         req(input$cell_to_plot, df_380_basic_stat())
-        ggplotly_render(get_col_names(df_380_basic_stat(), input$cellName, input$cell_to_plot))})
+        ggplotly_render(get_col_names(df_380_basic_stat(), input$cellName, input$cell_to_plot, format = input$change_names))})
 
       
       
       
       output$plot_ratio <- renderPlotly({
         req(input$cell_to_plot, df_ratio_basic_stat())
-        ggplotly_render(get_col_names(df_ratio_basic_stat(), input$cellName, input$cell_to_plot))
+        ggplotly_render(get_col_names(df_ratio_basic_stat(), input$cellName, input$cell_to_plot, format = input$change_names))
       })
       
       
       
       output$plot_custom_ratio <- renderPlotly({
       req(input$cell_to_plot, df_custom_ratio_basic_stat())
-      ggplotly_render(get_col_names(df_custom_ratio_basic_stat(), input$cellName, input$cell_to_plot))
+      ggplotly_render(get_col_names(df_custom_ratio_basic_stat(), input$cellName, input$cell_to_plot, format = input$change_names))
     })
   
   
@@ -272,16 +272,18 @@ server <- function(input, output) {
     # Now creating reactive values list of cells to include
     
     rmcellValues <- reactiveValues()
-    
+      
     
     # Buttons to Exclude/Undo/Include/Reset cells 
     
     observeEvent(input$exclude_cell, {
-      rmcellValues$cList <- unique(c(isolate(rmcellValues$cList), isolate(paste0(input$cellName, input$cell_to_plot))))
+      
+      
+      rmcellValues$cList <- unique(c(isolate(rmcellValues$cList), isolate(constructing_names(input$cellName, input$cell_to_plot, format = input$change_names))))
       
       
       output$list_of_cells<-renderPrint({
-        rmcellValues$cList
+        gtools::mixedsort(rmcellValues$cList, decreasing = T)
       })
       }) # /level 1, observeEvent input$exclude_cell
     
@@ -300,19 +302,19 @@ server <- function(input, output) {
       
       
       output$list_of_cells<-renderPrint({
-        rmcellValues$cList
+        gtools::mixedsort(rmcellValues$cList, decreasing = T)
       })
     }) # /level 1, observeEvent input$exclude_undo
     
     observeEvent(input$include_cell, {
       req(rmcellValues$cList)
-      rmcellValues$cList <- rmcellValues$cList[!rmcellValues$cList == isolate(paste0(input$cellName, input$cell_to_plot))]
+      rmcellValues$cList <- rmcellValues$cList[!rmcellValues$cList == isolate(constructing_names(input$cellName, input$cell_to_plot, format = input$change_names))]
       
       
       output$list_of_cells<-renderPrint({
-        rmcellValues$cList
+        gtools::mixedsort(rmcellValues$cList, decreasing = T)
       })
-    }) # /level 1, observeEvent input$exclude_undo
+    }) # /level 1, observeEvent input$include_cell
     
     
     
@@ -399,7 +401,7 @@ server <- function(input, output) {
     
       output$SaveXlsBoxNoBadCells <- downloadHandler(
         filename = function() {filename(input$fluorescence, "CleanTable.xlsx")},
-        content = function(file) {write_xlsx(list('340'=df_340_excluded(), '380'=df_380_excluded(), 'ratio' = df_ratio_excluded(), 'custom_ratio' = df_custom_ratio_excluded(), 'excluded_cells' = as.data.frame(rmcellValues$cList)), path = file)}
+        content = function(file) {write_xlsx(list('340'=df_340_excluded(), '380'=df_380_excluded(), 'ratio' = df_ratio_excluded(), 'custom_ratio' = df_custom_ratio_excluded(), 'excluded_cells' = data.frame(Excluded_cells=gtools::mixedsort(rmcellValues$cList, decreasing = T))), path = file)}
       )
     
 
@@ -520,6 +522,13 @@ server <- function(input, output) {
     }) # level 1 - output$cl_custom_ratio    
    
     
+# Excluded cells    
+    df_excluded_cells_list <- eventReactive(eventExpr = {input$clean_file},
+                                            valueExpr = {
+                                              req(input$clean_file)
+                                              read_excel(input$clean_file$datapath,
+                                                         sheet='excluded_cells')
+                                              }) # level 1 - df_excluded_cells_list  
     
     # Calculating amplitudes
     
@@ -530,7 +539,7 @@ server <- function(input, output) {
       valueExpr = {
         req(input$clean_file)
         req(input$cl340)
-        find_amplitude(df_340_clean(), input$min_time, input$max_time)
+        find_amplitude(df_340_clean(), input$min_time, input$max_time, input$start_time, input$end_time)
         
       }
     )
@@ -550,7 +559,7 @@ server <- function(input, output) {
       valueExpr = {
         req(input$clean_file)
         req(input$clRatio)
-        find_amplitude(df_ratio_clean(), input$min_time, input$max_time)
+        find_amplitude(df_ratio_clean(), input$min_time, input$max_time, input$start_time, input$end_time)
         
       }
     )
@@ -568,7 +577,7 @@ server <- function(input, output) {
     df_custom_ratio_amplitude <- eventReactive(eventExpr = {input$amplitudeStat},
       valueExpr = {
         req(input$clean_file)
-        find_amplitude(df_custom_ratio_clean(), input$min_time, input$max_time)
+        find_amplitude(df_custom_ratio_clean(), input$min_time, input$max_time, input$start_time, input$end_time)
         
       }
     )
@@ -591,7 +600,7 @@ server <- function(input, output) {
       valueExpr = {
         req(input$clean_file)
         req(input$cl380)
-        find_amplitude_380(df_380_clean(), input$min_time, input$max_time)
+        find_amplitude_380(df_380_clean(), input$min_time, input$max_time, input$start_time, input$end_time)
         
       }
     )
@@ -610,28 +619,28 @@ server <- function(input, output) {
     df_340_summary <- eventReactive(eventExpr = {input$amplitudeStat},
                                     valueExpr = {
                                       req(input$clean_file)
-                                      summarize_amplitudes(df_340_amplitude())
+                                      summarize_amplitudes(df_340_amplitude(), df_excluded_cells_list())
                                     })
     
     # 380
     df_380_summary <- eventReactive(eventExpr = {input$amplitudeStat},
                                     valueExpr = {
                                       req(input$clean_file)
-                                      summarize_amplitudes(df_380_amplitude())
+                                      summarize_amplitudes(df_380_amplitude(), df_excluded_cells_list())
                                     })
     
     # Ratio
     df_ratio_summary <- eventReactive(eventExpr = {input$amplitudeStat},
                                     valueExpr = {
                                       req(input$clean_file)
-                                      summarize_amplitudes(df_ratio_amplitude())
+                                      summarize_amplitudes(df_ratio_amplitude(), df_excluded_cells_list())
                                     })
     
     # Custom Ratio
     df_custom_ratio_summary <- eventReactive(eventExpr = {input$amplitudeStat},
                                     valueExpr = {
                                       req(input$clean_file)
-                                      summarize_amplitudes(df_custom_ratio_amplitude())
+                                      summarize_amplitudes(df_custom_ratio_amplitude(), df_excluded_cells_list())
                                     })
     
     

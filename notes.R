@@ -264,7 +264,7 @@ strsplit('ProcessedTable.xlsx', split = "[.]")
 dfr <- read_excel("files/2022-02-25-mpkCCD002-Raw(UTP).xlsx", sheet = "Ratio")
 
 dfr_r <- rename_columns(dfr, 'something-')
-
+mixedsort(colnames(dfr_r)[-1], decreasing = T)
 
 adding_zeroes <- function(vctr) {
   
@@ -301,3 +301,131 @@ unname(sapply(strres, adding_zeroes))
 adsasdasd <- rename_columns_zeros(dfr,'something-')
 
 paste0('something-', strres)
+
+
+
+
+# Plots and legend --------------------------------------------------------
+
+dfr <- read_excel("files/2022-02-25-mpkCCD002-Raw(UTP).xlsx", sheet = "Ratio")
+
+dfr_r <- rename_columns(dfr, 'newcell-')
+dfr_r <- time_col_name(dfr_r)
+c(mixedsort(colnames(dfr_r)[-1], decreasing = T))[1]
+
+
+looping_values <- function(vvector) {
+  
+  for (i in vvector) {
+    if (i==vvector[1]) {f <- i} else {
+      f <- paste(f, i, sep = ', ')}
+  }
+  return(f)
+}
+
+g <- c(c(mixedsort(colnames(dfr_r)[-1], decreasing = T))[1], c(mixedsort(colnames(dfr_r)[-1], decreasing = T))[2])
+looping_values(g)
+
+
+ssdfsdfs <- c(paste(mixedsort(colnames(dfr_r)[-1], decreasing = T), collapse = ", "))
+ssdfsdfs
+looping_values(mixedsort(colnames(dfr_r)[-1], decreasing = T))
+
+
+df <- dfr_r %>% 
+  pivot_longer(!Time, names_to = "cells", values_to = "Signal") %>% 
+  mutate(cells=factor(cells))
+
+
+df
+
+df$cells
+
+View(df)
+
+ggplotly_render2 <- function(df_n) {
+  df <- df_n %>% 
+    pivot_longer(!Time, names_to = "cells", values_to = "Signal") 
+
+  
+  # Reordering legend using 'mixedsort' from 'gtools'
+  
+  p <- ggplot(df, aes(Time, Signal, group=cells, color = cells)) + geom_line(size=0.5) + geom_point(size = 0.2)
+  
+  return(ggplotly(p))
+  # return(p)
+  # 
+}
+
+
+
+sort_legend_labels <- function(plotly_plot) {
+  plotly_plot$x$data$cells <- gtools::mixedorder(plotly_plot$x$data$cells)
+  plotly_plot
+}
+
+
+ggplotly_render2(dfr_r)
+p <- ggplotly_render2(dfr_r)
+p$data$cells
+p$data$cells <- gtools::mixedsort(p$data$cells)
+
+
+
+
+gtools::mixedorder(p$x$data, decreasing = T)[2]
+
+p %>%
+  plotly::ggplotly() %>%
+  sort_legend_labels()
+
+ggplotly(p)
+
+
+
+type <- toVector(mixedsort(colnames(dfr_r)[-1], decreasing = T))
+c(mixedsort(colnames(dfr_r)[-1], decreasing = T))
+typeof(type)
+ggplotly_render2(dfr_r)
+
+
+
+
+
+# Correcting statistics ---------------------------------------------------
+dfr <- read_excel("files/2022-02-25-mpkCCD002-Raw(UTP).xlsx", sheet = "Ratio")
+
+dfr_r <- rename_columns(dfr, 'newcell-')
+dfr_r <- time_col_name(dfr_r)
+
+df <- dfr_r %>% 
+  distinct(across(-1))
+
+
+res <- stat.desc(df)
+res_t <- as.data.frame(t(as.matrix(res)))
+
+res_a <- data.frame(Cell = rownames(res_t), Min = decim(res_t$min, 3), Max = decim(res_t$max, 3), Difference = decim(res_t$range, 3), Mean = decim(res_t$mean, 3), Median = decim(res_t$median, 3), SD.mean = decim(res_t$std.dev, 3), SE.mean = decim(res_t$SE.mean, 3), N = res_t$nbr.val, Missing = res_t$nbr.na)
+
+
+
+
+
+
+
+
+
+
+# Amount of bad cells -----------------------------------------------------
+
+
+dfe <- read_excel("files/2023-04-25-mpkCCD004-CleanTable.xlsx", sheet = "excluded_cells")
+dfr <- read_excel("files/2023-04-25-mpkCCD004-CleanTable.xlsx", sheet = "ratio")
+
+nrow(dfe)
+
+fa <- find_amplitude(dfr, 0, 120)
+
+sm <- summarize_amplitudes(fa, dfe)
+
+sm1 <- summarize_amplitudes(fa, dfe)
