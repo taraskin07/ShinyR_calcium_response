@@ -16,7 +16,7 @@ finding_shifted_curve <- function(df, main_cell_number, max_lag) {
   time_col <- '((T|t)ime\\s?)'
   coln_df <- list_of_names[!grepl(time_col, list_of_names)]
   
-  match <- paste0('\\D', main_cell_number, '$')
+  match <- paste0('(\\D|0+)', main_cell_number, '$')
   reference <- list_of_names[grepl(match, list_of_names)]
   main_cell <- list_of_names[grepl(match, list_of_names)]
   
@@ -78,6 +78,12 @@ shifting_curves <- function(df, shifted_reference, max_lag) {
 }
 
 dfr <- read_excel("~/calcium_data/timeseries/2023-04-05/No_Shaking_no_AVP/processed/CleanTable/2023-04-05-mpkCCD006-CleanTable.xlsx")
+
+
+dfr<- read_excel("~/Rprojects/Test_files/2023-04-29-mpkCCD007-CleanTable.xlsx", sheet='ratio')
+
+
+
 ggplotly_render(dfr)
 
 my_dfr <- dfr %>% 
@@ -86,8 +92,19 @@ my_dfr <- dfr %>%
 my_dfr2 <- my_dfr[,c('Time', 'Average')]
 ggplotly_render(my_dfr2)
 
-shifted_cell <- finding_shifted_curve(dfr, 3, max_lag=50)
+
+
+
+
+shifted_cell <- finding_shifted_curve(dfr, 12, max_lag=50)
+
 my_result <- na.omit(shifting_curves(dfr, shifted_cell, max_lag=50))
+
+
+
+
+
+
 
 my_mean <- my_result %>% 
   add_column(Average = rowMeans(my_result[-1]))

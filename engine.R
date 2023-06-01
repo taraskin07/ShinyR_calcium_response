@@ -251,10 +251,11 @@ find_amplitude <- function(clean_df, min_time, max_time, start_time, end_time) {
   
   # Minimum values for baseline subset
   result_min <- summarize(group_by(subset_timerange, cell),
-                          Baseline_Average = decim((median(value, na.rm = T)), 3), 
+                          Baseline_Median = decim((median(value, na.rm = T)), 3), 
                           Baseline_SD = decim(sd(value, na.rm = T), 3),
                           Baseline_CV = decim(100*sd(value, na.rm = T)/mean(value, na.rm = T), 0),
                           Baseline_Minimum = decim(min(value, na.rm = T), 3),
+                          Baseline_Mean = decim(mean(value, na.rm = T), 3),
                           Baseline_Min_Time = paste(Time[which(value == Baseline_Minimum)], collapse = ", "))
   
   # Inner join of two resulting tables
@@ -264,13 +265,13 @@ find_amplitude <- function(clean_df, min_time, max_time, start_time, end_time) {
   # Adding additional columns - Difference and Amplitude
   result_amplitude_final <- result_amplitude %>% 
     add_column(
-      Difference = decim((result_amplitude$Maximum - result_amplitude$Baseline_Minimum), 3)
+      Difference = abs(decim((result_amplitude$Baseline_Median - result_amplitude$Baseline_Mean), 3))
       ) %>% 
     add_column(
-      Amplitude = decim((result_amplitude$Maximum - as.numeric(result_amplitude$Baseline_Average)), 3)
+      Amplitude = decim((result_amplitude$Maximum - as.numeric(result_amplitude$Baseline_Median)), 3)
       ) %>% 
     arrange(factor(cell, cell_index)) %>% 
-    select(cell, Amplitude, Maximum, Baseline_Average, Baseline_SD, Baseline_CV, Baseline_Minimum, Difference, Global_Min_Values, Global_Min_Time, Baseline_Min_Time, Max_Time, Global_Max_Time)
+    select(cell, Amplitude, Maximum, Baseline_Median, Baseline_Mean, Difference, Baseline_SD, Baseline_CV, Global_Min_Values, Global_Min_Time, Baseline_Min_Time, Max_Time, Global_Max_Time)
   
   return(result_amplitude_final)
 
@@ -312,10 +313,11 @@ find_amplitude_380 <- function(clean_df, min_time, max_time, start_time, end_tim
   
   # Maximum values for baseline subset
   result_max <- summarize(group_by(subset_timerange, cell),
-                          Baseline_Average = decim((median(value, na.rm = T)), 3), 
+                          Baseline_Median = decim((median(value, na.rm = T)), 3), 
                           Baseline_SD = decim(sd(value, na.rm = T), 3),
                           Baseline_CV = decim(100*sd(value, na.rm = T)/mean(value, na.rm = T), 0),
                           Baseline_Maximum = decim(max(value, na.rm = T), 3),
+                          Baseline_Mean = decim(mean(value, na.rm = T), 3),
                           Baseline_Max_Time = paste(Time[which(value == Baseline_Maximum)], collapse = ", "))
   
   # Inner join of two resulting tables
@@ -325,13 +327,13 @@ find_amplitude_380 <- function(clean_df, min_time, max_time, start_time, end_tim
   # Adding additional columns - Difference and Amplitude
   result_amplitude_final <- result_amplitude %>% 
     add_column(
-      Difference = -decim((result_amplitude$Minimum - result_amplitude$Baseline_Maximum), 3)
+      Difference = abs(decim((result_amplitude$Baseline_Mean - result_amplitude$Baseline_Median), 3))
       ) %>% 
     add_column(
-      Amplitude = -decim((result_amplitude$Minimum - as.numeric(result_amplitude$Baseline_Average)), 3)
+      Amplitude = -decim((result_amplitude$Minimum - as.numeric(result_amplitude$Baseline_Median)), 3)
       ) %>% 
     arrange(factor(cell, cell_index)) %>% 
-    select(cell, Amplitude, Minimum, Baseline_Average, Baseline_SD, Baseline_CV, Baseline_Maximum, Difference, Global_Max_Values, Global_Max_Time, Baseline_Max_Time, Min_Time, Global_Min_Time)
+    select(cell, Amplitude, Minimum, Baseline_Median, Baseline_Mean, Difference, Baseline_SD, Baseline_CV, Global_Max_Values, Global_Max_Time, Baseline_Max_Time, Min_Time, Global_Min_Time)
   
   return(result_amplitude_final)
 

@@ -168,3 +168,123 @@ shifting_curves <- function(df, shifted_reference, max_lag) {
 my_result <- na.omit(shifting_curves(dfr, shifted_cell, max_lag=50))
 
 ggplotly_render(my_result)
+
+
+
+
+
+
+
+
+
+
+
+min_time =0
+max_time = 500
+dftmrng <- read_excel("~/Rprojects/Test_files/2023-04-15-mpkCCD002-CleanTable.xlsx", sheet = 'ratio')
+dftmrng<- read_excel("~/Rprojects/Test_files/2023-04-15-mpkCCD002.xlsx", sheet = 'Ratio')
+
+column_names <- colnames(dftmrng)
+column_names
+
+time_col <- '((T|t)ime\\s?)'
+time_col
+time_column <- column_names[grepl(time_col, column_names)]
+time_column
+
+grep(time_col, column_names)
+
+df_time <- dftmrng
+colnames(df_time)[grep(time_col, column_names)] <-'Time'
+
+subset_timerange <- subset(df_time, (Time >= min_time & Time <= max_time))
+subset_timerange
+
+
+list_of_names <- colnames(subset_timerange)
+list_of_names
+match <- paste0('(\\D|0+)', 30, '($|\\s)')
+match
+reference <- column_names[grepl(match, list_of_names)]
+main_cell <- column_names[grepl(match, list_of_names)]
+main_cell
+reference
+
+cell_index <- grep(match, colnames(subset_timerange))
+cell_index
+colnames(subset_timerange)[cell_index]
+
+
+coln_df <- list_of_names[!grepl(time_col, list_of_names)]
+coln_df
+
+# Finding the cell with the earliest maximum, skipping the Time column (coln_df instead of list_of_names)
+for (cell in coln_df) {
+  
+    if (shift(subset_timerange[,cell], subset_timerange[,reference]) < 0) {
+    
+    reference <- cell
+    }
+  
+}
+
+
+reference
+
+
+# Shifting main series to the left in order to correlate with the reference (with the earliest maximum)
+# Cross-correlation function
+mtrx <- ccf(subset_timerange[, main_cell], subset_timerange[,reference], na.action=na.omit, plot=FALSE)
+
+
+# Dataframe with all the necessary information
+data_table <- data.frame(ACF=mtrx$acf, Lag=mtrx$lag, N=mtrx$n.used)
+
+
+
+# Position of the maximum CCF (ACF) value = lag to choose
+lag_for_max_acf <- data_table$Lag[which.max(data_table$ACF)]
+
+lag_for_max_acf <- shift(subset_timerange[, main_cell], subset_timerange[,reference])
+lag_for_max_acf
+
+
+# Shifting initial dataframe column, related to the main_cell, that was chosen by the operator
+shifted_main_cell_values <- subset_timerange[, main_cell][(lag_for_max_acf+1):nrow(subset_timerange[,main_cell]),]
+
+
+shifted_main_cell_values
+
+
+ggplotly_render(df_time[c('Time', 'cell-030', 'cell-136')])
+ggplotly_render(df_time)
+
+
+
+
+result_df <-data.frame(Time = dftmrng[, list_of_names[grepl(time_col, list_of_names)]])
+result_df
+
+
+for (cell in coln_df) {
+
+  lag_for_max_acf <- shift(subset_timerange[, cell], shifted_main_cell_values)
+  print(lag_for_max_acf)
+  cell
+  shifted_cell_values <- dftmrng[, cell][(lag_for_max_acf+1):nrow(dftmrng[, cell]),]
+  result_df <- as.data.frame(cbind.fill(result_df, shifted_cell_values))
+}
+
+
+result_df
+
+
+my_result <- na.omit(result_df)
+
+ggplotly_render(my_result)
+
+my_result
+
+shift(my_result$`cell-030`, my_result$`cell-134`)
+
+
