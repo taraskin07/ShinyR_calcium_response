@@ -1,12 +1,12 @@
 library(shiny)
 library(readxl)
-library(tidyverse)
 library(writexl)
 library(pastecs)
 library(DT)
 library(ggplot2)
 library(plotly)
 library(gtools)
+library(tidyverse)
 
 
 
