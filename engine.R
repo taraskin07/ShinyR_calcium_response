@@ -67,6 +67,9 @@ filename <- function(file_name, str_name){
 time_col_name <- function(datafr) {
   if (colnames(datafr)[1] == "Time [s]") {
     colnames(datafr)[1] =  "Time"
+  } else {
+    time_col <- '((T|t)ime\\s?)'
+    colnames(datafr)[grepl(time_col, colnames(datafr))] =  "Time"
   }
   datafr$Time <- round(datafr$Time)
   return(datafr)
