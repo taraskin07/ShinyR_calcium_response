@@ -136,15 +136,26 @@ basic_statistics <- function(df) {
 
 # Plotting ggploly graph --------------------------------------------------
 
-ggplotly_render <- function(df_n) {
+ggplotly_render <- function(df_n, baseline = FALSE, b_min = 0, b_max = 120, region = FALSE, r_min = 130, r_max = 330) {
+  
+  df_n <- time_col_name(df_n)
+  
   df <- df_n %>% 
     pivot_longer(!Time, names_to = "cells", values_to = "Signal") 
   
-  # Reordering legend using 'mixedsort' from 'gtools'
-
-  p <- ggplot(df, aes(Time, Signal, group = cells, color = cells)) + geom_line(size=0.5) + geom_point(size = 0.2) 
+    p <- ggplot(df, aes(Time, Signal, group = cells, color = cells)) + geom_line(size=0.5) + geom_point(size = 0.2) 
     
-  # + scale_fill_discrete(breaks=mixedsort(colnames(df_n)[-1], decreasing = T))
+    if (baseline == T) {
+      p <- p + 
+        geom_vline(xintercept = b_max, colour="black", linetype = "longdash") +
+        geom_vline(xintercept = b_min, colour="black", linetype = "longdash")
+    }
+    
+    if (region == T) {
+      p <- p + 
+        geom_vline(xintercept = r_max, colour="red", linetype = "dotted") +
+        geom_vline(xintercept = r_min, colour="red", linetype = "dotted") 
+    }
   
   return(ggplotly(p))
   
@@ -176,6 +187,34 @@ get_col_names <- function(df, cell_name, cell_number, format) {
   return(df[c(time_col, col)])
   
 }
+
+
+# CORRECT LATER -----------------------------------------------------------
+
+
+# Function to find a specific cell related to its number
+finding_cell_name <- function(data, number){
+  
+  list_of_names <- colnames(data)
+  match <- paste0('(\\D0*)', number, '($|\\s)')
+  cell_name <- list_of_names[grepl(match, list_of_names)]
+  
+  if (length(cell_name)>1) {stop("More than one column with similar name!")}
+  return(cell_name)}
+
+
+# get_col_names alternative
+
+single_plot <- function(df, cell_number) {
+  
+  df_time <- time_col_name(df)
+  col <- finding_cell_name(df_time, cell_number)
+  
+  return(df_time[c('Time', col)])
+  
+}
+
+
 
 
 # Make "cell_number" first column of Basic Statistics dataframe
@@ -384,4 +423,131 @@ ampl_calculating <- amplitude %>%
 
 return(as.data.frame(ampl_calculating))
 
+}
+
+
+
+
+# Shifting curves ---------------------------------------------------------
+
+
+# Basic function to determine lag and its sign between two series of values
+shift <- function(maximum_after, maximum_before, max_lag) {
+  
+  # Cross-correlation function, omits any NA values and skip plot rendering
+  mtrx <- ccf(maximum_after, maximum_before, lag.max = max_lag, na.action=na.omit, plot=FALSE)
+  
+  #To get data from resulting table - new dataframe is constructed with all the necessary information
+  data_table <- data.frame(ACF=mtrx$acf, Lag=mtrx$lag, N=mtrx$n.used)
+  
+  #Lag that is corresponded to the maximum CCF (ACF) value
+  lag_for_max_acf <- data_table$Lag[which.max(data_table$ACF)]
+  
+  
+  # Can be >0 (maximum_after, maximum_before) or <0 (maximum_before, maximum_after) or 0 (maximum_before = maximum_after)
+  return(lag_for_max_acf)
+}
+
+
+# Borrowed function to add columns with different length to dataframe (empty values are NA) 
+cbind.fill <- function(...){
+  nm <- list(...) 
+  nm <- lapply(nm, as.matrix)
+  n <- max(sapply(nm, nrow)) 
+  do.call(cbind, lapply(nm, function (x) 
+    rbind(x, matrix(, n-nrow(x), ncol(x))))) 
+}
+
+
+
+# Function to find curve with maximum that is closer to the left (earlier time) and shift the reference to it
+finding_shifted_curve <- function(df, main_cell_number, lower, upper, max_lag) {
+  
+  # Fixing the 'Time' column if necessary
+  df_time <- time_col_name(df)
+  # print(paste0('1    ',df_time))
+  # Obtaining list of dataframe column names
+  list_of_names <- colnames(df_time)
+  # print(paste0('2    ',list_of_names))
+  # Subsetting the dataframe in accordance with the region of interest set by the operator (lower - START time, upper - STOP time)
+  subset_timerange <- as.data.frame(subset(df_time, (Time >= lower & Time <= upper)))
+  # print(paste0('3    ',subset_timerange))
+  # Regular expression to identify cell with the number input given
+  match <- paste0('(\\D0*)', main_cell_number, '($|\\s)')
+  # print(paste0('4    ',match))
+  # Current reference cell which probably would be changed (its number) during the process of finding the one with the earliest maximum
+  reference <- list_of_names[grepl(match, list_of_names)]
+  
+  if (length(reference)>1) {stop("More than one column with similar name!")}
+  # print(paste0('reference    ',reference))
+  # The cell, that was chosen by the operator as a reference
+  main_cell <- list_of_names[grepl(match, list_of_names)]
+  # print(paste0('main_cell    ',main_cell))
+  # Excluding time column from column names list
+  coln_df <- list_of_names[list_of_names != "Time"]
+  # print(coln_df)
+  # Finding the cell with the earliest maximum, skipping the Time column (coln_df instead of list_of_names)
+  for (cell in coln_df) {
+    
+    if (shift(subset_timerange[, cell], subset_timerange[, reference], max_lag) < 0) {
+      # print(paste0('7    ',cell))
+      reference <- cell
+      
+    }
+    
+  }
+  
+  
+  # Shifting main series to the left in order to correlate with the reference (with the earliest maximum)
+  # Position of the maximum CCF (ACF) value = lag to choose
+  lag_for_max_acf <- shift(subset_timerange[, main_cell], subset_timerange[, reference], max_lag)
+  # print(lag_for_max_acf)
+  # print(length(subset_timerange[, main_cell]))
+  
+  # Shifting initial dataframe column, related to the main_cell, that was chosen by the operator
+  shifted_main_cell_values <- subset_timerange[, main_cell][(lag_for_max_acf+1):length(subset_timerange[, main_cell])]
+  
+  # # Series of values, shifted to the left, without NA values (shorter series instead) from the main cell column that was chosen
+  return(shifted_main_cell_values)
+  
+}
+
+
+shifting_curves <- function(df, shifted_main_cell_values, lower, upper, max_lag) {
+  
+  # Fixing the 'Time' column if necessary
+  df_time <- time_col_name(df)
+  
+  # Obtaining list of dataframe column names
+  list_of_names <- colnames(df_time)
+  
+  # Subsetting the dataframe in accordance with the region of interest set by the operator (lower - START time, upper - STOP time)
+  subset_timerange <- subset(df_time, (Time >= lower & Time <= upper))
+  
+  
+  # Excluding time column from column names list
+  coln_df <- list_of_names[list_of_names != "Time"]
+  
+  #Resulting dataframe
+  result_df <- data.frame(Time = df_time$Time)
+  #print(result_df)
+  
+  
+  for (cell in coln_df) {
+    
+    lag_for_max_acf <- shift(subset_timerange[, cell], shifted_main_cell_values, max_lag)
+    print(paste0('Lag', lag_for_max_acf))
+    if (lag_for_max_acf < 0) {
+      #print(paste0('The current cell: ', cell, ' is shifted to the left from the reference. The lag is: ', lag_for_max_acf))
+      stop("Try to repeat the procedure and take this cell as a reference or extend the time window and decrease the maximum lag!")
+      
+    } else {  
+      
+      shifted_cell_values <- df[, cell][(lag_for_max_acf+1):nrow(df[, cell]),]
+      #print(paste0('Length', nrow(df[, cell])))
+      result_df <- as.data.frame(cbind.fill(result_df, shifted_cell_values))}
+    
+  }
+  
+  return(result_df)
 }

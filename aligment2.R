@@ -33,32 +33,32 @@ finding_shifted_curve <- function(df, main_cell_number, lower, upper, max_lag) {
   
   # Fixing the 'Time' column if necessary
   df_time <- time_col_name(df)
-  print(paste0('1    ',df_time))
+  # print(paste0('1    ',df_time))
   # Obtaining list of dataframe column names
   list_of_names <- colnames(df_time)
-  print(paste0('2    ',list_of_names))
+  # print(paste0('2    ',list_of_names))
   # Subsetting the dataframe in accordance with the region of interest set by the operator (lower - START time, upper - STOP time)
   subset_timerange <- as.data.frame(subset(df_time, (Time >= lower & Time <= upper)))
-  print(paste0('3    ',subset_timerange))
+  # print(paste0('3    ',subset_timerange))
   # Regular expression to identify cell with the number input given
   match <- paste0('(\\D0*)', main_cell_number, '($|\\s)')
-  print(paste0('4    ',match))
+  # print(paste0('4    ',match))
   # Current reference cell which probably would be changed (it's number) during the process of finding the one with the earliest maximum
   reference <- list_of_names[grepl(match, list_of_names)]
   
   if (length(reference)>1) {stop("More than one column with similar name!")}
-  print(paste0('reference    ',reference))
+  # print(paste0('reference    ',reference))
   # The cell, that was chosen by the operator as a reference
   main_cell <- list_of_names[grepl(match, list_of_names)]
-  print(paste0('main_cell    ',main_cell))
+  # print(paste0('main_cell    ',main_cell))
   # Excluding time column from column names list
   coln_df <- list_of_names[list_of_names != "Time"]
-  print(coln_df)
+  # print(coln_df)
   # Finding the cell with the earliest maximum, skipping the Time column (coln_df instead of list_of_names)
   for (cell in coln_df) {
 
     if (shift(subset_timerange[, cell], subset_timerange[, reference], max_lag) < 0) {
-      print(paste0('7    ',cell))
+      # print(paste0('7    ',cell))
       reference <- cell
 
     }
@@ -69,8 +69,8 @@ finding_shifted_curve <- function(df, main_cell_number, lower, upper, max_lag) {
   # Shifting main series to the left in order to correlate with the reference (with the earliest maximum)
   # Position of the maximum CCF (ACF) value = lag to choose
   lag_for_max_acf <- shift(subset_timerange[, main_cell], subset_timerange[, reference], max_lag)
-  print(lag_for_max_acf)
-  print(length(subset_timerange[, main_cell]))
+  # print(lag_for_max_acf)
+  # print(length(subset_timerange[, main_cell]))
 
   # Shifting initial dataframe column, related to the main_cell, that was chosen by the operator
   shifted_main_cell_values <- subset_timerange[, main_cell][(lag_for_max_acf+1):length(subset_timerange[, main_cell])]
@@ -97,20 +97,21 @@ shifting_curves <- function(df, shifted_main_cell_values, lower, upper, max_lag)
   
   #Resulting dataframe
   result_df <- data.frame(Time = df_time$Time)
-
+  #print(result_df)
   
   
   for (cell in coln_df) {
     
     lag_for_max_acf <- shift(subset_timerange[, cell], shifted_main_cell_values, max_lag)
-    
+    print(paste0('Lag', lag_for_max_acf))
     if (lag_for_max_acf < 0) {
-      print(paste0('The current cell: ', cell, ' is shifted to the left from the reference. The lag is: ', lag_for_max_acf))
+      #print(paste0('The current cell: ', cell, ' is shifted to the left from the reference. The lag is: ', lag_for_max_acf))
       stop("Try to repeat the procedure and take this cell as a reference or extend the time window and decrease the maximum lag!")
       
     } else {  
       
-      shifted_cell_values <- df[, cell][(lag_for_max_acf+1):length(df[, cell]),]
+      shifted_cell_values <- df[, cell][(lag_for_max_acf+1):nrow(df[, cell]),]
+      #print(paste0('Length', nrow(df[, cell])))
       result_df <- as.data.frame(cbind.fill(result_df, shifted_cell_values))}
     
   }
@@ -120,12 +121,21 @@ shifting_curves <- function(df, shifted_main_cell_values, lower, upper, max_lag)
 
 
 dftmrng <- read_excel("~/Rprojects/Test_files/2023-04-15-mpkCCD002-CleanTable.xlsx", sheet = 'ratio')
+dftmrng<- read_excel("~/Rprojects/Test_files/2023-04-15-mpkCCD002.xlsx", sheet = 'Ratio')
+
+finding_cell_name(dftmrng, 460)
+
+single_plot(dftmrng, 46)
+ggplotly_render(single_plot(dftmrng, 3))
+
+ggplotly_render(single_plot(dftmrng, 1), baseline = T, b_min = 0, b_max = 120, region = T, r_min = 0, r_max = 500)
+
 
 ggplotly_render(dftmrng)
 
 low=120
 high=350
-lagv=20
+lagv=5
 celln=42
 
 
@@ -151,6 +161,13 @@ my_mean <- my_result %>%
 
 my_mean[, c('Time', 'Average')]
 ggplotly_render(my_mean[, c('Time', 'Average')])
+
+,
+input$cell_to_plot_shift,
+input$min_t_shift,
+input$max_t_shift,
+input$start_t_shift,
+input$end_t_shift
 
 
 

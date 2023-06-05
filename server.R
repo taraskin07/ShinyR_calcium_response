@@ -236,7 +236,7 @@ server <- function(input, output) {
         req(input$plot_all, df_custom_ratio_basic_stat())
         ggplotly_render(df_custom_ratio_basic_stat())
       })
-    }) # /level 1, observeEvent input$plot_single
+    }) # /level 1, observeEvent input$plot_all
   
     observeEvent(input$plot_single, {
       
@@ -661,14 +661,114 @@ server <- function(input, output) {
     
     
     
+
+# Shifting curves ---------------------------------------------------------
+
+    # Getting the list of sheets in excel file
+    sheets_in_the_file = eventReactive(eventExpr = {input$read_sheets},
+                                       valueExpr ={
+        excel_sheets(input$read_sheets$datapath)
+    })
+    
+    # Creating SelectInput list with values = sheets
+    observeEvent(input$read_sheets,{
+      updateSelectInput(inputId = "sheets",
+                        choices = sheets_in_the_file()
+                        )
+            })
     
     
     
+    # Rendering datatable related to selected sheet
+    dt_to_shift <- eventReactive(eventExpr = {input$read_sheets
+                                              input$sheets},
+                  valueExpr = {read_excel(input$read_sheets$datapath, sheet = input$sheets)})
     
     
+    output$dt_to_shift_out <- DT::renderDataTable({
+      req(input$read_sheets)
+      req(input$sheets)
+      dt_to_shift()
+    }) 
     
     
+    # Rendering initial plot single
+    observeEvent(input$plots_init_single, {
+      output$plot_shift_upper <- renderPlotly({
+        req(input$sheets,
+            input$cell_to_plot_shift,
+            input$min_t_shift,
+            input$max_t_shift,
+            input$start_t_shift,
+            input$end_t_shift)
+        ggplotly_render(single_plot(dt_to_shift(), 
+                                    input$cell_to_plot_shift), 
+                                    baseline = T, 
+                                    b_min = input$min_t_shift, 
+                                    b_max = input$max_t_shift, 
+                                    region = T, 
+                                    r_min = input$start_t_shift, 
+                                    r_max = input$end_t_shift)
+        })
+    }) # /level 1, observeEvent input$plots_init_single
     
+    
+    # Rendering initial plot all
+    observeEvent(input$plots_init_all, {
+      output$plot_shift_upper <- renderPlotly({
+        req(input$sheets)
+        ggplotly_render(dt_to_shift(), 
+                        baseline = T, 
+                        b_min = input$min_t_shift, 
+                        b_max = input$max_t_shift, 
+                        region = T, 
+                        r_min = input$start_t_shift, 
+                        r_max = input$end_t_shift)})
+    }) # /level 1, observeEvent input$plots_init_all
+    
+    
+    # Shifting curves
+    
+    shifted_df <- eventReactive(eventExpr = {input$shift_curves}, valueExpr = {
+      
+      req(input$read_sheets)
+      req(input$sheets)
+      shifted_main_cell_values <- finding_shifted_curve(dt_to_shift(), main_cell_number = input$cell_to_plot_shift, lower = input$start_t_shift, upper = input$end_t_shift, max_lag = input$max_lag)
+      shifted_result <- shifting_curves(dt_to_shift(), shifted_main_cell_values, lower = input$start_t_shift, upper = input$end_t_shift, max_lag = input$max_lag)
+      return(shifted_result)
+      })
+    
+    
+    # Rendering lower plot
+    observeEvent(input$plots_shift_single, {
+      
+      output$plot_shift_lower <- renderPlotly({
+        req(input$sheets)
+        ggplotly_render(single_plot(shifted_df(), input$cell_to_plot_shift), 
+                        baseline = T, 
+                        b_min = input$min_t_shift, 
+                        b_max = input$max_t_shift, 
+                        region = T, 
+                        r_min = input$start_t_shift, 
+                        r_max = input$end_t_shift)})
+      
+      
+    }) # /level 1, observeEvent input$plots_shift_single
+    
+    observeEvent(input$plots_shift_all, {
+      
+      output$plot_shift_lower <- renderPlotly({
+        req(input$sheets)
+        ggplotly_render(shifted_df(), 
+                        baseline = T, 
+                        b_min = input$min_t_shift, 
+                        b_max = input$max_t_shift, 
+                        region = T, 
+                        r_min = input$start_t_shift, 
+                        r_max = input$end_t_shift)})
+      
+      
+    }) # /level 1, observeEvent input$plots_shift_all
     
     
     
