@@ -162,12 +162,26 @@ my_mean <- my_result %>%
 my_mean[, c('Time', 'Average')]
 ggplotly_render(my_mean[, c('Time', 'Average')])
 
-,
-input$cell_to_plot_shift,
-input$min_t_shift,
-input$max_t_shift,
-input$start_t_shift,
-input$end_t_shift
 
 
 
+
+custom_filename <- function(file_name, str_name) {
+  
+  nname <- str_extract(file_name, '(^\\d{4}-\\d{2}-\\d{2}-\\w+\\d+)\\D', group = 1)
+  res_name <- paste0(nname, '-', str_name, '.xlsx')
+  return(res_name)
+}
+fn <- "2023-04-29-mpkCCD007-CleanTable2.xlsx"
+custom_filename(fn, 'Shifted')
+
+nname <- str_extract("2023-04-29-mpkCCD007-CleanTable2.xlsx", '(^\\d{4}-\\d{2}-\\d{2}-\\w+\\d+)\\D', group = 1)
+nname
+
+
+
+name_columns_df <- read_excel("~/Rprojects/Test_files/2023-04-15-mpkCCD002.xlsx", sheet = 'Ratio')
+shifted_main_cell_values <- finding_shifted_curve(name_columns_df, 1, 0, 500, 40)
+shifted_main_cell_values
+shifting_curves(name_columns_df, shifted_main_cell_values, 0, 500, 40)
+nnndf <- shifting_curves(name_columns_df, shifted_main_cell_values, 0, 500, 40)

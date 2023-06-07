@@ -358,7 +358,7 @@ tabPanel("Shifting curves", # /level 1 - tabPanel Shifting curves
                       # Horizontal line 
                       tags$hr(),
                       
-                      selectInput('sheets', 'Select the sheet', '', selected = NULL, multiple = FALSE),
+                      selectInput('sheets', 'Select the sheet', '', selected = '', multiple = FALSE),
                       
                       
                       
@@ -377,7 +377,7 @@ position = 'left'), # 2 level - sidebarLayout - Shifting curves / box 1
 
 # Shifting curves / box 2 -------------------------------------------------
 
-          # Sidebar panel for inputs: file input and preferences
+          # Sidebar panel for inputs: file input and shifting
 
 sidebarLayout(
           sidebarPanel(
@@ -404,8 +404,9 @@ sidebarLayout(
                       tags$br(),
                       actionButton("plots_shift_all", "Render all shifted plots", width = "100%"),
                       
-                      # Save AMPLITUDES as excel file
-                      tags$br('Save shifted curves with Average as excel file'),
+                      # Save SHIFTED curves as excel file
+                      tags$br('Save shifted curves as excel file'),
+                      verbatimTextOutput("read_sheets_value_out", placeholder = TRUE),
                       downloadButton("SavePltsShift", "Save as excel file"),
   
   
@@ -417,6 +418,7 @@ sidebarLayout(
           mainPanel(
             plotlyOutput("plot_shift_upper"),
             plotlyOutput("plot_shift_lower"),
+            DT::dataTableOutput("lag_values_df_out"),
             
 
                     ), # 3 level - mainPanel - Shifting curves / box 2

@@ -673,7 +673,8 @@ server <- function(input, output) {
     # Creating SelectInput list with values = sheets
     observeEvent(input$read_sheets,{
       updateSelectInput(inputId = "sheets",
-                        choices = sheets_in_the_file()
+                        choices = sheets_in_the_file(),
+                        selected = str_extract(sheets_in_the_file(), '^[Rr]atio$')
                         )
             })
     
@@ -729,6 +730,30 @@ server <- function(input, output) {
     
     # Shifting curves
     
+    # Lag values datatable
+    
+    lag_values_df <- eventReactive(eventExpr = {input$shift_curves}, valueExpr = {
+      
+      req(input$read_sheets)
+      req(input$sheets)
+      shifted_main_cell_values <- finding_shifted_curve(dt_to_shift(), main_cell_number = input$cell_to_plot_shift, lower = input$start_t_shift, upper = input$end_t_shift, max_lag = input$max_lag)
+      
+      #Resulting dataframe
+      lag_data <- data.frame(A = character(), B = numeric())
+      colnames(lag_data) <- c('Cell_name', colnames(shifted_main_cell_values)[1])
+      
+      shifted_info <- shifting_curves_info(lag_data, dt_to_shift(), shifted_main_cell_values, lower = input$start_t_shift, upper = input$end_t_shift, max_lag = input$max_lag)
+      return(shifted_info)
+      })
+    
+    output$lag_values_df_out <- DT::renderDataTable({
+      req(input$read_sheets)
+      req(input$sheets)
+      lag_values_df()
+    }) 
+    
+    
+    # Shifted datatable
     shifted_df <- eventReactive(eventExpr = {input$shift_curves}, valueExpr = {
       
       req(input$read_sheets)
@@ -736,7 +761,7 @@ server <- function(input, output) {
       shifted_main_cell_values <- finding_shifted_curve(dt_to_shift(), main_cell_number = input$cell_to_plot_shift, lower = input$start_t_shift, upper = input$end_t_shift, max_lag = input$max_lag)
       shifted_result <- shifting_curves(dt_to_shift(), shifted_main_cell_values, lower = input$start_t_shift, upper = input$end_t_shift, max_lag = input$max_lag)
       return(shifted_result)
-      })
+    })
     
     
     # Rendering lower plot
@@ -769,6 +794,23 @@ server <- function(input, output) {
       
       
     }) # /level 1, observeEvent input$plots_shift_all
+    
+    
+    
+    # Save SHIFTED curves as excel file
+    
+    read_sheets_value <- reactive({input$sheets})
+    output$read_sheets_value_out <- renderPrint({read_sheets_value()})
+    
+    output$SavePltsShift <- downloadHandler(
+      filename = function() {filename(input$read_sheets$name, "Shifted.xlsx")},
+      content = function(file) {
+        df_list <- list('current' = shifted_df(),
+                        'lags' = lag_values_df())
+        names(df_list) <- c(input$sheets, paste0(input$sheets, '_lags'))
+        write_xlsx(df_list, path = file)
+        }
+    )
     
     
     

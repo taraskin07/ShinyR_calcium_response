@@ -10,6 +10,7 @@ library(tidyverse)
 
 
 
+
 # Preliminary analysis ----------------------------------------------------- 
 
 
@@ -63,14 +64,23 @@ filename <- function(file_name, str_name){
 }
 
 
+
+# CORRECT LATER -----------------------------------------------------------
+
+custom_filename <- function(file_name, str_name) {
+  
+  nname <- str_extract(file_name, '(^\\d{4}-\\d{2}-\\d{2}-\\w+\\d+)\\D', group = 1)
+  res_name <- paste0(nname, '-', str_name, '.xlsx')
+  return(res_name)
+}
+
+
 # Correcting Time columns -------------------------------------------------
 time_col_name <- function(datafr) {
-  if (colnames(datafr)[1] == "Time [s]") {
-    colnames(datafr)[1] =  "Time"
-  } else {
-    time_col <- '((T|t)ime\\s?)'
+
+    time_col <- '([Tt]ime\\s?)'
     colnames(datafr)[grepl(time_col, colnames(datafr))] =  "Time"
-  }
+  
   datafr$Time <- round(datafr$Time)
   return(datafr)
 }
@@ -505,15 +515,18 @@ finding_shifted_curve <- function(df, main_cell_number, lower, upper, max_lag) {
   # print(length(subset_timerange[, main_cell]))
   
   # Shifting initial dataframe column, related to the main_cell, that was chosen by the operator
-  shifted_main_cell_values <- subset_timerange[, main_cell][(lag_for_max_acf+1):length(subset_timerange[, main_cell])]
-  
+  shifted_main_cell_values <- as.data.frame(subset_timerange[, main_cell][(lag_for_max_acf+1):length(subset_timerange[, main_cell])])
+  colnames(shifted_main_cell_values) <- main_cell
+
   # # Series of values, shifted to the left, without NA values (shorter series instead) from the main cell column that was chosen
   return(shifted_main_cell_values)
   
 }
 
 
-shifting_curves <- function(df, shifted_main_cell_values, lower, upper, max_lag) {
+
+
+shifting_curves <- function(df, shifted_main_cell_values, lower, upper, max_lag, counterv = 1) {
   
   # Fixing the 'Time' column if necessary
   df_time <- time_col_name(df)
@@ -530,24 +543,90 @@ shifting_curves <- function(df, shifted_main_cell_values, lower, upper, max_lag)
   
   #Resulting dataframe
   result_df <- data.frame(Time = df_time$Time)
-  #print(result_df)
+  # lag_data <- data.frame(A = character(), B = numeric())
+  # colnames(lag_data) <- c('Cell_name', colnames(shifted_main_cell_values)[1])
   
+  
+  
+  if (counterv > 20) {stop('Too many iterations! Increase the interval, maximum lag or delete invalid curves!')}
   
   for (cell in coln_df) {
     
     lag_for_max_acf <- shift(subset_timerange[, cell], shifted_main_cell_values, max_lag)
-    print(paste0('Lag', lag_for_max_acf))
+    
+
+    
     if (lag_for_max_acf < 0) {
-      #print(paste0('The current cell: ', cell, ' is shifted to the left from the reference. The lag is: ', lag_for_max_acf))
-      stop("Try to repeat the procedure and take this cell as a reference or extend the time window and decrease the maximum lag!")
       
-    } else {  
+      main_cell_number <- str_extract(cell, '\\D0*(\\d+)($|\\s)', group = 1)
+      print(cell)
+      print(paste0("Main cell number now is: ", main_cell_number))
+      shifted_main_cell_values <- finding_shifted_curve(df, main_cell_number, lower, upper, max_lag)
+      counterv = counterv + 1
+      print(paste0('The counter variable is: ', counterv))
+      res <- shifting_curves(df, shifted_main_cell_values, lower, upper, max_lag, counterv)
+      return(res)
+      
+    } else {
+      
       
       shifted_cell_values <- df[, cell][(lag_for_max_acf+1):nrow(df[, cell]),]
-      #print(paste0('Length', nrow(df[, cell])))
+      
       result_df <- as.data.frame(cbind.fill(result_df, shifted_cell_values))}
     
   }
   
   return(result_df)
+}
+
+# The same function but for constructing dataframe that has information about iterations and maximum_lag
+
+
+shifting_curves_info <- function(lag_data, df, shifted_main_cell_values, lower, upper, max_lag, counterv = 1) {
+  
+  # Fixing the 'Time' column if necessary
+  df_time <- time_col_name(df)
+  
+  # Obtaining list of dataframe column names
+  list_of_names <- colnames(df_time)
+  
+  # Subsetting the dataframe in accordance with the region of interest set by the operator (lower - START time, upper - STOP time)
+  subset_timerange <- subset(df_time, (Time >= lower & Time <= upper))
+  
+  
+  # Excluding time column from column names list
+  coln_df <- list_of_names[list_of_names != "Time"]
+  
+
+  
+  if (counterv > 20) {stop('Too many iterations! Increase the interval, maximum lag or delete invalid curves!')}
+  
+  for (cell in coln_df) {
+    
+    lag_for_max_acf <- shift(subset_timerange[, cell], shifted_main_cell_values, max_lag)
+    print(paste0('Lag for ', cell, ': ', lag_for_max_acf))
+    df_to_merge <- data.frame(A = cell, B = lag_for_max_acf)
+
+    colnames(df_to_merge) <- c('Cell_name', colnames(shifted_main_cell_values)[1])
+    print(df_to_merge)
+    
+    lag_data <- as.data.frame(rbind(lag_data, df_to_merge))
+    print(lag_data)
+    
+    if (lag_for_max_acf < 0) {
+      
+      main_cell_number <- str_extract(cell, '\\D0*(\\d+)($|\\s)', group = 1)
+      print(paste0("Main info number now is: ", main_cell_number))
+      shifted_main_cell_values <- finding_shifted_curve(df, main_cell_number, lower, upper, max_lag)
+      counterv = counterv + 1
+      print(paste0('The info variable is: ', counterv))
+      res <- shifting_curves_info(lag_data, df, shifted_main_cell_values, lower, upper, max_lag, counterv)
+      return(res)
+      
+    } else {info_df <- lag_data}
+  
+
+                        }
+  
+  return(info_df)
 }
