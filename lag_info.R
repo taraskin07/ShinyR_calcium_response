@@ -18,6 +18,7 @@ shifted_main_cell_values
 #Resulting dataframe
 lag_data <- data.frame(A = character(), B = numeric())
 lag_data
+nrow(lag_data)
 colnames(lag_data) <- c('Cell_name', colnames(shifted_main_cell_values)[1])
 lag_data
 
@@ -26,8 +27,10 @@ lag_data
 
 
 
-shifted_info <- shifting_curves_info(lag_data, dt_to_shift, 
+shifted_info2 <- shifting_curves_info(lag_data, dt_to_shift, 
                                      shifted_main_cell_values, 
                                      lower = lower, 
                                      upper = upper, 
                                      max_lag = max_lag)
+
+colnames(shifted_info)[colnames(shifted_info) != 'Cell_name']

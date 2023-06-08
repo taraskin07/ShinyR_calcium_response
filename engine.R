@@ -548,7 +548,9 @@ shifting_curves <- function(df, shifted_main_cell_values, lower, upper, max_lag,
   
   
   
-  if (counterv > 20) {stop('Too many iterations! Increase the interval, maximum lag or delete invalid curves!')}
+  if (counterv > 20) {
+    
+    stop('Too many iterations! Increase the interval, maximum lag or delete invalid curves!')}
   
   for (cell in coln_df) {
     
@@ -599,27 +601,48 @@ shifting_curves_info <- function(lag_data, df, shifted_main_cell_values, lower, 
   
 
   
-  if (counterv > 20) {stop('Too many iterations! Increase the interval, maximum lag or delete invalid curves!')}
+  if (counterv > 20) {
+    return(lag_data)
+    stop('Too many iterations! Increase the interval, maximum lag or delete invalid curves!')
+    }
   
   for (cell in coln_df) {
     
     lag_for_max_acf <- shift(subset_timerange[, cell], shifted_main_cell_values, max_lag)
-    print(paste0('Lag for ', cell, ': ', lag_for_max_acf))
+    # print(paste0('Lag for ', cell, ': ', lag_for_max_acf))
     df_to_merge <- data.frame(A = cell, B = lag_for_max_acf)
 
     colnames(df_to_merge) <- c('Cell_name', colnames(shifted_main_cell_values)[1])
-    print(df_to_merge)
+    # print(df_to_merge)
     
-    lag_data <- as.data.frame(rbind(lag_data, df_to_merge))
-    print(lag_data)
+    
+    if (!(colnames(shifted_main_cell_values)[1] %in% colnames(lag_data)) & (nrow(lag_data) > 0)) {
+
+      lag_data <- as.data.frame(bind_rows(lag_data, df_to_merge))
+      # print(lag_data)
+    } else if (counterv == 1) {
+      lag_data <- as.data.frame(rbind(lag_data, df_to_merge))
+      # print(lag_data)
+    } else {
+      
+      lag_data <- as.data.frame(bind_rows(lag_data, df_to_merge))
+      print(lag_data)
+      }
+
+    
+
+    
+    
+    
+
     
     if (lag_for_max_acf < 0) {
       
       main_cell_number <- str_extract(cell, '\\D0*(\\d+)($|\\s)', group = 1)
-      print(paste0("Main info number now is: ", main_cell_number))
+      # print(paste0("Main info number now is: ", main_cell_number))
       shifted_main_cell_values <- finding_shifted_curve(df, main_cell_number, lower, upper, max_lag)
       counterv = counterv + 1
-      print(paste0('The info variable is: ', counterv))
+      # print(paste0('The info variable is: ', counterv))
       res <- shifting_curves_info(lag_data, df, shifted_main_cell_values, lower, upper, max_lag, counterv)
       return(res)
       

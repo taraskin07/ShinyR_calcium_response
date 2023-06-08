@@ -403,6 +403,8 @@ sidebarLayout(
                       actionButton("plots_shift_single", "Render single shifted plot", width = "100%"),
                       tags$br(),
                       actionButton("plots_shift_all", "Render all shifted plots", width = "100%"),
+                      tags$hr(),
+                      actionButton("plots_shift_omit", "Omit NA values in columns", width = "100%"),
                       
                       # Save SHIFTED curves as excel file
                       tags$br('Save shifted curves as excel file'),

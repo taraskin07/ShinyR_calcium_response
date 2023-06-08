@@ -760,9 +760,16 @@ server <- function(input, output) {
       req(input$sheets)
       shifted_main_cell_values <- finding_shifted_curve(dt_to_shift(), main_cell_number = input$cell_to_plot_shift, lower = input$start_t_shift, upper = input$end_t_shift, max_lag = input$max_lag)
       shifted_result <- shifting_curves(dt_to_shift(), shifted_main_cell_values, lower = input$start_t_shift, upper = input$end_t_shift, max_lag = input$max_lag)
-      return(shifted_result)
+      
+      if((input$plots_shift_omit[1]%%2) == 1) {
+        shifted_result <- na.omit(shifted_result)
+        return(shifted_result)
+      } else {return(shifted_result)}
+      
+      
     })
     
+
     
     # Rendering lower plot
     observeEvent(input$plots_shift_single, {
@@ -775,7 +782,8 @@ server <- function(input, output) {
                         b_max = input$max_t_shift, 
                         region = T, 
                         r_min = input$start_t_shift, 
-                        r_max = input$end_t_shift)})
+                        r_max = input$end_t_shift)
+        }) # output$plot_shift_lower
       
       
     }) # /level 1, observeEvent input$plots_shift_single
@@ -790,8 +798,10 @@ server <- function(input, output) {
                         b_max = input$max_t_shift, 
                         region = T, 
                         r_min = input$start_t_shift, 
-                        r_max = input$end_t_shift)})
-      
+                        r_max = input$end_t_shift)
+        }) # output$plot_shift_lower
+
+    
       
     }) # /level 1, observeEvent input$plots_shift_all
     
@@ -799,7 +809,13 @@ server <- function(input, output) {
     
     # Save SHIFTED curves as excel file
     
-    read_sheets_value <- reactive({input$sheets})
+    read_sheets_value <- reactive({
+      
+      if((input$plots_shift_omit[1]%%2) == 1) {
+        return(TRUE)
+      }
+      
+      })
     output$read_sheets_value_out <- renderPrint({read_sheets_value()})
     
     output$SavePltsShift <- downloadHandler(
