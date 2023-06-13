@@ -380,7 +380,7 @@ position = 'left'), # 2 level - sidebarLayout - Shifting curves / box 1
           # Sidebar panel for inputs: file input and shifting
 
 sidebarLayout(
-          sidebarPanel(
+          sidebarPanel(style = "max-height: 100%",
   
                       tags$br("Enter timeframe for the baseline and region to analyze"),
                       tags$hr(),
@@ -423,12 +423,44 @@ sidebarLayout(
             DT::dataTableOutput("lag_values_df_out"),
             
 
-                    ), # 3 level - mainPanel - Shifting curves / box 2
+                    ), # 3 level - mainPanel - Shifting curves / box 1
 
-position = 'left'), # 2 level - sidebarLayout - Shifting curves / box 2
+position = 'left'), # 2 level - sidebarLayout - Shifting curves / box 1
 
 
 
+
+
+sidebarLayout(
+  sidebarPanel(style = "max-height: 100%",
+    
+    tags$br("Calculate average for shifted and initial data"),
+    tags$hr(),
+    actionButton("plots_average_init", "Render initial average", width = "100%"),
+    tags$hr(),
+    actionButton("plots_average_shifted", "Render shifted average", width = "100%"),
+
+    
+    # Save SHIFTED curves as excel file
+    tags$hr('Save shifted and initial curves as excel file'),
+    # verbatimTextOutput("read_sheets_value_out", placeholder = TRUE),
+    downloadButton("SaveAverage", "Save as excel file"),
+    
+    
+    
+    
+  ), # 3 level - main layout with sidebar, sidebarPanel - Shifting curves / box 3
+  
+  
+  mainPanel(
+    plotlyOutput("plot_average_upper"),
+    plotlyOutput("plot_average_lower"),
+    DT::dataTableOutput("average_values_df_out"),
+    
+    
+  ), # 3 level - mainPanel - Shifting curves / box 3
+  
+  position = 'left'), # 2 level - sidebarLayout - Shifting curves / box 3
 
 
 

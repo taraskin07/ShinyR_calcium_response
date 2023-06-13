@@ -123,6 +123,10 @@ shifting_curves <- function(df, shifted_main_cell_values, lower, upper, max_lag)
 dftmrng <- read_excel("~/Rprojects/Test_files/2023-04-15-mpkCCD002-CleanTable.xlsx", sheet = 'ratio')
 dftmrng<- read_excel("~/Rprojects/Test_files/2023-04-15-mpkCCD002.xlsx", sheet = 'Ratio')
 
+grep('^[Tt]ime($|\\s)', colnames(dftmrng))
+
+
+
 finding_cell_name(dftmrng, 460)
 
 single_plot(dftmrng, 46)
@@ -133,10 +137,10 @@ ggplotly_render(single_plot(dftmrng, 1), baseline = T, b_min = 0, b_max = 120, r
 
 ggplotly_render(dftmrng)
 
-low=120
-high=350
+low=0
+high=500
 lagv=5
-celln=42
+celln=30
 
 
 
@@ -152,6 +156,7 @@ ggplotly_render(sc)
 
 
 my_result <- na.omit(sc)
+my_result <- dftmrng
 ggplotly_render(my_result[, c('Time', 'cell-042')])
 ggplotly_render(my_result)
 

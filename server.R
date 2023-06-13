@@ -662,7 +662,7 @@ server <- function(input, output) {
     
     
 
-# Shifting curves ---------------------------------------------------------
+# Shifting curves / box 2 ---------------------------------------------------------
 
     # Getting the list of sheets in excel file
     sheets_in_the_file = eventReactive(eventExpr = {input$read_sheets},
@@ -754,7 +754,8 @@ server <- function(input, output) {
     
     
     # Shifted datatable
-    shifted_df <- eventReactive(eventExpr = {input$shift_curves}, valueExpr = {
+    shifted_df <- eventReactive(eventExpr = {input$shift_curves
+                                             input$plots_shift_omit}, valueExpr = {
       
       req(input$read_sheets)
       req(input$sheets)
@@ -767,7 +768,7 @@ server <- function(input, output) {
       } else {return(shifted_result)}
       
       
-    })
+    }, ignoreNULL = FALSE)
     
 
     
@@ -828,6 +829,102 @@ server <- function(input, output) {
         }
     )
     
+
+# Average line / Box 3 ----------------------------------------------------
+
+    # Shifted Average
+
+    shifted_average <- eventReactive(eventExpr = {input$plots_average_shifted}, valueExpr = {
+
+      df_t <- time_col_name(shifted_df())
+      
+      df_t <- df_t %>% 
+        add_column(Average = rowMeans(df_t[-grep('^Time$', colnames(df_t))]))
+      
+      return(df_t)
+      
+      
+      }) # shifted_average / eventReactive
+
+
+    # Rendering lower plot for shifted average
+    observeEvent(input$plots_average_shifted, {
+      
+      output$plot_average_lower <- renderPlotly({
+        req(shifted_df())
+        
+        
+        ggplotly_render(shifted_average()[, c('Time', 'Average')], 
+                        baseline = T, 
+                        b_min = input$min_t_shift, 
+                        b_max = input$max_t_shift, 
+                        region = T, 
+                        r_min = input$start_t_shift, 
+                        r_max = input$end_t_shift)
+        }) # output$plot_average_lower
+      
+      
+    }) # /level 1, observeEvent input$plots_average_shifted
     
+    
+    # Initial Average
+    
+    init_average <- eventReactive(eventExpr = {input$plots_average_init}, valueExpr = {
+      
+      df_t <- time_col_name(dt_to_shift())
+      
+      df_t <- df_t %>% 
+        add_column(Average = rowMeans(df_t[-grep('^Time$', colnames(df_t))]))
+      
+      return(df_t)
+      
+      
+    }) # shifted_average / eventReactive
+    
+    
+    # Rendering lower plot for shifted average
+    observeEvent(input$plots_average_init, {
+      
+      output$plot_average_upper <- renderPlotly({
+        req(dt_to_shift())
+        
+        
+        ggplotly_render(init_average()[, c('Time', 'Average')], 
+                        baseline = T, 
+                        b_min = input$min_t_shift, 
+                        b_max = input$max_t_shift, 
+                        region = T, 
+                        r_min = input$start_t_shift, 
+                        r_max = input$end_t_shift)
+      
+        }) # output$plot_average_upper
+      
+      
+    }) # /level 1, observeEvent input$plots_average_init
+    
+    
+    
+    # Saving data with Average column
+    
+    output$SaveAverage <- downloadHandler(
+      filename = function() {filename(input$read_sheets$name, "Shifted_with_Average.xlsx")},
+      content = function(file) {
+        df_list <- list('first' = init_average(),
+                        'second' = shifted_average())
+        names(df_list) <- c(paste0(input$sheets, '_init'), paste0(input$sheets, '_shifted'))
+        write_xlsx(df_list, path = file)
+      }
+    )
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+        
     
 } # level 0
