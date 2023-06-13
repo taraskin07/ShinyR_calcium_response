@@ -10,9 +10,11 @@ ui <- navbarPage("Calcium response plots adjustment", fluid = TRUE, position = "
  # Preliminary analysis -----------------------------------------------------                                  
                  
 tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
-         
-  # App title ----
+
+                  
+# Panel title ----
   titlePanel("Upload and save"), # 2 level - titlePanel "Upload and save"
+
 
 # Preliminary analysis / box 1 --------------------------------------------
 
@@ -29,7 +31,7 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
                 accept = c(".xls",
                            ".xlsx")),
       
-      # Horizontal line ----
+      # Horizontal line 
       tags$hr(),
       
 
@@ -38,15 +40,26 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
       checkboxInput("c380", "sheet 380", TRUE),
       checkboxInput("cRatio", "sheet Ratio", TRUE),
       
-      # Horizontal line ----
+      # Horizontal line
       tags$hr(),
       
       actionButton("correct_time", "Correct 'Time' column"),
+      tags$br(),
       tags$hr(),
-      actionButton("change_names", "Change columns names"),
-      # Horizontal line ----
+      radioButtons("change_names", "Change columns names",
+                   choices = c(No_changes = "no_changes",
+                               Number_only = "number",
+                               Zeroes_in_front = "zeroes"),
+                   selected = "no_changes"),
+
+      # Horizontal line 
       tags$hr(),
+      
       textInput('cellName', label = 'Enter new column names', value = "cell-"),
+      actionButton("change_names_button", "Change columns names"),
+      
+      tags$hr(),
+      
       
       # Input: Select number of rows to display ----
       radioButtons("disp", "Display",
@@ -213,11 +226,14 @@ mainPanel(
 
 
 
+
+
+
 # Analyzing amplitude -----------------------------------------------------
 
 tabPanel("Analyzing amplitude", # /level 1 - tabPanel Analyzing amplitude
          
-         # App title ----
+         # Analyzing amplitude sidebar title ----
          titlePanel("Upload clean excel file"), # 2 level - titlePanel "Upload clean excel file"
          
 
@@ -236,11 +252,11 @@ tabsetPanel(
               accept = c(".xls",
                          ".xlsx")),
     
-    # Horizontal line ----
+    # Horizontal line 
     tags$hr(),
     
     
-    # Input: Checkbox if file has header ----
+    # Input: Checkbox if the file has a header ----
     checkboxInput("cl340", "sheet 340", TRUE),
     checkboxInput("cl380", "sheet 380", TRUE),
     checkboxInput("clRatio", "sheet Ratio", TRUE),
@@ -275,8 +291,12 @@ tabsetPanel(
   sidebarPanel(
     tags$br("Enter timeframe for the baseline and response"),
     tags$hr(),
-    numericInput("min_time", "Starting point: (sec)", 0),
-    numericInput("max_time", "End of calcium response: (sec)", 120),
+    numericInput("min_time", "Baseline START: (sec)", 0),
+    numericInput("max_time", "Baseline END: (sec)", 120),
+    tags$hr(),
+    numericInput("start_time", "Region of interest START: (sec)", 150),
+    numericInput("end_time", "Region of interest END: (sec)", 330),
+    tags$hr(),
     actionButton("amplitudeStat", "Calculate amplitudes"),
     tags$br(),
     tags$hr(),
@@ -314,6 +334,139 @@ mainPanel(
 
 
 
+# Shifting curves ---------------------------------------------------------
+
+
+tabPanel("Shifting curves", # /level 1 - tabPanel Shifting curves
+         
+         # Panel title ----
+         titlePanel("Shifting ratio plot"), # 2 level - titlePanel "Shifting ratio plot"
+
+
+# Shifting curves / box 1 -------------------------------------------------
+
+         # Sidebar panel for inputs: file input and preferences
+         sidebarLayout(
+         sidebarPanel(
+                      
+                      # Input: Select a file ----
+                      fileInput("read_sheets", "Choose excel File with Ratio sheet",
+                                multiple = FALSE,
+                                accept = c(".xls",
+                                           ".xlsx")),
+                      
+                      # Horizontal line 
+                      tags$hr(),
+                      
+                      selectInput('sheets', 'Select the sheet', '', selected = '', multiple = FALSE),
+                      
+                      
+                      
+                      
+                      
+                      ), # 3 level - main layout with sidebar, sidebarPanel - Shifting curves / box 1
+         
+         
+         mainPanel(
+           DT::dataTableOutput("dt_to_shift_out")
+           
+           ), # 3 level - mainPanel - Shifting curves / box 1
+         
+position = 'left'), # 2 level - sidebarLayout - Shifting curves / box 1
+
+
+# Shifting curves / box 2 -------------------------------------------------
+
+          # Sidebar panel for inputs: file input and shifting
+
+sidebarLayout(
+          sidebarPanel(style = "max-height: 100%",
+  
+                      tags$br("Enter timeframe for the baseline and region to analyze"),
+                      tags$hr(),
+                      numericInput("min_t_shift", "Baseline START: (sec)", 0),
+                      numericInput("max_t_shift", "Baseline END: (sec)", 120),
+                      tags$hr(),
+                      numericInput("start_t_shift", "Region to analyze START: (sec)", 0),
+                      numericInput("end_t_shift", "Region to analyze END: (sec)", 500),
+                      tags$hr(),
+                      numericInput("cell_to_plot_shift", "Enter number of cell", 1),
+                      tags$hr(),
+                      actionButton("plots_init_single", "Render single plot", width = "100%"),
+                      tags$br(),
+                      actionButton("plots_init_all", "Render all plots", width = "100%"),
+                      tags$hr(),
+                      numericInput("max_lag", "Enter maximum lag", 40),
+                      tags$hr(),
+                      actionButton("shift_curves", "Shift the curves using CCF", width = "100%"),
+                      tags$hr(),
+                      actionButton("plots_shift_single", "Render single shifted plot", width = "100%"),
+                      tags$br(),
+                      actionButton("plots_shift_all", "Render all shifted plots", width = "100%"),
+                      tags$hr(),
+                      actionButton("plots_shift_omit", "Omit NA values in columns", width = "100%"),
+                      
+                      # Save SHIFTED curves as excel file
+                      tags$br('Save shifted curves as excel file'),
+                      verbatimTextOutput("read_sheets_value_out", placeholder = TRUE),
+                      downloadButton("SavePltsShift", "Save as excel file"),
+  
+  
+  
+  
+                      ), # 3 level - main layout with sidebar, sidebarPanel - Shifting curves / box 1
+
+
+          mainPanel(
+            plotlyOutput("plot_shift_upper"),
+            plotlyOutput("plot_shift_lower"),
+            DT::dataTableOutput("lag_values_df_out"),
+            
+
+                    ), # 3 level - mainPanel - Shifting curves / box 1
+
+position = 'left'), # 2 level - sidebarLayout - Shifting curves / box 1
+
+
+
+
+
+sidebarLayout(
+  sidebarPanel(style = "max-height: 100%",
+    
+    tags$br("Calculate average for shifted and initial data"),
+    tags$hr(),
+    actionButton("plots_average_init", "Render initial average", width = "100%"),
+    tags$hr(),
+    actionButton("plots_average_shifted", "Render shifted average", width = "100%"),
+
+    
+    # Save SHIFTED curves as excel file
+    tags$hr('Save shifted and initial curves as excel file'),
+    # verbatimTextOutput("read_sheets_value_out", placeholder = TRUE),
+    downloadButton("SaveAverage", "Save as excel file"),
+    
+    
+    
+    
+  ), # 3 level - main layout with sidebar, sidebarPanel - Shifting curves / box 3
+  
+  
+  mainPanel(
+    plotlyOutput("plot_average_upper"),
+    plotlyOutput("plot_average_lower"),
+    DT::dataTableOutput("average_values_df_out"),
+    
+    
+  ), # 3 level - mainPanel - Shifting curves / box 3
+  
+  position = 'left'), # 2 level - sidebarLayout - Shifting curves / box 3
+
+
+
+
+                  
+), # /level 1 - tabPanel Shifting curves
 
 
 
@@ -324,9 +477,15 @@ mainPanel(
 
 
 
+# Final part (navbarPage) -------------------------------------------------
 
 
-) # 0 level - navbarPage
+ ) # 0 level - navbarPage
+
+
+
+
+
 
 
 
