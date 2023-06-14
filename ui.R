@@ -334,7 +334,7 @@ mainPanel(
 
 
 
-# Shifting curves ---------------------------------------------------------
+# TAB PANEL Shifting curves ---------------------------------------------------------
 
 
 tabPanel("Shifting curves", # /level 1 - tabPanel Shifting curves
@@ -345,8 +345,10 @@ tabPanel("Shifting curves", # /level 1 - tabPanel Shifting curves
 
 # Shifting curves / box 1 -------------------------------------------------
 
+
          # Sidebar panel for inputs: file input and preferences
-         sidebarLayout(
+
+sidebarLayout(
          sidebarPanel(
                       
                       # Input: Select a file ----
@@ -375,7 +377,9 @@ tabPanel("Shifting curves", # /level 1 - tabPanel Shifting curves
 position = 'left'), # 2 level - sidebarLayout - Shifting curves / box 1
 
 
+
 # Shifting curves / box 2 -------------------------------------------------
+
 
           # Sidebar panel for inputs: file input and shifting
 
@@ -429,6 +433,7 @@ position = 'left'), # 2 level - sidebarLayout - Shifting curves / box 1
 
 
 
+          # Sidebar panel for inputs: file input and shifting
 
 
 sidebarLayout(
@@ -472,8 +477,79 @@ sidebarLayout(
 
 
 
+# TAB PANEL Rotating plot -------------------------------------------------
 
 
+
+tabPanel("Rotating plot", # /level 1 - tabPanel Rotating plot
+         
+         
+  
+         # Panel title ----
+         titlePanel("Upload data to rotate"), # 2 level - titlePanel "Shifting ratio plot"
+  
+  
+  
+# Rotating plot / box 1 -------------------------------------------------
+         
+         
+         # Sidebar panel for inputs: file input and preferences
+         
+         sidebarLayout(
+           sidebarPanel(
+             
+             # Input: Select a file ----
+             fileInput("read_curves", "Choose excel File",
+                       multiple = FALSE,
+                       accept = c(".xls",
+                                  ".xlsx")),
+             
+             # Horizontal line 
+             tags$hr(),
+             
+             selectInput("data_sheets", 'Select the sheet in file', '', selected = '', multiple = FALSE),
+             
+             
+             
+             
+             
+           ), # 3 level - main layout with sidebar, sidebarPanel - Rotating plot / box 1
+           
+           
+           mainPanel(
+             DT::dataTableOutput("data_to_rotate_out")
+             
+           ), # 3 level - mainPanel - Rotating plot / box 1
+           
+           position = 'left'), # 2 level - sidebarLayout - Rotating plot / box 1
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    
+  
+), # /level 1 - tabPanel Rotating plot
 
 
 

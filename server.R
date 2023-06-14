@@ -662,7 +662,7 @@ server <- function(input, output) {
     
     
 
-# Shifting curves / box 2 ---------------------------------------------------------
+# Shifting curves / box 1 ---------------------------------------------------------
 
     # Getting the list of sheets in excel file
     sheets_in_the_file = eventReactive(eventExpr = {input$read_sheets},
@@ -678,7 +678,8 @@ server <- function(input, output) {
                         )
             })
     
-    
+
+
     
     # Rendering datatable related to selected sheet
     dt_to_shift <- eventReactive(eventExpr = {input$read_sheets
@@ -691,6 +692,9 @@ server <- function(input, output) {
       req(input$sheets)
       dt_to_shift()
     }) 
+ 
+ 
+# Shifting curves / box 2 -------------------------------------------------
     
     
     # Rendering initial plot single
@@ -918,7 +922,40 @@ server <- function(input, output) {
     
     
     
+
     
+    
+    
+# Rotating plot / box 1 ---------------------------------------------------------
+    
+    
+    # Getting the list of sheets in excel file
+    data_sheets_in_file <-  eventReactive(eventExpr = {input$read_curves},
+                                       valueExpr ={
+                                         excel_sheets(input$read_curves$datapath)
+                                       })
+    
+    
+    # Creating SelectInput list with values = sheets
+    observeEvent(input$read_curves,{
+      updateSelectInput(inputId = "data_sheets",
+                        choices = data_sheets_in_file(),
+                        selected = str_extract(data_sheets_in_file(), '^[Rr]atio$')
+      )
+    })   
+    
+    
+    # Rendering datatable related to selected sheet
+    data_to_rotate <- eventReactive(eventExpr = {input$read_curves
+      input$data_sheets},
+      valueExpr = {read_excel(input$read_curves$datapath, sheet = input$data_sheets)})
+    
+    
+    output$data_to_rotate_out <- DT::renderDataTable({
+      req(input$read_curves)
+      req(input$data_sheets)
+      data_to_rotate()
+    }) 
     
     
     
