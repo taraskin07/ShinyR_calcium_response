@@ -5,8 +5,64 @@ dfrot <- read_excel("~/Rprojects/Test_files/2023-04-15-mpkCCD002.xlsx", sheet = 
 dfrot <- read_excel("~/Rprojects/Test_files/2023-04-29-mpkCCD007-Shifted_with_Average.xlsx", sheet = "Ratio_shifted")
 
 
+dfrot 
+
+
+df123 <- dfrot %>% 
+  pivot_longer(!Time, names_to = "cells", values_to = "Signal") 
+
+
+
+length(unique(df123$cells))
+
+nlevels(df123$cells)
+
+
+
+
+ggplotly_render(dfrot, ready=F) + theme(legend.position = 'none')
+
+ggplotly_render(dfrot, ready=T)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 dfrot <- dfrot %>% 
   add_column(Average = rowMeans(dfrot[-grep('^Time$', colnames(dfrot))]))
+
+
+
+
 
 grep("^([Aa]verage|[Mm]ean)", colnames(dfrot))
 
@@ -104,9 +160,22 @@ cleaned_df
 subsetted <- subset(cleaned_df, (Time < 135))
 # View(subsetted)
 
+
+
+
+
 # ggplotly_render(subsetted)
 
+
+
+
+
 average_lm <- lm(Average ~ Time, data = subsetted)
+
+
+
+
+
 # View(average_lm)
 
 cf <- coef(average_lm)

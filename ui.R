@@ -2,7 +2,7 @@ source('engine.R')
 
 
 # Define UI for data upload app ----
-ui <- navbarPage("Calcium response plots adjustment", fluid = TRUE, position = "static-top", # 0 level
+ui <- navbarPage("Calcium response plots adjustment", theme = shinytheme("cosmo"), fluid = TRUE, position = "static-top", # 0 level
 
 
                  
@@ -381,10 +381,10 @@ position = 'left'), # 2 level - sidebarLayout - Shifting curves / box 1
 # Shifting curves / box 2 -------------------------------------------------
 
 
-          # Sidebar panel for inputs: file input and shifting
+          # Sidebar panel for plots
 
 sidebarLayout(
-          sidebarPanel(style = "max-height: 100%",
+          sidebarPanel(style = "height: 100%",
   
                       tags$br("Enter timeframe for the baseline and region to analyze"),
                       tags$hr(),
@@ -398,19 +398,22 @@ sidebarLayout(
                       tags$hr(),
                       actionButton("plots_init_single", "Render single plot", width = "100%"),
                       tags$br(),
+                      tags$br(),
                       actionButton("plots_init_all", "Render all plots", width = "100%"),
                       tags$hr(),
                       numericInput("max_lag", "Enter maximum lag", 40),
                       tags$hr(),
                       actionButton("shift_curves", "Shift the curves using CCF", width = "100%"),
-                      tags$hr(),
+                      tags$hr(style= 'border-style: inset;'),
                       actionButton("plots_shift_single", "Render single shifted plot", width = "100%"),
                       tags$br(),
+                      tags$br(),
                       actionButton("plots_shift_all", "Render all shifted plots", width = "100%"),
-                      tags$hr(),
+                      tags$hr(style= 'border-style: inset;'),
                       actionButton("plots_shift_omit", "Omit NA values in columns", width = "100%"),
                       
                       # Save SHIFTED curves as excel file
+                      tags$br(),
                       tags$br('Save shifted curves as excel file'),
                       verbatimTextOutput("read_sheets_value_out", placeholder = TRUE),
                       downloadButton("SavePltsShift", "Save as excel file"),
@@ -433,7 +436,7 @@ position = 'left'), # 2 level - sidebarLayout - Shifting curves / box 1
 
 
 
-          # Sidebar panel for inputs: file input and shifting
+          # Sidebar panel for plots with average
 
 
 sidebarLayout(

@@ -1,4 +1,6 @@
+library(renv)
 library(shiny)
+library(shinythemes)
 library(readxl)
 library(writexl)
 library(pastecs)
@@ -7,6 +9,8 @@ library(ggplot2)
 library(plotly)
 library(gtools)
 library(tidyverse)
+library(DescTools)
+library(randomcoloR)
 
 
 
@@ -146,14 +150,18 @@ basic_statistics <- function(df) {
 
 # Plotting ggploly graph --------------------------------------------------
 
-ggplotly_render <- function(df_n, baseline = FALSE, b_min = 0, b_max = 120, region = FALSE, r_min = 130, r_max = 330) {
+ggplotly_render <- function(df_n, baseline = FALSE, b_min = 0, b_max = 120, region = FALSE, r_min = 130, r_max = 330, ready = TRUE) {
   
   df_n <- time_col_name(df_n)
   
   df <- df_n %>% 
     pivot_longer(!Time, names_to = "cells", values_to = "Signal") 
   
-    p <- ggplot(df, aes(Time, Signal, group = cells, color = cells)) + geom_line(size=0.5) + geom_point(size = 0.2) 
+  unique_vals <- length(unique(df$cells))
+  
+    p <- ggplot(df, aes(Time, Signal, group = cells, color = cells)) + 
+      geom_line(size=0.5) + geom_point(size = 0.2) + 
+      scale_color_manual(values=randomColor(count = unique_vals, hue = 'random', luminosity = 'bright'))
     
     if (baseline == T) {
       p <- p + 
@@ -167,7 +175,8 @@ ggplotly_render <- function(df_n, baseline = FALSE, b_min = 0, b_max = 120, regi
         geom_vline(xintercept = r_min, colour="red", linetype = "dotted") 
     }
   
-  return(ggplotly(p))
+    if (ready == T) {return(ggplotly(p))} else {return(p)}
+  
   
 }
 
