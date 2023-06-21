@@ -662,3 +662,134 @@ shifting_curves_info <- function(lag_data, df, shifted_main_cell_values, lower, 
   
   return(info_df)
 }
+
+
+
+
+
+
+# Rotating plots ----------------------------------------------------------
+
+
+
+
+average_curve <- function(df_read) {
+  
+  df_rot <- time_col_name(df_read)
+  
+  if (length(grep("^([Aa]verage|[Mm]ean)", colnames(df_rot))) == 0) {
+    
+    df_rot <- df_rot %>% 
+      add_column(Average = rowMeans(df_rot[-grep('^Time$', colnames(df_rot))]))
+    
+    
+    df_rot <- df_rot[, c(grep('^Time$', colnames(df_rot)), grep("^([Aa]verage|[Mm]ean)", colnames(df_rot)))]
+    
+  } else {
+    
+    df_rot <- df_rot %>% 
+      select(c(grep('^Time$', colnames(df_rot)), grep("^([Aa]verage|[Mm]ean)", colnames(df_rot))))
+  }
+  
+  return(df_rot)
+  
+}
+
+
+
+rotating_curve <- function(df_to_rotate, lower_t, upper_t, shift_down = 0) {
+  
+  
+  initial_col_name <- colnames(df_to_rotate)[grep("^([Aa]verage|[Mm]ean)", colnames(df_to_rotate))]
+  
+  colnames(df_to_rotate)[grep("^([Aa]verage|[Mm]ean)", colnames(df_to_rotate))] <- 'Average'
+  
+  
+  
+  df_1 <- subset(df_to_rotate, Time < lower_t) 
+  
+  df_2 <- subset(df_to_rotate, (Time >= lower_t & Time <= upper_t))
+  
+  df_3 <- subset(df_to_rotate, Time > upper_t) 
+  
+  
+  
+  # Rotating
+  
+  average_lm <- coef(lm(Average ~ Time, data = df_2))
+  
+  b = average_lm[[1]]
+  k = average_lm[[2]]
+  
+  
+  df_2$Average <- df_2$Average-k*df_2$Time
+  
+  if (shift_down %% 2 == 1) {
+    
+    df_2$Average <- df_2$Average + k*df_2$Time[length(df_2$Time)]
+    
+  }
+  
+  
+  df_out <- rbind(df_1, df_2, df_3)
+  colnames(df_out)[which(names(df_out) == 'Average')] <- initial_col_name
+  
+  return(df_out)
+}
+
+
+
+# CORRECT CODE REPETITION LATER -------------------------------------------
+
+
+
+rotating_plot <- function(df_to_rotate, lower_t, upper_t) {
+  
+  
+  initial_col_name <- colnames(df_to_rotate)[grep("^([Aa]verage|[Mm]ean)", colnames(df_to_rotate))]
+  
+  colnames(df_to_rotate)[grep("^([Aa]verage|[Mm]ean)", colnames(df_to_rotate))] <- 'Average'
+  
+  
+  
+  df_1 <- subset(df_to_rotate, Time < lower_t) 
+  
+  df_2 <- subset(df_to_rotate, (Time >= lower_t & Time <= upper_t))
+  
+  df_3 <- subset(df_to_rotate, Time > upper_t) 
+  
+  
+  
+  # Rotating
+  
+  average_lm <- coef(lm(Average ~ Time, data = df_2))
+  
+  # b = average_lm[[1]]
+  k = average_lm[[2]]
+  
+  
+  
+  
+  df_to_rotate$Average <- df_to_rotate$Average-k*df_to_rotate$Time
+  
+  
+  
+  colnames(df_to_rotate)[which(names(df_to_rotate) == 'Average')] <- initial_col_name
+  
+  return(df_to_rotate)
+  
+  
+}
+
+
+
+
+
+
+
+
+
+
+
+
+

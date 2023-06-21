@@ -421,7 +421,7 @@ sidebarLayout(
   
   
   
-                      ), # 3 level - main layout with sidebar, sidebarPanel - Shifting curves / box 1
+                      ), # 3 level - main layout with sidebar, sidebarPanel - Shifting curves / box 2
 
 
           mainPanel(
@@ -430,9 +430,9 @@ sidebarLayout(
             DT::dataTableOutput("lag_values_df_out"),
             
 
-                    ), # 3 level - mainPanel - Shifting curves / box 1
+                    ), # 3 level - mainPanel - Shifting curves / box 2
 
-position = 'left'), # 2 level - sidebarLayout - Shifting curves / box 1
+position = 'left'), # 2 level - sidebarLayout - Shifting curves / box 2
 
 
 
@@ -530,9 +530,68 @@ tabPanel("Rotating plot", # /level 1 - tabPanel Rotating plot
   
   
   
+
+# Rotating plot / box 2 - Visualization ------------------------------------
+
+
+  
+
+        # Sidebar panel for plots
+
+sidebarLayout(
+  sidebarPanel(style = "height: 100%",
+               
+               tags$br("Enter timeframe for the line to rotate and region to calculate area"),
+               tags$hr(),
+               actionButton("render_plot_with_average", "Render average plot", width = "100%"),
+               tags$hr(),
+               numericInput("line_start", "Line to rotate START: (sec)", 0),
+               numericInput("line_end", "Line to rotate END: (sec)", 120),
+               tags$hr(),
+               actionButton("mark_line_to_rotate", "Mark lines", width = "100%"),
+               tags$br(),
+               tags$br(),
+               actionButton("rotate_average", "Rotate the whole plot", width = "100%"),
+               tags$br(),
+               tags$br(),
+               actionButton("rotate_part", "Rotate the chosen part of the plot", width = "100%"),
+               tags$br(),
+               tags$br(),
+               actionButton("rotate_down", "Shift rotated part downwards", width = "100%"),
+               tags$br(),
+               tags$br(),
+               actionButton("reset_plot", "Reset plot to initial", width = "100%"),
+               tags$hr(style= 'border-style: inset;'),
+               numericInput("area_start", "Calculate area START: (sec)", 150),
+               numericInput("area_end", "Calculate area END: (sec)", 350),
+               tags$hr(),
+               actionButton("mark_line_to_calculate", "Mark area", width = "100%"),
+               tags$br(),
+               tags$br(),
+               actionButton("calculate_area", "Calculate area under the curve", width = "100%"),
+               tags$br('The calculated area is:'),
+               verbatimTextOutput("area_value", placeholder = TRUE),
+               tags$br(),
+               
+               
+               # Save SHIFTED curves as excel file
+               tags$br(),
+               tags$br('Save final curve as excel file'),
+               downloadButton("SaveFinal", "Save as excel file"),
+               
+               
+               
+               
+  ), # 3 level - main layout with sidebar, sidebarPanel - Rotating plot / box 2 - Visualization
   
   
+  mainPanel(
+    plotlyOutput("plot_average_out"),
+
+    
+  ), # 3 level - mainPanel - Rotating plot/ box 2 - Visualization
   
+  position = 'left'), # 2 level - sidebarLayout - Rotating plot / box 2 - Visualization
   
   
   
