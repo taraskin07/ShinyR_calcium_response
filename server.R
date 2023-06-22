@@ -964,97 +964,93 @@ server <- function(input, output) {
 
     
     
-    check_value <- reactive({
-      
-      input$rotate_plot[1]
-      
-    })
-    
-    output$area_value <- renderPrint({check_value()})
-    
-    
+    # check_value <- reactive({
+    #   
+    #   input$rotate_plot[1]
+    #   
+    # })
+    # 
+    # output$area_value <- renderPrint({check_value()})
     
     
     
     
+    
+    # Rotating the whole plot
     
     plot_average <- eventReactive(eventExpr = {input$render_plot_with_average
-                                               input$mark_line_to_rotate
-                                               input$rotate_part
                                                input$rotate_average
-                                               input$rotate_down
-                                               input$mark_line_to_calculate
-      },
+                                                                                                    },
                                   valueExpr = {
-                                    
-
                                     
                                     plot <- average_curve(data_to_rotate())
                                     
-                                    
-                                    if (input$rotate_average[1] %%2 == 1) {
+                                    if (input$rotate_average == T) {
                                       
-                                      plot <- rotating_plot(plot, input$line_start, input$line_end)
+                                      st <- input$line_start
+                                      en <- input$line_end
+                                      
+                                      plot <- 
+                                        rotating_plot(plot, st, en)
+                                        
                                     }
-                                    
-                                    
-                                    if (input$rotate_part[1] %%2 == 1) {
-                                    
-                                      plot <- rotating_curve(plot, input$line_start, input$line_end, input$rotate_down)
-                                    }
-                                    
-                                    
-                                    
                                     
                                     return(plot)
-                                    
-                                    
                                     
                                     }, ignoreNULL = FALSE)
     
     
-
     
     
-    observeEvent(input$reset_plot, {
+    # Rotating the part of the plot
+    
+    plot_average_part <- eventReactive(eventExpr = {
+      input$render_plot_with_average
+      input$rotate_average
+      input$rotate_part
+      input$rotate_down},
       
-      plot_average <- average_curve(data_to_rotate())
-      
-      }) # output$reset_plot
-      
-      
-      
-    
-        
-    
-    
-    # Rendering average plot if calculate_average is pressed
-    
-    
-    
-    plot_average_output <- eventReactive(eventExpr = {input$render_plot_with_average
-                                                      input$mark_line_to_rotate
-                                                      input$rotate_average
-                                                      input$rotate_part
-                                                      input$rotate_down
-                                                      input$mark_line_to_calculate
-
-    },
     valueExpr = {
       
       req(plot_average())
       
-      if (input$mark_line_to_rotate[1] %%2 == 1) {
-        baseline <- TRUE
-      } else {baseline <- FALSE}
+      if (input$rotate_part == T) {
+        
+        st <- input$line_start
+        en <- input$line_end
+      
+        plot <- rotating_curve(plot_average(), st, en, input$rotate_down)
+        
+        
+      } else {plot <- plot_average()}
+      
+      return(plot)
+    
+    }, ignoreNULL = FALSE)
+    
+    
+    # Mark lines on the plot
+    
+    plot_average_output <- eventReactive(eventExpr = {input$render_plot_with_average
+                                                      input$rotate_average
+                                                      input$mark_line_to_rotate
+                                                      input$rotate_part
+                                                      input$rotate_down
+                                                      input$line_start
+                                                      input$line_end},
+    valueExpr = {
+      
+      req(plot_average_part())
+      
+      baseline <- input$mark_line_to_rotate
+      
       
       if (input$mark_line_to_calculate[1] %%2 == 1) {
         region <- TRUE
       } else {region <- FALSE} 
       
       
-      
-      curve <- ggplotly_render(plot_average(), 
+      curve <- ggplotly_render(plot_average_part(), 
                                  baseline, 
                                  b_min = input$line_start, 
                                  b_max = input$line_end, 
@@ -1069,8 +1065,9 @@ server <- function(input, output) {
       
     }, ignoreNULL = FALSE)
     
-    # output$plot_average_out <- renderPlotly({
-    #   plot_average_output()})
+
+    
+    # Render plot
     
     observeEvent(input$render_plot_with_average, {
 
@@ -1078,7 +1075,35 @@ server <- function(input, output) {
 
 
 
-    }) # /level 1, observeEvent input$calculate_average
+    }) # /level 1, observeEvent input$render_plot_with_average
+    
+    
+    
+    # Reset switchInput values
+    
+    observeEvent(input$reset_plot, {
+      
+      updateSwitchInput(
+        inputId = "mark_line_to_rotate",
+        value = FALSE
+      )
+      
+      updateSwitchInput(
+        inputId = "rotate_average",
+        value = FALSE
+      )
+      
+      updateSwitchInput(
+        inputId = "rotate_part",
+        value = FALSE
+      )
+      
+      updateSwitchInput(
+        inputId = "rotate_down",
+        value = FALSE
+      )
+      
+                }) # output$reset_plot
     
     
     
@@ -1087,21 +1112,6 @@ server <- function(input, output) {
     
     
     
-    # req(input$rotate_part)
-    # req(input$line_start)
-    # req(input$line_end)
-    # req(input$rotate_down)
-    
-    
-    
-    
-    # input$line_start
-    # input$line_end
-    # input$mark_line_to_rotate
-    # input$area_start
-    # input$area_end
-    # input$mark_line_to_calculate
-    # input$calculate_area
     
     
     
@@ -1110,20 +1120,6 @@ server <- function(input, output) {
     
     
     
-    
-    # area_to_calculate <- eventReactive(eventExpr = {
-    #   input$mark_line_to_rotate
-    #   input$area_start
-    #   input$area_end
-    #   input$mark_line_to_calculate
-    #   input$calculate_area
-    # },
-    # valueExpr = {
-    #   
-    #   
-    #   
-    # 
-    # })
     
     
     

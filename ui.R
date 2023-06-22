@@ -548,18 +548,26 @@ sidebarLayout(
                numericInput("line_start", "Line to rotate START: (sec)", 0),
                numericInput("line_end", "Line to rotate END: (sec)", 120),
                tags$hr(),
-               actionButton("mark_line_to_rotate", "Mark lines", width = "100%"),
-               tags$br(),
-               tags$br(),
-               actionButton("rotate_average", "Rotate the whole plot", width = "100%"),
-               tags$br(),
-               tags$br(),
-               actionButton("rotate_part", "Rotate the chosen part of the plot", width = "100%"),
-               tags$br(),
-               tags$br(),
-               actionButton("rotate_down", "Shift rotated part downwards", width = "100%"),
-               tags$br(),
-               tags$br(),
+               switchInput(inputId = "mark_line_to_rotate",
+                           label = "Mark lines",
+                           value = FALSE, size = "normal", onStatus = "statusON",
+                           offStatus = "statusOFF", labelWidth = "100000px"),
+               switchInput(inputId = "rotate_average",
+                           label = "Rotate the whole plot",
+                           value = FALSE, size = "normal", onStatus = "statusON",
+                           offStatus = "statusOFF", onLabel = "Rotate",
+                           offLabel = "OFF", labelWidth = "100000px"),
+               switchInput(inputId = "rotate_part",
+                           label = "Rotate the chosen part of the plot",
+                           value = FALSE, size = "normal", onStatus = "statusON",
+                           offStatus = "statusOFF", onLabel = "Rotate",
+                           offLabel = "OFF", labelWidth = "100000px"),
+               switchInput(inputId = "rotate_down",
+                           label = "Shift rotated part downwards",
+                           value = FALSE, size = "normal", onStatus = "statusON",
+                           offStatus = "statusOFF", onLabel = "Rotate",
+                           offLabel = "OFF", labelWidth = "100000px"),
+
                actionButton("reset_plot", "Reset plot to initial", width = "100%"),
                tags$hr(style= 'border-style: inset;'),
                numericInput("area_start", "Calculate area START: (sec)", 150),
@@ -573,6 +581,20 @@ sidebarLayout(
                verbatimTextOutput("area_value", placeholder = TRUE),
                tags$br(),
                
+               
+               # actionButton("mark_line_to_rotate", "Mark lines", width = "100%"),
+               # tags$br(),
+               # tags$br(),
+               # actionButton("rotate_average", "Rotate the whole plot", width = "100%"),
+               # tags$br(),
+               # tags$br(),
+               # actionButton("rotate_part", "Rotate the chosen part of the plot", width = "100%"),
+               # tags$br(),
+               # tags$br(),
+               # actionButton("rotate_down", "Shift rotated part downwards", width = "100%"),
+               # tags$br(),
+               # tags$br(),
+               # 
                
                # Save SHIFTED curves as excel file
                tags$br(),
@@ -616,6 +638,32 @@ sidebarLayout(
 
 
 # Final part (navbarPage) -------------------------------------------------
+
+#switchInput color while on
+tags$head(tags$style(HTML('.bootstrap-switch .bootstrap-switch-handle-off.bootstrap-switch-statusON,
+                                       .bootstrap-switch .bootstrap-switch-handle-on.bootstrap-switch-statusON {
+                                        background: black;
+                                        color: white;
+                                        }'))),
+
+#switchInput color while off
+tags$head(tags$style(HTML('.bootstrap-switch .bootstrap-switch-handle-off.bootstrap-switch-statusOFF,
+                                       .bootstrap-switch .bootstrap-switch-handle-on.bootstrap-switch-statusOFF {
+                                        background: red;
+                                        color: black;
+                                        }'))),
+
+
+
+tags$head(tags$style(HTML('.bootstrap-switch.bootstrap-switch-focused {
+                                  -webkit-box-shadow: none;
+                                  border-color: black;
+                                  box-shadow: none;
+                                  outline: none;
+                                  }'))),
+
+
+
 
 
  ) # 0 level - navbarPage

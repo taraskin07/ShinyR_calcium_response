@@ -11,6 +11,7 @@ library(gtools)
 library(tidyverse)
 library(DescTools)
 library(randomcoloR)
+library(shinyWidgets)
 
 
 
@@ -697,7 +698,7 @@ average_curve <- function(df_read) {
 
 
 
-rotating_curve <- function(df_to_rotate, lower_t, upper_t, shift_down = 0) {
+rotating_curve <- function(df_to_rotate, lower_t, upper_t, shift_down = FALSE) {
   
   
   initial_col_name <- colnames(df_to_rotate)[grep("^([Aa]verage|[Mm]ean)", colnames(df_to_rotate))]
@@ -724,7 +725,7 @@ rotating_curve <- function(df_to_rotate, lower_t, upper_t, shift_down = 0) {
   
   df_2$Average <- df_2$Average-k*df_2$Time
   
-  if (shift_down %% 2 == 1) {
+  if (shift_down == TRUE) {
     
     df_2$Average <- df_2$Average + k*df_2$Time[length(df_2$Time)]
     

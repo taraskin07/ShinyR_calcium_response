@@ -365,3 +365,28 @@ str_locate(fstr, 'Time')
 str_locate(fstr, 'Time')[1]
 str_locate(fstr, 'Time')[2]
 substr(fstr, str_locate(fstr, 'Time')[1], str_locate(fstr, 'Time')[2])
+
+
+
+
+switchInput(
+  inputId,
+  label = NULL,
+  value = FALSE,
+  onLabel = "ON",
+  offLabel = "OFF",
+  onStatus = NULL,
+  offStatus = NULL,
+  size = "default",
+  labelWidth = "auto",
+  handleWidth = "auto",
+  disabled = FALSE,
+  inline = FALSE,
+  width = NULL
+)
+
+
+
+
+
+
