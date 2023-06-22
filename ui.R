@@ -570,8 +570,13 @@ sidebarLayout(
 
                actionButton("reset_plot", "Reset plot to initial", width = "100%"),
                tags$hr(style= 'border-style: inset;'),
-               numericInput("area_start", "Calculate area START: (sec)", 150),
-               numericInput("area_end", "Calculate area END: (sec)", 350),
+               tags$hr('Define the baseline timeline and the region with maximum'),
+               tags$br(),
+               numericInput("baseline_start", "Baseline START: (sec)", 0),
+               numericInput("baseline_end", "Baseline END: (sec)", 120),
+               tags$hr(),
+               numericInput("area_start", "Calculate area START: (sec)", 600),
+               numericInput("area_end", "Calculate area END: (sec)", 800),
                tags$hr(),
                actionButton("mark_line_to_calculate", "Mark area", width = "100%"),
                tags$br(),
@@ -580,7 +585,7 @@ sidebarLayout(
                tags$br('The calculated area is:'),
                verbatimTextOutput("area_value", placeholder = TRUE),
                tags$br(),
-               
+
                
                # actionButton("mark_line_to_rotate", "Mark lines", width = "100%"),
                # tags$br(),

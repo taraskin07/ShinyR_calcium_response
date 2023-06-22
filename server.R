@@ -1045,18 +1045,18 @@ server <- function(input, output) {
       baseline <- input$mark_line_to_rotate
       
       
-      if (input$mark_line_to_calculate[1] %%2 == 1) {
-        region <- TRUE
-      } else {region <- FALSE} 
+      # if (input$mark_line_to_calculate[1] %%2 == 1) {
+      #   region <- TRUE
+      # } else {region <- FALSE} 
       
       
       curve <- ggplotly_render(plot_average_part(), 
                                  baseline, 
                                  b_min = input$line_start, 
                                  b_max = input$line_end, 
-                                 region, 
-                                 r_min = input$area_start, 
-                                 r_max = input$area_end, 
+                                 # region, 
+                                 # r_min = input$area_start, 
+                                 # r_max = input$area_end, 
                                  ready = FALSE) +
         scale_color_manual(values='black')
       
@@ -1107,7 +1107,17 @@ server <- function(input, output) {
     
     
     
+    # Saving data with Average column
     
+    output$SaveFinal <- downloadHandler(
+      filename = function() {filename(input$read_sheets$name, "Rotated.xlsx")},
+      content = function(file) {
+        df_list <- list('first' = plot_average_part(),
+                        'second' = average_curve(data_to_rotate()))
+        names(df_list) <- c(paste0(input$sheets, '_rotated'), paste0(input$sheets, '_initial'))
+        write_xlsx(df_list, path = file)
+      }
+    )
     
     
     
