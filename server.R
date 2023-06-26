@@ -1110,7 +1110,7 @@ server <- function(input, output) {
     # Saving data with Average column
     
     output$SaveFinal <- downloadHandler(
-      filename = function() {filename(input$read_sheets$name, "Rotated.xlsx")},
+      filename = function() {filename(input$read_curves$name, "Rotated.xlsx")},
       content = function(file) {
         df_list <- list('first' = plot_average_part(),
                         'second' = average_curve(data_to_rotate()))
@@ -1122,11 +1122,57 @@ server <- function(input, output) {
     
     
     
+
+# Rotating plot / box 2 - Plot rotated result -----------------------------
+
     
     
     
     
+    # Render plot
     
+    
+    plot_average_output2 <- eventReactive(eventExpr = {input$render_plot_with_average
+      input$rotate_average
+      input$rotate_part
+      input$rotate_down
+      input$baseline_start 
+      input$baseline_end 
+      input$area_start
+      input$area_end      
+      
+      },
+
+      valueExpr = {
+        
+        req(plot_average_part())
+        
+        baseline <- input$mark_line_to_rotate
+        
+        curve <- ggplotly_render(plot_average_part(), 
+                                 baseline = T, 
+                                 b_min = input$baseline_start, 
+                                 b_max = input$baseline_end, 
+                                 region = T,
+                                 r_min = input$area_start,
+                                 r_max = input$area_end,
+                                 ready = FALSE) +
+          scale_color_manual(values='black')
+        
+        return(ggplotly(curve))
+        
+        
+      }, ignoreNULL = FALSE)
+    
+    
+    
+    observeEvent(input$plot_rotated_result, {
+      
+      output$plot_average_out2 <- renderPlotly({plot_average_output2()}) # output$plot_average_out
+      
+      
+      
+    })
     
     
     

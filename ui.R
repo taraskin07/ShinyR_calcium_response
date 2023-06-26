@@ -567,9 +567,18 @@ sidebarLayout(
                            value = FALSE, size = "normal", onStatus = "statusON",
                            offStatus = "statusOFF", onLabel = "Rotate",
                            offLabel = "OFF", labelWidth = "100000px"),
-
                actionButton("reset_plot", "Reset plot to initial", width = "100%"),
+               
+               # Save SHIFTED curves as excel file
+               tags$br(),
+               tags$br('Save final curve as excel file'),
+               downloadButton("SaveFinal", "Save as excel file"),
+               
+               
                tags$hr(style= 'border-style: inset;'),
+               
+               actionButton("plot_rotated_result", "Plot rotated result", width = "100%"),
+               tags$hr(),
                tags$hr('Define the baseline timeline and the region with maximum'),
                tags$br(),
                numericInput("baseline_start", "Baseline START: (sec)", 0),
@@ -585,7 +594,11 @@ sidebarLayout(
                tags$br('The calculated area is:'),
                verbatimTextOutput("area_value", placeholder = TRUE),
                tags$br(),
+               
+               
 
+               
+               
                
                # actionButton("mark_line_to_rotate", "Mark lines", width = "100%"),
                # tags$br(),
@@ -601,10 +614,7 @@ sidebarLayout(
                # tags$br(),
                # 
                
-               # Save SHIFTED curves as excel file
-               tags$br(),
-               tags$br('Save final curve as excel file'),
-               downloadButton("SaveFinal", "Save as excel file"),
+
                
                
                
@@ -614,6 +624,7 @@ sidebarLayout(
   
   mainPanel(
     plotlyOutput("plot_average_out"),
+    plotlyOutput("plot_average_out2"),
 
     
   ), # 3 level - mainPanel - Rotating plot/ box 2 - Visualization
