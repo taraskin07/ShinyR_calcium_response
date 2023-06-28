@@ -148,7 +148,7 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
       tags$hr('Cells to be excluded:'),
       verbatimTextOutput("list_of_cells", placeholder = TRUE),
       
-      tags$br('Cells to be excluded:'),
+      tags$br(),
       actionButton("new_dataframes", "Obtain new tables"),
       actionButton("plot_new_all", "Plot all new graphs"),
       
@@ -544,14 +544,12 @@ sidebarLayout(
                tags$br("Enter timeframe for the line to rotate and region to calculate area"),
                tags$hr(),
                actionButton("render_plot_with_average", "Render average plot", width = "100%"),
-               tags$hr(),
-               numericInput("line_start", "Line to rotate START: (sec)", 0),
-               numericInput("line_end", "Line to rotate END: (sec)", 120),
-               tags$hr(),
-               switchInput(inputId = "mark_line_to_rotate",
-                           label = "Mark lines",
-                           value = FALSE, size = "normal", onStatus = "statusON",
-                           offStatus = "statusOFF", labelWidth = "100000px"),
+               
+               
+               
+               
+               tags$br(),
+               tags$br(),
                switchInput(inputId = "rotate_average",
                            label = "Rotate the whole plot",
                            value = FALSE, size = "normal", onStatus = "statusON",
@@ -569,6 +567,72 @@ sidebarLayout(
                            offLabel = "OFF", labelWidth = "100000px"),
                actionButton("reset_plot", "Reset plot to initial", width = "100%"),
                
+               
+               
+               tags$hr(),
+               switchInput(inputId = "mark_line_to_rotate",
+                           label = "Mark lines",
+                           value = TRUE, size = "normal", onStatus = "statusON",
+                           offStatus = "statusOFF", labelWidth = "100000px"),
+               
+               numericInput("line_start", "Line to rotate START: (sec)", 0),
+               numericInput("line_end", "Line to rotate END: (sec)", 120),
+               tags$br(),
+               numericInput("flat_start", "Plot to rotate START: (sec)", 200),
+               numericInput("flat_end", "Plot to rotate END: (sec)", 500),
+
+               
+               
+               
+               # Plotting single graph and rotate
+               tags$hr(),
+               numericInput("cell_to_plot_to_rotate", "Enter number of cell", 1),
+               actionButton("plot_single_to_rotate", "Plot single graph", width = "100%"),
+               
+               tags$br(),
+               tags$br(),
+               
+               actionButton("rotate_single_plot", "Rotate single plot"),
+               actionButton("rotate_single_plot_part", "Rotate the part of the single plot"),
+               
+               tags$br(),
+               tags$br(),
+               
+               actionButton("save_single_changes", "Save changes to single plot"),
+               
+               
+               tags$hr(),
+               
+               
+               
+               
+
+               
+
+               # actionButton("exclude_cell", "Exclude cell"),
+               # actionButton("exclude_undo", "Undo"),
+               # actionButton("include_cell", "Include cell"),
+               # actionButton("exclude_reset", "Reset"),
+               # 
+               # tags$hr('Cells to be excluded:'),
+               # verbatimTextOutput("list_of_cells", placeholder = TRUE),
+               
+               
+               
+               
+               
+               
+               
+               
+               
+               
+               
+               
+               
+               
+               
+               
+               
                # Save SHIFTED curves as excel file
                tags$br(),
                tags$br('Save final curve as excel file'),
@@ -578,14 +642,14 @@ sidebarLayout(
                tags$hr(style= 'border-style: inset;'),
                
                actionButton("plot_rotated_result", "Plot rotated result", width = "100%"),
-               tags$hr(),
+
                tags$hr('Define the baseline timeline and the region with maximum'),
                tags$br(),
                numericInput("baseline_start", "Baseline START: (sec)", 0),
                numericInput("baseline_end", "Baseline END: (sec)", 120),
                tags$hr(),
-               numericInput("area_start", "Calculate area START: (sec)", 600),
-               numericInput("area_end", "Calculate area END: (sec)", 800),
+               numericInput("area_start", "Calculate area START: (sec)", 560),
+               numericInput("area_end", "Calculate area END: (sec)", 760),
                tags$hr(),
                actionButton("mark_line_to_calculate", "Mark area", width = "100%"),
                tags$br(),
@@ -597,6 +661,33 @@ sidebarLayout(
                
                
 
+               
+               
+               
+               
+               
+               
+               
+               
+               
+               
+               
+               
+               
+               
+               
+               
+               
+               
+               
+               
+               
+               
+               
+               
+               
+               
+               
                
                
                
@@ -624,6 +715,7 @@ sidebarLayout(
   
   mainPanel(
     plotlyOutput("plot_average_out"),
+    plotlyOutput("plot_single_out"),
     plotlyOutput("plot_average_out2"),
 
     

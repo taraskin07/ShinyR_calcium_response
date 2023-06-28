@@ -987,8 +987,8 @@ server <- function(input, output) {
                                     
                                     if (input$rotate_average == T) {
                                       
-                                      st <- input$line_start
-                                      en <- input$line_end
+                                      st <- input$flat_start
+                                      en <- input$flat_end
                                       
                                       plot <- 
                                         rotating_plot(plot, st, en)
@@ -1000,8 +1000,7 @@ server <- function(input, output) {
                                     }, ignoreNULL = FALSE)
     
     
-    
-    
+
     # Rotating the part of the plot
     
     plot_average_part <- eventReactive(eventExpr = {
@@ -1019,7 +1018,7 @@ server <- function(input, output) {
         st <- input$line_start
         en <- input$line_end
       
-        plot <- rotating_curve(plot_average(), st, en, input$rotate_down)
+        plot <- rotating_plot(plot_average(), st, en, part = input$rotate_part, shift_down = input$rotate_down)
         
         
       } else {plot <- plot_average()}
@@ -1027,6 +1026,64 @@ server <- function(input, output) {
       return(plot)
     
     }, ignoreNULL = FALSE)
+    
+    
+    # # Rotating the whole SINGLE plot
+    # 
+    # plot_single <- eventReactive(eventExpr = {input$plot_single_to_rotate
+    #                                            input$rotate_single_plot
+    # 
+    # },
+    # valueExpr = {
+    # 
+    #   plot <- average_curve(data_to_rotate())
+    # 
+    #   
+    # 
+    #     st <- input$flat_start
+    #     en <- input$flat_end
+    # 
+    #     plot <-
+    #       rotating_plot(plot, st, en)
+    # 
+    #   
+    # 
+    #   return(plot)
+    # 
+    # })
+
+
+
+    # # Rotating the part of the plot
+    # 
+    # plot_average_part <- eventReactive(eventExpr = {
+    #   input$render_plot_with_average
+    #   input$rotate_average
+    #   input$rotate_part
+    #   input$rotate_down},
+    #   
+    #   valueExpr = {
+    #     
+    #     req(plot_average())
+    #     
+    #     if (input$rotate_part == T) {
+    #       
+    #       st <- input$line_start
+    #       en <- input$line_end
+    #       
+    #       plot <- rotating_curve(plot_average(), st, en, input$rotate_down)
+    #       
+    #       
+    #     } else {plot <- plot_average()}
+    #     
+    #     return(plot)
+    #     
+    #   }, ignoreNULL = FALSE)
+    
+    
+    
+    
+    
     
     
     # Mark lines on the plot
@@ -1043,20 +1100,16 @@ server <- function(input, output) {
       req(plot_average_part())
       
       baseline <- input$mark_line_to_rotate
-      
-      
-      # if (input$mark_line_to_calculate[1] %%2 == 1) {
-      #   region <- TRUE
-      # } else {region <- FALSE} 
+      region <- input$mark_line_to_rotate
       
       
       curve <- ggplotly_render(plot_average_part(), 
                                  baseline, 
                                  b_min = input$line_start, 
                                  b_max = input$line_end, 
-                                 # region, 
-                                 # r_min = input$area_start, 
-                                 # r_max = input$area_end, 
+                                 region,
+                                 r_min = input$flat_start,
+                                 r_max = input$flat_end,
                                  ready = FALSE) +
         scale_color_manual(values='black')
       
@@ -1067,7 +1120,7 @@ server <- function(input, output) {
     
 
     
-    # Render plot
+    # Render average plot
     
     observeEvent(input$render_plot_with_average, {
 
@@ -1076,6 +1129,55 @@ server <- function(input, output) {
 
 
     }) # /level 1, observeEvent input$render_plot_with_average
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    # Plotting single graph and rotate
+    
+    observeEvent(input$plot_single_to_rotate, {
+      
+      
+      
+      
+      
+      output$plot_single_out <- renderPlotly({
+        
+        req(data_to_rotate())
+        req(input$cell_to_plot_to_rotate)
+        
+        cell_name <- finding_cell_name(data_to_rotate(), input$cell_to_plot_to_rotate)
+        
+        df_to_render <- time_col_name(data_to_rotate())
+        
+        render_plot <- df_to_render %>%
+          select('Time', all_of(cell_name))
+        
+        
+        plot <- ggplotly_render(render_plot,
+                                baseline = input$mark_line_to_rotate,
+                                b_min = input$line_start,
+                                b_max = input$line_end,
+                                region = input$mark_line_to_rotate,
+                                r_min = input$flat_start,
+                                r_max = input$flat_end,
+                                ready = FALSE) +
+          scale_color_manual(values='black')
+        
+        
+        
+        ggplotly(plot)
+        
+      })
+      
+      
+      
+    }) # /level 1, observeEvent input$plot_single_to_rotate
     
     
     
@@ -1176,9 +1278,7 @@ server <- function(input, output) {
     
     
     
-    
-    
-    
+
     
     
     

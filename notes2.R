@@ -6,7 +6,7 @@ parse_str
 
 
   
-my_expression <- "#(\d+)"
+my_expression <- "#(\\d+)"
 regmatches(parse_str, regexpr("^#(\\d+)", parse_str))
 tf <- regmatches(parse_str, regexec("^#(\\d+)\\s\\((\\d+)\\)", parse_str))
 tf

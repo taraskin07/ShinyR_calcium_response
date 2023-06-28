@@ -26,7 +26,16 @@ ggplotly_render(dfrot, ready=T)
 
 
 
+df_to_render <- time_col_name(dfrot)
 
+
+cell_name <- finding_cell_name(dfrot, 27)
+
+cell_name
+
+
+render_plot <- df_to_render %>% 
+  select('Time', all_of(cell_name))
 
 
 
@@ -391,6 +400,203 @@ switchInput(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+dfrot <- read_excel("~/Rprojects/Test_files/2023-05-12-mpkCCD003SOCE.xlsx", 
+                                        sheet = "Ratio")
+dfrot <- read_excel("~/Rprojects/Test_files/2023-05-12-mpkCCD003-CleanTable-Shifted.xlsx", 
+                                                       sheet = "ratio")
+cell <- 53
+
+
+getting_a_slice_of_df <- function(df_to_slice, cell_number) {
+  
+  df_to_slice <- time_col_name(df_to_slice)
+  cell_name <- finding_cell_name(df_to_slice, cell_number)
+  
+  df_to_slice <- df_to_slice %>%
+    select('Time', all_of(cell_name))
+  
+  return(df_to_slice)
+
+  }
+
+
+df_to_see <- getting_a_slice_of_df(dfrot, cell)
+
+
+
+df_to_see_out <- rotating_plot(df_to_see, 200, 500)
+
+
+ggplotly_render(df_to_see)
+ggplotly_render(df_to_see_out)
+
+
+# TESTS
+
+
+#1
+df_to_see_test <- df_to_see[, c(2,1)]
+
+colnames(df_to_see_test)[1] != 'Time'
+grep('([Tt]ime\\s?)', colnames(df_to_see_test))
+
+
+df_to_see_out_test <- rotating_plot(df_to_see_test, 200, 500)
+ggplotly_render(df_to_see_out_test)
+
+#2
+
+
+chnam <- "Time [s]"
+chnam
+colnames(df_to_see_test)[2] <- "Time [s]"
+df_to_see_test
+df_to_see_out_test <- rotating_plot(df_to_see_test, 200, 500)
+ggplotly_render(df_to_see_out_test)
+
+
+#3
+
+df_to_see_test2 <- df_to_see
+
+colnames(df_to_see_test2)[1] <- "Time [s]"
+df_to_see_test2
+df_to_see_out_test2 <- rotating_plot(df_to_see_test2, 200, 500)
+ggplotly_render(df_to_see_out_test2)
+
+
+#4
+
+df_to_see_test3 <- df_to_see
+
+colnames(df_to_see_test3)[1] <- "Timrgnrfgnr"
+df_to_see_test3
+df_to_see_out_test3 <- rotating_plot(df_to_see_test3, 200, 500)
+ggplotly_render(df_to_see_out_test3)
+
+
+
+#4
+
+df_to_see_test4 <- df_to_see[1]
+
+
+df_to_see_test4
+df_to_see_out_test4 <- rotating_plot(df_to_see_test4, 200, 500)
+ggplotly_render(df_to_see_out_test4)
+
+dfrotav <- average_curve(dfrot)
+asd <- rotating_curve(dfrotav, 0, 120)
+asd2 <- rotating_curve(dfrotav, 0, 120, shift_down = T)
+asd3 <- rotating_plot(dfrotav, 0, 120, part = T)
+asd4 <- rotating_plot(dfrotav, 0, 120, part = T, shift_down = T)
+
+ggplotly_render(dfrotav)
+ggplotly_render(asd)
+ggplotly_render(asd2)
+ggplotly_render(asd3)
+ggplotly_render(asd4)
+
+
+rotating_plot <- function(df_to_rotate, lower_t, upper_t, part = FALSE, shift_down = FALSE) {
+  
+  
+  if (ncol(df_to_rotate) != 2) {stop(print("Something wrong with the data: no such cell number or they are repeats!"))
+    
+  } else if (colnames(df_to_rotate)[1] != 'Time') {
+    
+    if (length(grep('([Tt]ime\\s?)', colnames(df_to_rotate))) != 1) {
+      
+      stop(print("Something wrong with the data: no Time column!"))
+      
+    } else if (grep('([Tt]ime\\s?)', colnames(df_to_rotate)) == 1) {
+      
+      colnames(df_to_rotate)[1] <- 'Time'
+      
+      
+    } else if (grep('([Tt]ime\\s?)', colnames(df_to_rotate)) == 2) {
+      
+      colnames(df_to_rotate)[2] <- 'Time'
+      df_to_rotate <- df_to_rotate[, c(2,1)]
+    
+      } else {
+      
+      stop(print("Something wrong with the data: no Time column!"))
+      
+             }
+
+
+  } 
+      
+    
+    
+  initial_col_name <- colnames(df_to_rotate)[2]
+  
+  colnames(df_to_rotate)[2] <- 'Cell'
+  
+  
+  
+  df_1 <- subset(df_to_rotate, Time < lower_t) 
+  
+  df_2 <- subset(df_to_rotate, (Time >= lower_t & Time <= upper_t))
+  
+  df_3 <- subset(df_to_rotate, Time > upper_t) 
+  
+  
+  # Rotating
+  
+  average_lm <- coef(lm(Cell ~ Time, data = df_2))
+  
+  # b = average_lm[[1]]
+  k = average_lm[[2]]
+  
+  
+  
+  # Rotate partially or the whole plot?
+  
+  if (part == T) {
+    
+    df_2$Cell <- df_2$Cell-k*df_2$Time
+    
+    if (shift_down == TRUE) {
+      
+      df_2$Cell <- df_2$Cell + k*df_2$Time[length(df_2$Time)]
+      
+    }
+    
+    
+    df_to_rotate <- rbind(df_1, df_2, df_3)
+    
+  } else {df_to_rotate$Cell <- df_to_rotate$Cell-k*df_to_rotate$Time}
+  
+  
+
+  
+  # Returning initial column name if differs
+  
+  colnames(df_to_rotate)[which(names(df_to_rotate) == 'Cell')] <- initial_col_name
+  
+  return(df_to_rotate)
+  
+  
+}
 
 
 

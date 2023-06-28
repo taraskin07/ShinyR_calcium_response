@@ -115,8 +115,6 @@ typeof(mb)
 
 
 
-library(xts)
-
 
 
 # Amplitude ---------------------------------------------------------------
@@ -465,6 +463,8 @@ removeDepends <- function(pkg, recursive = FALSE){
     invisible(character())
   }
 }
+
+
 
 # Example
 install.packages("YplantQMC") # installs an unneeded dependency "LeafAngle"
