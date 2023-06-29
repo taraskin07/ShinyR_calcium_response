@@ -594,7 +594,11 @@ sidebarLayout(
                
                actionButton("rotate_single_plot", "Rotate single plot"),
                actionButton("rotate_single_plot_part", "Rotate the part of the single plot"),
-               
+               switchInput(inputId = "rotate_single_down",
+                           label = "Shift down",
+                           value = FALSE, size = "normal", onStatus = "statusON",
+                           offStatus = "statusOFF", onLabel = "Shift",
+                           offLabel = "OFF"),
                tags$br(),
                tags$br(),
                
@@ -716,6 +720,8 @@ sidebarLayout(
   mainPanel(
     plotlyOutput("plot_average_out"),
     plotlyOutput("plot_single_out"),
+    DT::dataTableOutput('data_to_rotate_out2'),
+    plotlyOutput("plot_single_out2"),
     plotlyOutput("plot_average_out2"),
 
     

@@ -268,8 +268,15 @@ server <- function(input, output) {
   
     }) # /level 1, observeEvent input$plot_single
 
+
     
-    # Now creating reactive values list of cells to include
+# Excluding cells ---------------------------------------------------------
+    
+    
+# Button to obtain new dataframes without bad cells information    
+    
+    
+    # Now creating reactive values list of cells to exclude
     
     rmcellValues <- reactiveValues()
       
@@ -319,10 +326,7 @@ server <- function(input, output) {
     
     
 
-# Excluding cells ---------------------------------------------------------
 
-    
-    # Button to obtain new dataframes without bad cells information
     
       
       df_340_excluded <- eventReactive(eventExpr = {input$new_dataframes}, 
@@ -944,11 +948,16 @@ server <- function(input, output) {
       )
     })   
     
+    # Later it will be used to save changes in dataframe after single correction
+    dataframe_to_process <- reactiveVal(NULL)
     
     # Rendering datatable related to selected sheet
     data_to_rotate <- eventReactive(eventExpr = {input$read_curves
       input$data_sheets},
-      valueExpr = {read_excel(input$read_curves$datapath, sheet = input$data_sheets)})
+      valueExpr = {
+        dataframe_to_process(read_excel(input$read_curves$datapath, sheet = input$data_sheets))
+        read_excel(input$read_curves$datapath, sheet = input$data_sheets)})
+    
     
     
     output$data_to_rotate_out <- DT::renderDataTable({
@@ -1028,31 +1037,156 @@ server <- function(input, output) {
     }, ignoreNULL = FALSE)
     
     
-    # # Rotating the whole SINGLE plot
-    # 
-    # plot_single <- eventReactive(eventExpr = {input$plot_single_to_rotate
-    #                                            input$rotate_single_plot
-    # 
-    # },
-    # valueExpr = {
-    # 
-    #   plot <- average_curve(data_to_rotate())
-    # 
-    #   
-    # 
-    #     st <- input$flat_start
-    #     en <- input$flat_end
-    # 
-    #     plot <-
-    #       rotating_plot(plot, st, en)
-    # 
-    #   
-    # 
-    #   return(plot)
-    # 
-    # })
+    
+    
+    
+    
+    # Rotating the whole SINGLE plot
+    
+
+    df2dim_single_and_rotated <- eventReactive(eventExpr = {input$rotate_single_plot
+
+    },
+
+    valueExpr = {
+
+       df2dim <- getting_a_slice_of_df(dataframe_to_process(), input$cell_to_plot_to_rotate)
+
+        st <- input$flat_start
+        en <- input$flat_end
+
+        df2dim <-rotating_plot(df2dim, st, en)
+
+      return(df2dim)
+      
 
 
+    })
+    
+    
+    
+    
+    
+    
+    observeEvent(input$rotate_single_plot, {
+      
+      output$plot_single_out <- renderPlotly({
+        
+        req(df2dim_single_and_rotated())
+        
+        
+        render_plot <- df2dim_single_and_rotated()
+        
+        
+        plot <- ggplotly_render(render_plot,
+                                baseline = input$mark_line_to_rotate,
+                                b_min = input$line_start,
+                                b_max = input$line_end,
+                                region = input$mark_line_to_rotate,
+                                r_min = input$flat_start,
+                                r_max = input$flat_end,
+                                ready = FALSE) +
+          scale_color_manual(values='black')
+        
+        
+        
+        ggplotly(plot)
+        
+      })
+      
+    })
+    
+    
+    # Rotating the part of the SINGLE plot
+    
+    df2dim_single_and_rotated_part <- eventReactive(eventExpr = {input$rotate_single_plot_part
+                                                                 input$rotate_single_down  
+      
+    },
+    
+    valueExpr = {
+      
+      df2dim <- getting_a_slice_of_df(dataframe_to_process(), input$cell_to_plot_to_rotate)
+      
+      st <- input$line_start
+      en <- input$line_end
+      
+      df2dim <-rotating_plot(df2dim, st, en, part = TRUE, shift_down = input$rotate_single_down)
+      
+      return(df2dim)
+      
+      
+      
+    })
+    
+    
+    
+    observeEvent(input$rotate_single_plot_part, {
+      
+      output$plot_single_out <- renderPlotly({
+        
+        req(df2dim_single_and_rotated_part())
+        
+        
+        render_plot <- df2dim_single_and_rotated_part()
+        
+        
+        plot <- ggplotly_render(render_plot,
+                                baseline = input$mark_line_to_rotate,
+                                b_min = input$line_start,
+                                b_max = input$line_end,
+                                region = input$mark_line_to_rotate,
+                                r_min = input$flat_start,
+                                r_max = input$flat_end,
+                                ready = FALSE) +
+          scale_color_manual(values='black')
+        
+        
+        
+        ggplotly(plot)
+        
+      })
+      
+    })
+    
+    
+    
+    
+    
+    observeEvent(input$save_single_changes, {
+
+      dataframe_to_process_new <- replace_columns_in_dfs(dataframe_to_process(), df2dim_single_and_rotated())
+      dataframe_to_process(dataframe_to_process_new)
+      
+      dataframe_to_process_new <- replace_columns_in_dfs(dataframe_to_process(), df2dim_single_and_rotated_part())
+      dataframe_to_process(dataframe_to_process_new)
+      
+      
+      
+      output$plot_single_out2 <- renderPlotly({
+
+        pl <- getting_a_slice_of_df(dataframe_to_process(), input$cell_to_plot_to_rotate)
+        
+        plot <- ggplotly_render(pl,
+                                baseline = input$mark_line_to_rotate,
+                                b_min = input$line_start,
+                                b_max = input$line_end,
+                                region = input$mark_line_to_rotate,
+                                r_min = input$flat_start,
+                                r_max = input$flat_end,
+                                ready = FALSE) +
+          scale_color_manual(values='black')
+        
+        
+        
+        ggplotly(plot)  
+
+        })
+    })
+    
+    
+    
+    
 
     # # Rotating the part of the plot
     # 
@@ -1133,30 +1267,27 @@ server <- function(input, output) {
     
     
     
+
+# Single PLOT -------------------------------------------------------------
+
     
+    dataframe_to_process <- reactiveVal(NULL)
     
-    
-    
+
+
     
     # Plotting single graph and rotate
     
     observeEvent(input$plot_single_to_rotate, {
       
-      
-      
-      
-      
+
       output$plot_single_out <- renderPlotly({
         
         req(data_to_rotate())
         req(input$cell_to_plot_to_rotate)
         
-        cell_name <- finding_cell_name(data_to_rotate(), input$cell_to_plot_to_rotate)
-        
-        df_to_render <- time_col_name(data_to_rotate())
-        
-        render_plot <- df_to_render %>%
-          select('Time', all_of(cell_name))
+
+        render_plot <- getting_a_slice_of_df(data_to_rotate(), input$cell_to_plot_to_rotate)
         
         
         plot <- ggplotly_render(render_plot,
@@ -1175,7 +1306,10 @@ server <- function(input, output) {
         
       })
       
-      
+      output$data_to_rotate_out2 <- DT::renderDataTable({
+        req(data_to_rotate())
+        dataframe_to_process()
+      }) 
       
     }) # /level 1, observeEvent input$plot_single_to_rotate
     

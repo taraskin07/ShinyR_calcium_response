@@ -699,50 +699,18 @@ average_curve <- function(df_read) {
 }
 
 
+getting_a_slice_of_df <- function(df_to_slice, cell_number) {
+  
+  df_to_slice <- time_col_name(df_to_slice)
+  cell_name <- finding_cell_name(df_to_slice, cell_number)
+  
+  df_to_slice <- df_to_slice %>%
+    select('Time', all_of(cell_name))
+  
+  return(df_to_slice)
+  
+}
 
-# rotating_curve <- function(df_to_rotate, lower_t, upper_t, shift_down = FALSE) {
-#   
-#   
-#   initial_col_name <- colnames(df_to_rotate)[grep("^([Aa]verage|[Mm]ean)", colnames(df_to_rotate))]
-#   
-#   colnames(df_to_rotate)[grep("^([Aa]verage|[Mm]ean)", colnames(df_to_rotate))] <- 'Average'
-#   
-#   
-#   
-#   df_1 <- subset(df_to_rotate, Time < lower_t) 
-#   
-#   df_2 <- subset(df_to_rotate, (Time >= lower_t & Time <= upper_t))
-#   
-#   df_3 <- subset(df_to_rotate, Time > upper_t) 
-#   
-#   
-#   
-#   # Rotating
-#   
-#   average_lm <- coef(lm(Average ~ Time, data = df_2))
-#   
-#   b = average_lm[[1]]
-#   k = average_lm[[2]]
-#   
-#   
-#   df_2$Average <- df_2$Average-k*df_2$Time
-#   
-#   if (shift_down == TRUE) {
-#     
-#     df_2$Average <- df_2$Average + k*df_2$Time[length(df_2$Time)]
-#     
-#   }
-#   
-#   
-#   df_out <- rbind(df_1, df_2, df_3)
-#   colnames(df_out)[which(names(df_out) == 'Average')] <- initial_col_name
-#   
-#   return(df_out)
-# }
-
-
-
-# CORRECT CODE REPETITION LATER -------------------------------------------
 
 
 
@@ -829,6 +797,20 @@ rotating_plot <- function(df_to_rotate, lower_t, upper_t, part = FALSE, shift_do
   
 }
 
+
+
+# For single plot replacing the column with new values (rotated)
+
+replace_columns_in_dfs <- function(df_full, df_part) {
+  
+  inter <- intersect(colnames(df_full), colnames(df_part)[!grepl('([Tt]ime\\s?)', colnames(df_part))])
+  
+  
+  df_full[which(colnames(df_full)==inter)] <- df_part[!grepl('([Tt]ime\\s?)', colnames(df_part))]
+  
+  return(df_full)
+  
+}
 
 
 
