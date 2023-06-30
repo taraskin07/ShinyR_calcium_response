@@ -562,7 +562,7 @@ sidebarLayout(
                            offLabel = "OFF", labelWidth = "100000px"),
                switchInput(inputId = "rotate_down",
                            label = "Shift rotated part downwards",
-                           value = FALSE, size = "normal", onStatus = "statusON",
+                           value = TRUE, size = "normal", onStatus = "statusON",
                            offStatus = "statusOFF", onLabel = "Rotate",
                            offLabel = "OFF", labelWidth = "100000px"),
                actionButton("reset_plot", "Reset plot to initial", width = "100%"),
@@ -587,7 +587,7 @@ sidebarLayout(
                # Plotting single graph and rotate
                tags$hr(),
                numericInput("cell_to_plot_to_rotate", "Enter number of cell", 1),
-               actionButton("plot_single_to_rotate", "Plot single graph", width = "100%"),
+               actionButton("plot_single_to_rotate", "Plot single graph (Remove unsaved manipulations)", width = "100%"),
                
                tags$br(),
                tags$br(),
@@ -596,16 +596,20 @@ sidebarLayout(
                actionButton("rotate_single_plot_part", "Rotate the part of the single plot"),
                switchInput(inputId = "rotate_single_down",
                            label = "Shift down",
-                           value = FALSE, size = "normal", onStatus = "statusON",
+                           value = TRUE, size = "normal", onStatus = "statusON",
                            offStatus = "statusOFF", onLabel = "Shift",
                            offLabel = "OFF"),
                tags$br(),
                tags$br(),
                
-               actionButton("save_single_changes", "Save changes to single plot"),
-               
-               
-               tags$hr(),
+               actionButton("save_single_changes", "Render rotated single plot"),
+               tags$br(),
+               tags$br(),
+               actionButton("reset_last_changes", "Reset changes to current cell number"),
+               actionButton("reset_all_changes", "Reset all"),
+
+               tags$hr('Cells, that are changed manually:'),
+               verbatimTextOutput("list_of_cells_altered_manually", placeholder = TRUE),
                
                
                
