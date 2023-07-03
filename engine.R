@@ -1,6 +1,7 @@
 library(renv)
 library(shiny)
 library(shinythemes)
+library(rsconnect)
 library(readxl)
 library(writexl)
 library(pastecs)
@@ -13,6 +14,9 @@ library(DescTools)
 library(randomcoloR)
 library(shinyWidgets)
 
+
+rsconnect::setAccountInfo(name='haloperidol', token='7C5800D103FB6DA527A3ABEADCE68B65', secret='i3glrbXppnTiBIwWOQyfDxUQKoEDckXQwP/unAIV')
+# rsconnect::deployApp()
 
 
 
@@ -699,10 +703,16 @@ average_curve <- function(df_read) {
 }
 
 
-getting_a_slice_of_df <- function(df_to_slice, cell_number) {
+getting_a_slice_of_df <- function(df_to_slice, cell_number_or_name, c_name = FALSE) {
   
   df_to_slice <- time_col_name(df_to_slice)
-  cell_name <- finding_cell_name(df_to_slice, cell_number)
+  
+  if (c_name == TRUE) {
+    cell_name <- cell_number_or_name
+  } else {
+    cell_name <- finding_cell_name(df_to_slice, cell_number_or_name)
+  }
+  
   
   df_to_slice <- df_to_slice %>%
     select('Time', all_of(cell_name))
@@ -712,7 +722,14 @@ getting_a_slice_of_df <- function(df_to_slice, cell_number) {
 }
 
 
-
+# rotate_all <- function(df_to_rotate, list_of_names, listn = FALSE, lower_t, upper_t, baseline_r = TRUE, shift_down = TRUE) {
+#   
+#   if (listn == FALSE) {list_of_names <- c()}
+#   
+#   for (id in nrows)
+#   
+#   
+# }
 
 rotating_plot <- function(df_to_rotate, lower_t, upper_t, part = FALSE, shift_down = FALSE) {
   
@@ -814,12 +831,54 @@ replace_columns_in_dfs <- function(df_full, df_part) {
 
 
 
+# Opposite to intersect() function
+
+outersect <- function(x, y, ...) {
+  big.vec <- c(x, y, ...)
+  duplicates <- big.vec[duplicated(big.vec)]
+  setdiff(big.vec, unique(duplicates))
+}
 
 
 
+# Rotating every single plot one by one
 
-
-
+rotate_all <- function(df_to_rotate, list_of_names, listn = FALSE, lower_base, upper_base, lower_reg, upper_reg, baseline_r = TRUE, shift_down = TRUE) 
+  
+{
+  
+  if (listn == FALSE) {names_list <- colnames(df_to_rotate)[-grep('([Tt]ime\\s?)', colnames(df_to_rotate))]
+  
+  } else {
+    
+    names_list <- outersect(list_of_names, (colnames(df_to_rotate)[-grep('([Tt]ime\\s?)', colnames(df_to_rotate))]))
+    
+  }
+  
+  
+  for (name in names_list)
+  {
+    
+    df2dim_single_and_rotated <- rotating_plot(getting_a_slice_of_df(df_to_rotate, name, c_name = T), lower_reg, upper_reg, part = FALSE)
+    
+    if (baseline_r == TRUE) {
+      
+      df2dim_single_and_rotated_part <- rotating_plot(df2dim_single_and_rotated, lower_base, upper_base, part = TRUE, shift_down)
+      
+      df_to_rotate <- replace_columns_in_dfs(df_to_rotate, df2dim_single_and_rotated_part)
+      
+    } else {
+      
+      df_to_rotate <- replace_columns_in_dfs(df_to_rotate, df2dim_single_and_rotated)
+      
+    }
+  }
+  
+  return(df_to_rotate)
+  
+  
+  
+}
 
 
 

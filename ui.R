@@ -602,17 +602,25 @@ sidebarLayout(
                tags$br(),
                tags$br(),
                
-               actionButton("save_single_changes", "Render rotated single plot"),
+               actionButton("render_rotated_single_plot", "Render rotated single plot"),
                tags$br(),
                tags$br(),
-               actionButton("reset_last_changes", "Reset changes to current cell number"),
+               actionButton("reset_current_changes", "Reset changes to current cell number"),
+               actionButton("reset_last_changes", "Reset last changes"),
                actionButton("reset_all_changes", "Reset all"),
 
                tags$hr('Cells, that are changed manually:'),
                verbatimTextOutput("list_of_cells_altered_manually", placeholder = TRUE),
                
                
-               
+               tags$hr(),
+               actionButton("rotate_all_other_cells", "Rotate all other cells"),
+               actionButton("rotate_all_cells_from_scratch", "Rotate all cells from scratch"),
+               switchInput(inputId = "rotate_baseline_as_well",
+                           label = "Rotate baseline as well",
+                           value = TRUE, size = "normal", onStatus = "statusON",
+                           offStatus = "statusOFF", onLabel = "Rotate",
+                           offLabel = "OFF"),
                
 
                
@@ -724,8 +732,8 @@ sidebarLayout(
   mainPanel(
     plotlyOutput("plot_average_out"),
     plotlyOutput("plot_single_out"),
-    DT::dataTableOutput('data_to_rotate_out2'),
     plotlyOutput("plot_single_out2"),
+    DT::dataTableOutput('data_to_rotate_out2'),
     plotlyOutput("plot_average_out2"),
 
     

@@ -1048,9 +1048,12 @@ server <- function(input, output) {
     
     # Plotting single graph and rotate
     
-    observeEvent(input$plot_single_to_rotate, {
+    observeEvent(ignoreInit = TRUE, list(
+      input$plot_single_to_rotate,
+      input$cell_to_plot_to_rotate), {
       
       
+      req(input$plot_single_to_rotate)
       output$plot_single_out <- renderPlotly({
         
         req(data_to_rotate())
@@ -1211,58 +1214,10 @@ server <- function(input, output) {
     })
     
     
-    
-    
-    
-    observeEvent(input$reset_last_changes, {
-      
-      dataframe_to_process_new <- replace_columns_in_dfs(dataframe_to_process(), getting_a_slice_of_df(data_to_rotate(), input$cell_to_plot_to_rotate))
-      dataframe_to_process(dataframe_to_process_new)
-      
-    })
-    
 
     
-    
-    
-    
-    
-    observeEvent(input$save_single_changes, {
+    observeEvent(input$render_rotated_single_plot, {
 
-      # dataframe_to_process_new <- replace_columns_in_dfs(dataframe_to_process(), df2dim_single_and_rotated())
-      # dataframe_to_process(dataframe_to_process_new)
-      # 
-      # dataframe_to_process_new2 <- replace_columns_in_dfs(dataframe_to_process(), df2dim_single_and_rotated_part())
-      # dataframe_to_process(dataframe_to_process_new2)
-      
-      # plot_single2 <- eventReactive(eventExpr = {input$rotate_single_plot
-      #   input$rotate_single_plot_part
-      #   input$rotate_single_down  
-      #   
-      # },
-      # 
-      # valueExpr = {
-      #   
-      #   pl <- getting_a_slice_of_df(dataframe_to_process(), input$cell_to_plot_to_rotate)
-      #   
-      #   plot <- ggplotly_render(pl,
-      #                           baseline = input$mark_line_to_rotate,
-      #                           b_min = input$line_start,
-      #                           b_max = input$line_end,
-      #                           region = input$mark_line_to_rotate,
-      #                           r_min = input$flat_start,
-      #                           r_max = input$flat_end,
-      #                           ready = FALSE) +
-      #     scale_color_manual(values='black')
-      #   
-      #   
-      #   
-      #   ggplotly(plot)  
-      #   
-      #   
-      #   
-      # })
-      
       
       output$plot_single_out2 <- renderPlotly({        
         
@@ -1282,43 +1237,79 @@ server <- function(input, output) {
       ggplotly(plot)  })
     
       
-      }) # observeEvent(input$save_single_changes)
-    
-    
-    
+      }) # observeEvent(input$render_rotated_single_plot)
     
 
-    # # Rotating the part of the plot
-    # 
-    # plot_average_part <- eventReactive(eventExpr = {
-    #   input$render_plot_with_average
-    #   input$rotate_average
-    #   input$rotate_part
-    #   input$rotate_down},
-    #   
-    #   valueExpr = {
-    #     
-    #     req(plot_average())
-    #     
-    #     if (input$rotate_part == T) {
-    #       
-    #       st <- input$line_start
-    #       en <- input$line_end
-    #       
-    #       plot <- rotating_curve(plot_average(), st, en, input$rotate_down)
-    #       
-    #       
-    #     } else {plot <- plot_average()}
-    #     
-    #     return(plot)
-    #     
-    #   }, ignoreNULL = FALSE)
+
+# Rotating every cell's plot one by one -----------------------------------
+
+    observeEvent(input$rotate_all_other_cells, {
+      
+      dataframe_to_process_new2 <- rotate_all(dataframe_to_process(), 
+                                              rmcellValues$cells_altered_manually, 
+                                              listn = T, 
+                                              lower_base = input$line_start, 
+                                              upper_base = input$line_end,
+                                              lower_reg = input$flat_start,  
+                                              upper_reg = input$flat_end, 
+                                              baseline_r = input$rotate_baseline_as_well,
+                                              shift_down = input$rotate_down)
+      
+      dataframe_to_process(dataframe_to_process_new2)
+      
+      
+      output$plot_single_out2 <- renderPlotly({        
+        
+        pl <- getting_a_slice_of_df(dataframe_to_process(), input$cell_to_plot_to_rotate)
+        
+        plot <- ggplotly_render(pl,
+                                baseline = input$mark_line_to_rotate,
+                                b_min = input$line_start,
+                                b_max = input$line_end,
+                                region = input$mark_line_to_rotate,
+                                r_min = input$flat_start,
+                                r_max = input$flat_end,
+                                ready = FALSE) +
+          scale_color_manual(values='black')
+        
+        
+        ggplotly(plot)  })
+    })    
     
     
     
-    
-    
-    
+    observeEvent(input$rotate_all_cells_from_scratch, {
+      
+      dataframe_to_process_new2 <- rotate_all(dataframe_to_process(), 
+                                              rmcellValues$cells_altered_manually, 
+                                              listn = F, 
+                                              lower_base = input$line_start, 
+                                              upper_base = input$line_end,
+                                              lower_reg = input$flat_start,  
+                                              upper_reg = input$flat_end, 
+                                              baseline_r = input$rotate_baseline_as_well,
+                                              shift_down = input$rotate_down)
+      
+      dataframe_to_process(dataframe_to_process_new2)
+      
+      
+      output$plot_single_out2 <- renderPlotly({        
+        
+        pl <- getting_a_slice_of_df(dataframe_to_process(), input$cell_to_plot_to_rotate)
+        
+        plot <- ggplotly_render(pl,
+                                baseline = input$mark_line_to_rotate,
+                                b_min = input$line_start,
+                                b_max = input$line_end,
+                                region = input$mark_line_to_rotate,
+                                r_min = input$flat_start,
+                                r_max = input$flat_end,
+                                ready = FALSE) +
+          scale_color_manual(values='black')
+        
+        
+        ggplotly(plot)  })
+    })  
     
     # Mark lines on the plot
     
@@ -1470,40 +1461,68 @@ server <- function(input, output) {
     
     # Buttons to Exclude/Undo/Include/Reset cells
 
-    # observeEvent(input$rotate_single_plot | input$rotate_single_plot_part, {
-    # 
-    # 
-    #   rmcellValues$cells_altered_manually <- unique(c(shiny::isolate(rmcellValues$cells_altered_manually), shiny::isolate(finding_cell_name(data_to_rotate(), input$cell_to_plot_to_rotate))))
-    # 
-    # 
-    #   output$list_of_cells_altered_manually<-renderPrint({
-    #     gtools::mixedsort(rmcellValues$cells_altered_manually, decreasing = T)
-    #   })
-    # }) # /level 1, observeEvent input$rotate_single_plot | input$rotate_single_plot_part
-    # 
-    # observeEvent(input$reset_all_changes, {
-    #   rmcellValues$cells_altered_manually <- c()
-    #   
-    #   
-    #   output$list_of_cells_altered_manually<-renderPrint({
-    #     rmcellValues$cells_altered_manually
-    #   })
-    # }) # /level 1, observeEvent input$exclude_reset
-    # 
-    # observeEvent(input$reset_last_changes, {
-    #   req(rmcellValues$cells_altered_manually)
-    #   rmcellValues$cells_altered_manually <- rmcellValues$cells_altered_manually[-length(rmcellValues$cells_altered_manually)]
-    #   
-    #   
-    #   output$list_of_cells_altered_manually<-renderPrint({
-    #     gtools::mixedsort(rmcellValues$cells_altered_manually, decreasing = T)
-    #   })
-    # }) # /level 1, observeEvent input$reset_last_changes
+    observeEvent(ignoreInit = TRUE, list(
+      input$rotate_single_plot, input$rotate_single_plot_part), {
+
+      req(data_to_rotate())
+      
+      
+      rmcellValues$cells_altered_manually <- unique(c(shiny::isolate(rmcellValues$cells_altered_manually), shiny::isolate({finding_cell_name(data_to_rotate(), input$cell_to_plot_to_rotate)})))
+
+      
+
+      output$list_of_cells_altered_manually<-renderPrint({
+        gtools::mixedsort(rmcellValues$cells_altered_manually, decreasing = T)
+
+      })
+    }) # /level 1, observeEvent input$rotate_single_plot | input$rotate_single_plot_part
+    
+    
+  
+    observeEvent(input$reset_current_changes, {
+      
+      dataframe_to_process_new <- replace_columns_in_dfs(dataframe_to_process(), getting_a_slice_of_df(data_to_rotate(), input$cell_to_plot_to_rotate))
+      dataframe_to_process(dataframe_to_process_new)
+      
+      req(rmcellValues$cells_altered_manually)
+      rmcellValues$cells_altered_manually <- rmcellValues$cells_altered_manually[-grep(finding_cell_name(data_to_rotate(), input$cell_to_plot_to_rotate), rmcellValues$cells_altered_manually)]
+      
+      
+      output$list_of_cells_altered_manually<-renderPrint({
+        gtools::mixedsort(rmcellValues$cells_altered_manually, decreasing = T)
+      })
+    }) # /level 1, observeEvent input$reset_last_changes
+    
+
+    
+    observeEvent(input$reset_last_changes, {
+      
+      dataframe_to_process_new <- replace_columns_in_dfs(dataframe_to_process(), getting_a_slice_of_df(data_to_rotate(), rmcellValues$cells_altered_manually[length(rmcellValues$cells_altered_manually)], name = T))
+      dataframe_to_process(dataframe_to_process_new)
+      
+      req(rmcellValues$cells_altered_manually)
+      rmcellValues$cells_altered_manually <- rmcellValues$cells_altered_manually[-length(rmcellValues$cells_altered_manually)]
+
+
+      output$list_of_cells_altered_manually<-renderPrint({
+        gtools::mixedsort(rmcellValues$cells_altered_manually, decreasing = T)
+      })
+    }) # /level 1, observeEvent input$reset_last_changes
     
     
     
     
-    
+    observeEvent(input$reset_all_changes, {
+      
+      dataframe_to_process(data_to_rotate())
+      
+      rmcellValues$cells_altered_manually <- c()
+      
+      
+      output$list_of_cells_altered_manually<-renderPrint({
+        rmcellValues$cells_altered_manually
+      })
+    }) # /level 1, observeEvent input$reset_all_changes
     
     
     
