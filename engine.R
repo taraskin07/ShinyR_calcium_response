@@ -89,6 +89,13 @@ time_col_name <- function(datafr) {
 
     time_col <- '([Tt]ime\\s?)'
     colnames(datafr)[grepl(time_col, colnames(datafr))] =  "Time"
+    
+    if (grep(time_col, colnames(datafr)) != 1) {
+      
+      datafr_temp[1] <- datafr[grep(time_col, colnames(datafr))]
+      datafr <- cbind(datafr_temp, datafr[-grep(time_col, colnames(datafr))])
+      
+    }
   
   datafr$Time <- round(datafr$Time)
   return(datafr)
@@ -416,7 +423,7 @@ find_amplitude_380 <- function(clean_df, min_time, max_time, start_time, end_tim
 
 # Rounding values ---------------------------------------------------------
 
-decim <- function(number, digits) {
+decim <- function(number, digits = 3) {
   
   
   round_result <- as.numeric(format(round(number, digits), nsmall = digits))
@@ -425,7 +432,7 @@ decim <- function(number, digits) {
 }
 
 
-
+dcm <- Vectorize(decim)
 
 
 # Amplitude Statistics ----------------------------------------------------
@@ -443,7 +450,14 @@ ampl_calculating <- amplitude %>%
   ) %>% 
   add_column(Bad_cells = nrow(excl_df)) %>% 
   add_column(Percent_of_bad_cells = 100*nrow(excl_df)/nrow(amplitude)) %>% 
-  select(Amplitude_average, Amplitude_CV_percent, Average_Baseline_CV_percent, Amount_of_cells, Bad_cells, Percent_of_bad_cells, Amplitude_SD, Amplitude_3SD)
+  select(Amplitude_average, 
+         Amplitude_CV_percent, 
+         Average_Baseline_CV_percent, 
+         Amount_of_cells, 
+         Bad_cells, 
+         Percent_of_bad_cells, 
+         Amplitude_SD, 
+         Amplitude_3SD)
 
 
 
@@ -843,15 +857,25 @@ outersect <- function(x, y, ...) {
 
 # Rotating every single plot one by one
 
-rotate_all <- function(df_to_rotate, list_of_names, listn = FALSE, lower_base, upper_base, lower_reg, upper_reg, baseline_r = TRUE, shift_down = TRUE) 
+rotate_all <- function(df_to_rotate, 
+                       list_of_names, 
+                       lower_base, 
+                       upper_base, 
+                       lower_reg, 
+                       upper_reg, 
+                       baseline_r = TRUE, 
+                       shift_down = TRUE) 
   
 {
   
-  if (listn == FALSE) {names_list <- colnames(df_to_rotate)[-grep('([Tt]ime\\s?)', colnames(df_to_rotate))]
+  if (length(list_of_names) == 0) {
+    
+    names_list <- colnames(df_to_rotate)[-grep('([Tt]ime\\s?)', colnames(df_to_rotate))]
   
   } else {
     
-    names_list <- outersect(list_of_names, (colnames(df_to_rotate)[-grep('([Tt]ime\\s?)', colnames(df_to_rotate))]))
+    names_list <- outersect(list_of_names, 
+                            (colnames(df_to_rotate)[-grep('([Tt]ime\\s?)', colnames(df_to_rotate))]))
     
   }
   
@@ -859,11 +883,18 @@ rotate_all <- function(df_to_rotate, list_of_names, listn = FALSE, lower_base, u
   for (name in names_list)
   {
     
-    df2dim_single_and_rotated <- rotating_plot(getting_a_slice_of_df(df_to_rotate, name, c_name = T), lower_reg, upper_reg, part = FALSE)
+    df2dim_single_and_rotated <- rotating_plot(getting_a_slice_of_df(df_to_rotate, name, c_name = T), 
+                                               lower_reg, 
+                                               upper_reg, 
+                                               part = FALSE)
     
     if (baseline_r == TRUE) {
       
-      df2dim_single_and_rotated_part <- rotating_plot(df2dim_single_and_rotated, lower_base, upper_base, part = TRUE, shift_down)
+      df2dim_single_and_rotated_part <- rotating_plot(df2dim_single_and_rotated, 
+                                                      lower_base, 
+                                                      upper_base, 
+                                                      part = TRUE, 
+                                                      shift_down)
       
       df_to_rotate <- replace_columns_in_dfs(df_to_rotate, df2dim_single_and_rotated_part)
       
@@ -876,9 +907,83 @@ rotate_all <- function(df_to_rotate, list_of_names, listn = FALSE, lower_base, u
   
   return(df_to_rotate)
   
+}
+
+
+# Function to find b coefficient in linear regression ---------------------
+
+
+b_find <- function(data_frame_input, b_min, b_max) {
   
+  data_frame_input <- time_col_name(data_frame_input)
+  
+  
+  subsetted <- subset(data_frame_input, (Time <= b_max & Time >= b_min))
+
+  b = mean(subsetted[[2]])
+  
+  return(b)
   
 }
 
 
+# Filling space on plot with polygon  -------------------------------------
+
+
+
+find_intersection <- function(df_rotated, r_min, region, averb) {
+  
+  df_rotated <- time_col_name(df_rotated)
+  colnames(df_rotated)[2] <- 'Current'
+    
+  area <- subset(df_rotated, (Time < (r_min + region) & Time > (r_min - region)))
+  
+  y <- averb
+  y2 <-  min(area[area$Current > averb, ]['Current'])
+  y1 <-  max(area[area$Current <= averb, ]['Current'])
+  
+  x1 <- area[area$Current == y1, ][["Time"]]
+  x2 <- area[area$Current == y2, ][["Time"]]
+  
+  x <- x1+(y-y1)*(x2-x1)/(y2-y1)
+  
+  return(x)
+  
+}
+
+polygon_function <- function(df_rotated, r_min, r_max, region, averb) {
+  
+  df_rotated <- time_col_name(df_rotated)
+  init_name <- colnames(df_rotated)[2]
+  colnames(df_rotated)[2] <- 'Current'
+  
+  area <- subset(df_rotated, (Time < (r_min + region) & Time > (r_min - region)))
+  
+  y <- averb
+  y2 <-  min(area[area$Current > averb, ]['Current'])
+  y1 <-  max(area[area$Current <= averb, ]['Current'])
+  
+  x1 <- area[area$Current == y1, ][["Time"]]
+  x2 <- area[area$Current == y2, ][["Time"]]
+  
+  x <- x1+(y-y1)*(x2-x1)/(y2-y1)
+  
+  subset_poly <- subset(df_rotated, (Time <= r_max & Time >= r_min))
+  
+  polygonX <- subset_poly$Time
+  polygonY <- subset_poly$Current
+  
+  
+  polygonX <- c(polygonX, r_max, r_min)
+  polygonY <- c(polygonY, y, y)
+  
+  
+  polygonX <- c(polygonX, rep(x, length.out=(nrow(df_rotated)-length(polygonX))))
+  polygonY <- c(polygonY, rep(y, length.out=(nrow(df_rotated)-length(polygonY))))
+  
+  data_poly <- data.frame(X=polygonX, Y=polygonY)
+  polyX <- rep(polygonX, length.out=nrow(df_rotated))
+  
+  return(geom_polygon(mapping=aes(polygonX, polygonY), fill = 'green'))
+}
 

@@ -615,39 +615,17 @@ sidebarLayout(
                
                tags$hr(),
                actionButton("rotate_all_other_cells", "Rotate all other cells"),
-               actionButton("rotate_all_cells_from_scratch", "Rotate all cells from scratch"),
+               actionButton("rotate_all_cells_from_scratch", "Rotate all cells from scratch", style="color: white; background-color: blue; border-color: black"),
                switchInput(inputId = "rotate_baseline_as_well",
                            label = "Rotate baseline as well",
                            value = TRUE, size = "normal", onStatus = "statusON",
                            offStatus = "statusOFF", onLabel = "Rotate",
                            offLabel = "OFF"),
                
+             
 
                
 
-               # actionButton("exclude_cell", "Exclude cell"),
-               # actionButton("exclude_undo", "Undo"),
-               # actionButton("include_cell", "Include cell"),
-               # actionButton("exclude_reset", "Reset"),
-               # 
-               # tags$hr('Cells to be excluded:'),
-               # verbatimTextOutput("list_of_cells", placeholder = TRUE),
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               
                
                # Save SHIFTED curves as excel file
                tags$br(),
@@ -657,12 +635,25 @@ sidebarLayout(
                
                tags$hr(style= 'border-style: inset;'),
                
-               actionButton("plot_rotated_result", "Plot rotated result", width = "100%"),
+               
+               
+               actionButton("plot_rotated_result", "Plot rotated average result", width = "100%"),
+
+               
+               # Plotting ROTATED single graph 
+               tags$hr(),
+               numericInput("rotated_plots", "Enter number of cell", 1),
+               actionButton("render_rotated_plots", "Plot single graph", width = "100%"),
+               
+               
 
                tags$hr('Define the baseline timeline and the region with maximum'),
                tags$br(),
                numericInput("baseline_start", "Baseline START: (sec)", 0),
                numericInput("baseline_end", "Baseline END: (sec)", 120),
+               tags$hr(),
+               tags$hr('Define region to calculate the intersection X (time) coordinate'),
+               numericInput("intersection_region", "Region +/-: (sec)", 25),
                tags$hr(),
                numericInput("area_start", "Calculate area START: (sec)", 560),
                numericInput("area_end", "Calculate area END: (sec)", 760),
@@ -678,49 +669,6 @@ sidebarLayout(
                
 
                
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               
-               # actionButton("mark_line_to_rotate", "Mark lines", width = "100%"),
-               # tags$br(),
-               # tags$br(),
-               # actionButton("rotate_average", "Rotate the whole plot", width = "100%"),
-               # tags$br(),
-               # tags$br(),
-               # actionButton("rotate_part", "Rotate the chosen part of the plot", width = "100%"),
-               # tags$br(),
-               # tags$br(),
-               # actionButton("rotate_down", "Shift rotated part downwards", width = "100%"),
-               # tags$br(),
-               # tags$br(),
-               # 
-               
 
                
                
@@ -735,6 +683,7 @@ sidebarLayout(
     plotlyOutput("plot_single_out2"),
     DT::dataTableOutput('data_to_rotate_out2'),
     plotlyOutput("plot_average_out2"),
+    plotlyOutput("plot_single_area_out"),
 
     
   ), # 3 level - mainPanel - Rotating plot/ box 2 - Visualization

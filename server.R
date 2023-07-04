@@ -1050,10 +1050,11 @@ server <- function(input, output) {
     
     observeEvent(ignoreInit = TRUE, list(
       input$plot_single_to_rotate,
-      input$cell_to_plot_to_rotate), {
+      input$cell_to_plot_to_rotate
+      ), {
       
       
-      req(input$plot_single_to_rotate)
+
       output$plot_single_out <- renderPlotly({
         
         req(data_to_rotate())
@@ -1079,12 +1080,6 @@ server <- function(input, output) {
         
       })
       
-      
-      
-      output$data_to_rotate_out2 <- DT::renderDataTable({
-        req(data_to_rotate())
-        dataframe_to_process()
-      }) 
       
     }) # /level 1, observeEvent input$plot_single_to_rotate  
     
@@ -1206,7 +1201,6 @@ server <- function(input, output) {
           scale_color_manual(values='black')
         
         
-        
         ggplotly(plot)
         
       })
@@ -1240,20 +1234,102 @@ server <- function(input, output) {
       }) # observeEvent(input$render_rotated_single_plot)
     
 
+    
+    
+# Button to obtain list of dataframes that have been changed manually -----------------------------    
+    
+    
+    
+    
+    # Buttons to Exclude/Undo/Include/Reset cells
+    
+    observeEvent(ignoreInit = TRUE, list(
+      input$rotate_single_plot, input$rotate_single_plot_part), {
+        
+        req(data_to_rotate())
+        
+        
+        rmcellValues$cells_altered_manually <- unique(c(shiny::isolate(rmcellValues$cells_altered_manually), shiny::isolate({finding_cell_name(data_to_rotate(), input$cell_to_plot_to_rotate)})))
+        
+        
+        
+        output$list_of_cells_altered_manually<-renderPrint({
+          gtools::mixedsort(rmcellValues$cells_altered_manually, decreasing = F)
+          
+        })
+      }) # /level 1, observeEvent input$rotate_single_plot | input$rotate_single_plot_part
+    
+    
+    
+    observeEvent(input$reset_current_changes, {
+      
+      dataframe_to_process_new <- replace_columns_in_dfs(dataframe_to_process(), 
+                                                         getting_a_slice_of_df(data_to_rotate(), 
+                                                                               input$cell_to_plot_to_rotate))
+      dataframe_to_process(dataframe_to_process_new)
+      
+      req(rmcellValues$cells_altered_manually)
+      rmcellValues$cells_altered_manually <- rmcellValues$cells_altered_manually[-grep(finding_cell_name(data_to_rotate(), 
+                                                                                                         input$cell_to_plot_to_rotate), 
+                                                                                       rmcellValues$cells_altered_manually)]
+      
+      
+      output$list_of_cells_altered_manually<-renderPrint({
+        gtools::mixedsort(rmcellValues$cells_altered_manually, decreasing = F)
+      })
+    }) # /level 1, observeEvent input$reset_last_changes
+    
+    
+    
+    observeEvent(input$reset_last_changes, {
+      
+      dataframe_to_process_new <- replace_columns_in_dfs(dataframe_to_process(), getting_a_slice_of_df(data_to_rotate(), rmcellValues$cells_altered_manually[length(rmcellValues$cells_altered_manually)], c_name = T))
+      dataframe_to_process(dataframe_to_process_new)
+      
+      req(rmcellValues$cells_altered_manually)
+      rmcellValues$cells_altered_manually <- rmcellValues$cells_altered_manually[-length(rmcellValues$cells_altered_manually)]
+      
+      
+      output$list_of_cells_altered_manually<-renderPrint({
+        gtools::mixedsort(rmcellValues$cells_altered_manually, decreasing = F)
+      })
+    }) # /level 1, observeEvent input$reset_last_changes
+    
+    
+    
+    
+    observeEvent(input$reset_all_changes, {
+      
+      dataframe_to_process(data_to_rotate())
+      
+      rmcellValues$cells_altered_manually <- c()
+      
+      
+      output$list_of_cells_altered_manually<-renderPrint({
+        rmcellValues$cells_altered_manually
+      })
+      
+      
+    }) # /level 1, observeEvent input$reset_all_changes
+    
+    
+    
 
 # Rotating every cell's plot one by one -----------------------------------
 
     observeEvent(input$rotate_all_other_cells, {
       
+      baselinev <- shiny::isolate(input$rotate_baseline_as_well)
+      shiftv <- shiny::isolate(input$rotate_single_down)
+      
       dataframe_to_process_new2 <- rotate_all(dataframe_to_process(), 
                                               rmcellValues$cells_altered_manually, 
-                                              listn = T, 
                                               lower_base = input$line_start, 
                                               upper_base = input$line_end,
                                               lower_reg = input$flat_start,  
                                               upper_reg = input$flat_end, 
                                               baseline_r = input$rotate_baseline_as_well,
-                                              shift_down = input$rotate_down)
+                                              shift_down = input$rotate_single_down)
       
       dataframe_to_process(dataframe_to_process_new2)
       
@@ -1274,29 +1350,85 @@ server <- function(input, output) {
         
         
         ggplotly(plot)  })
+      
+      output$list_of_cells_altered_manually<-renderPrint({
+        
+
+        if ((baselinev != input$rotate_baseline_as_well) | (shiftv != input$rotate_single_down)) {
+          
+          text <- ("Press 'Reset all' button to recalculate!")
+          print(text)
+          
+        } else {gtools::mixedsort(rmcellValues$cells_altered_manually, decreasing = F)}
+        
+        
+        
+      })
+      
+      
+
     })    
     
     
     
     observeEvent(input$rotate_all_cells_from_scratch, {
-      
-      dataframe_to_process_new2 <- rotate_all(dataframe_to_process(), 
-                                              rmcellValues$cells_altered_manually, 
-                                              listn = F, 
-                                              lower_base = input$line_start, 
+
+      rmcellValues$cells_altered_manually <- c()
+
+      baselinev <- shiny::isolate(input$rotate_baseline_as_well)
+      shiftv <- shiny::isolate(input$rotate_single_down)
+
+      dataframe_to_process_new2 <- rotate_all(data_to_rotate(),
+                                              rmcellValues$cells_altered_manually,
+                                              lower_base = input$line_start,
                                               upper_base = input$line_end,
-                                              lower_reg = input$flat_start,  
-                                              upper_reg = input$flat_end, 
+                                              lower_reg = input$flat_start,
+                                              upper_reg = input$flat_end,
                                               baseline_r = input$rotate_baseline_as_well,
-                                              shift_down = input$rotate_down)
-      
+                                              shift_down = input$rotate_single_down)
+
       dataframe_to_process(dataframe_to_process_new2)
-      
-      
-      output$plot_single_out2 <- renderPlotly({        
-        
+
+
+      output$list_of_cells_altered_manually<-renderPrint({
+
+        text <- ("All curves were rotated automatically: ")
+
+        if (baselinev) {
+          text <- paste0(text, '(main region + baseline)')
+        } else {
+          text <- paste0(text, '(main region only)')
+        }
+
+        if (shiftv) {
+          text <- paste0(text, ' and shifted to match the next value')
+        } else {
+          text <- paste0(text, ' and not shifted')
+        }
+
+        if ((baselinev != input$rotate_baseline_as_well) | (shiftv != input$rotate_single_down)) {
+
+          text <- ("Press button to rotate all the rest or from scratch!")
+
+        }
+
+        print(text)
+      })
+
+
+
+
+      output$data_to_rotate_out2 <- DT::renderDataTable({
+        req(data_to_rotate())
+        dataframe_to_process()
+      })
+
+
+
+      output$plot_single_out2 <- renderPlotly({
+
         pl <- getting_a_slice_of_df(dataframe_to_process(), input$cell_to_plot_to_rotate)
-        
+
         plot <- ggplotly_render(pl,
                                 baseline = input$mark_line_to_rotate,
                                 b_min = input$line_start,
@@ -1306,10 +1438,12 @@ server <- function(input, output) {
                                 r_max = input$flat_end,
                                 ready = FALSE) +
           scale_color_manual(values='black')
-        
-        
+
+
         ggplotly(plot)  })
-    })  
+
+
+    })
     
     # Mark lines on the plot
     
@@ -1391,10 +1525,34 @@ server <- function(input, output) {
     output$SaveFinal <- downloadHandler(
       filename = function() {filename(input$read_curves$name, "Rotated.xlsx")},
       content = function(file) {
-        df_list <- list('first' = plot_average_part(),
-                        'second' = average_curve(data_to_rotate()))
-        names(df_list) <- c(paste0(input$sheets, '_rotated'), paste0(input$sheets, '_initial'))
+        
+        pattern <- grep('([Tt]ime\\s?)', colnames(dataframe_to_process()))
+        
+        
+        # dataframe_to_process <- cbind(dataframe_to_process()[pattern], 
+        #                               data.frame(lapply(dataframe_to_process()[-pattern], decim)))
+        
+        
+        dataframe_to_process <- cbind(dataframe_to_process()[pattern], 
+                                      dcm((dataframe_to_process()[-pattern])))
+        
+        # dataframe_to_process <- data.frame(lapply(dataframe_to_process()[-pattern], decim))
+        
+        
+        df_list <- list('first' = dataframe_to_process,
+                        'second' = average_curve(dataframe_to_process()),
+                        'third' = data_to_rotate(),
+                        'forth' = average_curve(data_to_rotate()),
+                        'fifth' = plot_average_part()
+                        )
+        
+        names(df_list) <- c(paste0(input$sheets, 'data_rotated'), 
+                            paste0(input$sheets, '_av_rotated'), 
+                            paste0(input$sheets, 'data_initial'), 
+                            paste0(input$sheets, '_av_initial'),
+                            paste0(input$sheets, '_av_rotated_initial'))
         write_xlsx(df_list, path = file)
+        
       }
     )
     
@@ -1408,7 +1566,7 @@ server <- function(input, output) {
     # Render plot
     
     
-    plot_average_output2 <- eventReactive(eventExpr = {input$render_plot_with_average
+    plot_average_output2 <- eventReactive(eventExpr = {input$plot_rotated_result
       input$rotate_average
       input$rotate_part
       input$rotate_down
@@ -1421,11 +1579,11 @@ server <- function(input, output) {
 
       valueExpr = {
         
-        req(plot_average_part())
+        req(dataframe_to_process())
         
         baseline <- input$mark_line_to_rotate
         
-        curve <- ggplotly_render(plot_average_part(), 
+        curve <- ggplotly_render(average_curve(dataframe_to_process()), 
                                  baseline = T, 
                                  b_min = input$baseline_start, 
                                  b_max = input$baseline_end, 
@@ -1454,75 +1612,53 @@ server <- function(input, output) {
     
 
     
-# Button to obtain list of dataframes that have been changed manually -----------------------------    
-    
-    
-    
-    
-    # Buttons to Exclude/Undo/Include/Reset cells
+
+# Calculating area on a plot ----------------------------------------------
 
     observeEvent(ignoreInit = TRUE, list(
-      input$rotate_single_plot, input$rotate_single_plot_part), {
+      input$render_rotated_plots, 
+      input$mark_line_to_calculate,
+      input$rotated_plots,
+      input$baseline_start,
+      input$baseline_end,
+      input$area_start,
+      input$area_end,
+      input$intersection_region), {
+        
+        output$area_value <- renderPrint({input$mark_line_to_calculate[1] %% 2 == 1})
 
-      req(data_to_rotate())
-      
-      
-      rmcellValues$cells_altered_manually <- unique(c(shiny::isolate(rmcellValues$cells_altered_manually), shiny::isolate({finding_cell_name(data_to_rotate(), input$cell_to_plot_to_rotate)})))
+        output$plot_single_area_out <- renderPlotly({
+          req(input$render_rotated_plots)
+          
+          
+          pl <- getting_a_slice_of_df(dataframe_to_process(), input$rotated_plots)
+          
+          plot <- ggplotly_render(pl,
+                                  baseline = input$mark_line_to_rotate,
+                                  b_min = input$baseline_start,
+                                  b_max = input$baseline_end,
+                                  region = input$mark_line_to_rotate,
+                                  r_min = input$area_start,
+                                  r_max = input$area_end,
+                                  ready = FALSE) +
+            scale_color_manual(values='black')
+          
+          if (input$mark_line_to_calculate[[1]] %% 2 == 1) {
+            
+            b <- b_find(pl, input$baseline_start, input$baseline_end)
+            
+            plot <- plot +
+              geom_hline(yintercept=b, color = "blue") +
+              polygon_function(pl, input$area_start, input$area_end, input$intersection_region, b)
+          }
+            
+            
+          ggplotly(plot)  }) # output$plot_single_area_out
 
-      
+        
+        
+        }, ignoreNULL = FALSE) # observeEvent(ignoreInit = TRUE, list(
 
-      output$list_of_cells_altered_manually<-renderPrint({
-        gtools::mixedsort(rmcellValues$cells_altered_manually, decreasing = T)
-
-      })
-    }) # /level 1, observeEvent input$rotate_single_plot | input$rotate_single_plot_part
-    
-    
-  
-    observeEvent(input$reset_current_changes, {
-      
-      dataframe_to_process_new <- replace_columns_in_dfs(dataframe_to_process(), getting_a_slice_of_df(data_to_rotate(), input$cell_to_plot_to_rotate))
-      dataframe_to_process(dataframe_to_process_new)
-      
-      req(rmcellValues$cells_altered_manually)
-      rmcellValues$cells_altered_manually <- rmcellValues$cells_altered_manually[-grep(finding_cell_name(data_to_rotate(), input$cell_to_plot_to_rotate), rmcellValues$cells_altered_manually)]
-      
-      
-      output$list_of_cells_altered_manually<-renderPrint({
-        gtools::mixedsort(rmcellValues$cells_altered_manually, decreasing = T)
-      })
-    }) # /level 1, observeEvent input$reset_last_changes
-    
-
-    
-    observeEvent(input$reset_last_changes, {
-      
-      dataframe_to_process_new <- replace_columns_in_dfs(dataframe_to_process(), getting_a_slice_of_df(data_to_rotate(), rmcellValues$cells_altered_manually[length(rmcellValues$cells_altered_manually)], name = T))
-      dataframe_to_process(dataframe_to_process_new)
-      
-      req(rmcellValues$cells_altered_manually)
-      rmcellValues$cells_altered_manually <- rmcellValues$cells_altered_manually[-length(rmcellValues$cells_altered_manually)]
-
-
-      output$list_of_cells_altered_manually<-renderPrint({
-        gtools::mixedsort(rmcellValues$cells_altered_manually, decreasing = T)
-      })
-    }) # /level 1, observeEvent input$reset_last_changes
-    
-    
-    
-    
-    observeEvent(input$reset_all_changes, {
-      
-      dataframe_to_process(data_to_rotate())
-      
-      rmcellValues$cells_altered_manually <- c()
-      
-      
-      output$list_of_cells_altered_manually<-renderPrint({
-        rmcellValues$cells_altered_manually
-      })
-    }) # /level 1, observeEvent input$reset_all_changes
     
     
     
