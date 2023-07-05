@@ -85,7 +85,7 @@ custom_filename <- function(file_name, str_name) {
 
 
 # Correcting Time columns -------------------------------------------------
-time_col_name <- function(datafr) {
+time_col_name <- function(datafr, integer_v = FALSE) {
 
     time_col <- '([Tt]ime\\s?)'
     colnames(datafr)[grepl(time_col, colnames(datafr))] =  "Time"
@@ -97,7 +97,8 @@ time_col_name <- function(datafr) {
       
     }
   
-  datafr$Time <- round(datafr$Time)
+  if (integer_v == FALSE) {datafr$Time <- round(datafr$Time)}
+  
   return(datafr)
 }
 
@@ -164,7 +165,7 @@ basic_statistics <- function(df) {
 
 ggplotly_render <- function(df_n, baseline = FALSE, b_min = 0, b_max = 120, region = FALSE, r_min = 130, r_max = 330, ready = TRUE) {
   
-  df_n <- time_col_name(df_n)
+  df_n <- time_col_name(df_n, integer_v = T)
   
   df <- df_n %>% 
     pivot_longer(!Time, names_to = "cells", values_to = "Signal") 
@@ -172,7 +173,8 @@ ggplotly_render <- function(df_n, baseline = FALSE, b_min = 0, b_max = 120, regi
   unique_vals <- length(unique(df$cells))
   
     p <- ggplot(df, aes(Time, Signal, group = cells, color = cells)) + 
-      geom_line(size=0.5) + geom_point(size = 0.2) + 
+      geom_line(size=0.5) +
+      geom_point(size = 2) + 
       scale_color_manual(values=randomColor(count = unique_vals, hue = 'random', luminosity = 'bright'))
     
     if (baseline == T) {
@@ -915,7 +917,7 @@ rotate_all <- function(df_to_rotate,
 
 b_find <- function(data_frame_input, b_min, b_max) {
   
-  data_frame_input <- time_col_name(data_frame_input)
+  data_frame_input <- time_col_name(data_frame_input, integer_v = T)
   
   
   subsetted <- subset(data_frame_input, (Time <= b_max & Time >= b_min))
@@ -929,21 +931,7 @@ b_find <- function(data_frame_input, b_min, b_max) {
 
 # Filling space on plot with polygon  -------------------------------------
 
-
-
-find_intersection <- function(df_rotated, r_min, region, averb) {
-  
-  df_rotated <- time_col_name(df_rotated)
-  colnames(df_rotated)[2] <- 'Current'
-    
-  area <- subset(df_rotated, (Time < (r_min + region) & Time > (r_min - region)))
-  
-  y <- averb
-  y2 <-  min(area[area$Current > averb, ]['Current'])
-  y1 <-  max(area[area$Current <= averb, ]['Current'])
-  
-  x1 <- area[area$Current == y1, ][["Time"]]
-  x2 <- area[area$Current == y2, ][["Time"]]
+find_intersection_time <- function(y, x1, y1, x2, y2) {
   
   x <- x1+(y-y1)*(x2-x1)/(y2-y1)
   
@@ -951,39 +939,143 @@ find_intersection <- function(df_rotated, r_min, region, averb) {
   
 }
 
-polygon_function <- function(df_rotated, r_min, r_max, region, averb) {
+# find_intersection <- function(df_rotated, r_min, region, averb) {
+#   
+#   df_rotated <- time_col_name(df_rotated)
+#   colnames(df_rotated)[2] <- 'Current'
+#     
+#   area <- subset(df_rotated, (Time < (r_min + region) & Time > (r_min - region)))
+#   
+#   y <- averb
+#   y2 <-  min(area[area$Current > averb, ]['Current'])
+#   y1 <-  max(area[area$Current <= averb, ]['Current'])
+#   
+#   x1 <- area[area$Current == y1, ][["Time"]]
+#   x2 <- area[area$Current == y2, ][["Time"]]
+#   
+#   x <- x1+(y-y1)*(x2-x1)/(y2-y1)
+#   
+#   return(x)
+#   
+# }
+
+dataframe_with_intersections <- function(timeframe, r_min, r_max, b) {
+
+  timeframe <- time_col_name(timeframe, integer_v = T)
+  init_name <- colnames(timeframe)[2]
+  colnames(timeframe)[2] <- 'Current'
   
-  df_rotated <- time_col_name(df_rotated)
+  
+  df_part <- subset(timeframe, (Time <= r_max & Time >= r_min))
+  
+  for (id in 2:nrow(df_part)) {
+    
+    if ((df_part[id, ]$Current > b) & (df_part[id-1, ]$Current < b) |
+        (df_part[id, ]$Current < b) & (df_part[id-1, ]$Current > b)) {
+      
+      time <- find_intersection_time(b,
+                                     df_part[id, ]$Time,
+                                     df_part[id, ]$Current,
+                                     df_part[id-1, ]$Time,
+                                     df_part[id-1, ]$Current)
+      
+      df_find0 <- timeframe[timeframe$Time <= df_part[id-1, ]$Time, ]
+      # df_find0$Time <- as.numeric(df_find0$Time)
+      
+      df_find <- c("Time" = as.numeric(time), "Current" = b)
+      # df_find$Time <- as.numeric(df_find$Time)
+      
+      df_find2 <- timeframe[timeframe$Time >= df_part[id, ]$Time, ]
+      
+      timeframe <- rbind(df_find0, df_find, df_find2)
+      # timeframe$Time <- timeframe(df_find0$Time)
+    }
+    
+    
+  }
+  
+  
+  colnames(timeframe)[2] <- init_name
+  
+  
+  return(timeframe)
+  
+}
+
+
+polygon_function <- function(df_rotated, r_min, r_max, averb) {
+  
+  df_rotated <- time_col_name(df_rotated, integer_v = T)
   init_name <- colnames(df_rotated)[2]
   colnames(df_rotated)[2] <- 'Current'
   
-  area <- subset(df_rotated, (Time < (r_min + region) & Time > (r_min - region)))
+  df_rotated2 <- df_rotated
   
-  y <- averb
-  y2 <-  min(area[area$Current > averb, ]['Current'])
-  y1 <-  max(area[area$Current <= averb, ]['Current'])
-  
-  x1 <- area[area$Current == y1, ][["Time"]]
-  x2 <- area[area$Current == y2, ][["Time"]]
-  
-  x <- x1+(y-y1)*(x2-x1)/(y2-y1)
-  
-  subset_poly <- subset(df_rotated, (Time <= r_max & Time >= r_min))
-  
-  polygonX <- subset_poly$Time
-  polygonY <- subset_poly$Current
+  df_rotated2$Current[(df_rotated2$Time > r_min & 
+                         df_rotated2$Time < r_max & 
+                         df_rotated2$Current < averb)] <- averb
   
   
-  polygonX <- c(polygonX, r_max, r_min)
-  polygonY <- c(polygonY, y, y)
+  if (df_rotated$Current[df_rotated$Time == r_min] > averb) {
+    
+    df_rotated2$Current[(df_rotated2$Time < r_min)] <- averb
+    
+    
+  } else {df_rotated2$Current[(df_rotated2$Time <= r_min)] <- averb}
+  
+  df_rotated2$Time[df_rotated2$Time < r_min] <- r_min
   
   
-  polygonX <- c(polygonX, rep(x, length.out=(nrow(df_rotated)-length(polygonX))))
-  polygonY <- c(polygonY, rep(y, length.out=(nrow(df_rotated)-length(polygonY))))
+  if (df_rotated$Current[df_rotated$Time == r_max] > averb) {
+    
+    df_rotated2$Current[(df_rotated2$Time > r_max)] <- averb
+    
+    
+  } else {df_rotated2$Current[(df_rotated2$Time >= r_max)] <- averb}
   
-  data_poly <- data.frame(X=polygonX, Y=polygonY)
-  polyX <- rep(polygonX, length.out=nrow(df_rotated))
+  df_rotated2$Time[df_rotated2$Time > r_max] <- r_max
   
-  return(geom_polygon(mapping=aes(polygonX, polygonY), fill = 'green'))
+  
+  return(df_rotated2)
 }
 
+
+
+
+
+# polygon_function <- function(df_rotated, r_min, r_max, region, averb) {
+#   
+#   df_rotated <- time_col_name(df_rotated)
+#   init_name <- colnames(df_rotated)[2]
+#   colnames(df_rotated)[2] <- 'Current'
+#   
+#   area <- subset(df_rotated, (Time < (r_min + region) & Time > (r_min - region)))
+#   
+#   y <- averb
+#   y2 <-  min(area[area$Current > averb, ]['Current'])
+#   y1 <-  max(area[area$Current <= averb, ]['Current'])
+#   
+#   x1 <- area[area$Current == y1, ][["Time"]]
+#   x2 <- area[area$Current == y2, ][["Time"]]
+#   
+#   x <- x1+(y-y1)*(x2-x1)/(y2-y1)
+#   
+#   subset_poly <- subset(df_rotated, (Time <= r_max & Time >= r_min))
+#   
+#   polygonX <- subset_poly$Time
+#   polygonY <- subset_poly$Current
+#   
+#   
+#   polygonX <- c(polygonX, r_max, r_min)
+#   polygonY <- c(polygonY, y, y)
+#   
+#   
+#   polygonX <- c(polygonX, rep(x, length.out=(nrow(df_rotated)-length(polygonX))))
+#   polygonY <- c(polygonY, rep(y, length.out=(nrow(df_rotated)-length(polygonY))))
+#   
+#   data_poly <- data.frame(X=polygonX, Y=polygonY)
+#   polyX <- rep(polygonX, length.out=nrow(df_rotated))
+#   
+#   return(geom_polygon(mapping=aes(polygonX, polygonY), fill = 'green'))
+# }
+# 

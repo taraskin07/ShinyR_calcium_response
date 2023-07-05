@@ -1615,8 +1615,76 @@ server <- function(input, output) {
 
 # Calculating area on a plot ----------------------------------------------
 
+    df_slice <- eventReactive(eventExpr = {
+      input$rotated_plots
+      input$mark_line_to_calculate
+      input$render_rotated_plots
+      input$baseline_start
+      input$baseline_end
+      input$area_start
+      input$area_end
+      
+    }, valueExpr = {
+      
+      df_slice <- getting_a_slice_of_df(dataframe_to_process(), input$rotated_plots)
+
+      return(df_slice)
+    })
+    
+    
+    b_value <- eventReactive(eventExpr = {
+      input$rotated_plots
+      input$mark_line_to_calculate
+      input$render_rotated_plots
+      input$baseline_start
+      input$baseline_end
+      input$area_start
+      input$area_end
+      
+    }, valueExpr = {
+      
+      df_slice <- df_slice()
+      
+      b_value <- b_find(df_slice, input$baseline_start, input$baseline_end)
+      
+      return(b_value)
+    })
+
+    
+    intersections_df <- eventReactive(eventExpr = {
+      input$rotated_plots
+      input$mark_line_to_calculate
+      input$render_rotated_plots
+      input$baseline_start
+      input$baseline_end
+      input$area_start
+      input$area_end
+      
+      }, valueExpr = {
+        
+      b <- b_value()
+
+      dfres <- dataframe_with_intersections(df_slice(), input$area_start, input$area_end, b)
+      
+      return(dfres)
+      })
+    
+    
+    
+    polygon_df <- eventReactive(eventExpr = {intersections_df()}, 
+                                valueExpr = {
+  
+      b <- b_value()
+      
+      dfres <- polygon_function(intersections_df(), input$area_start, input$area_end, b)
+      
+      return(dfres)
+    })
+    
+    
+    
     observeEvent(ignoreInit = TRUE, list(
-      input$render_rotated_plots, 
+      input$render_rotated_plots,
       input$mark_line_to_calculate,
       input$rotated_plots,
       input$baseline_start,
@@ -1624,16 +1692,24 @@ server <- function(input, output) {
       input$area_start,
       input$area_end,
       input$intersection_region), {
-        
-        output$area_value <- renderPrint({input$mark_line_to_calculate[1] %% 2 == 1})
+
+        output$area_value <- renderPrint({
+          
+          df_slice <- getting_a_slice_of_df(dataframe_to_process(), input$rotated_plots)
+          
+          b <- b_find(df_slice, input$baseline_start, input$baseline_end)
+          
+          print(b)
+        })
 
         output$plot_single_area_out <- renderPlotly({
-          req(input$render_rotated_plots)
+          req(input$render_rotated_plots, polygon_df(), input$render_rotated_plots)
+
           
-          
-          pl <- getting_a_slice_of_df(dataframe_to_process(), input$rotated_plots)
-          
-          plot <- ggplotly_render(pl,
+          df_slice <- getting_a_slice_of_df(dataframe_to_process(), input$rotated_plots)
+          b <- b_find(df_slice, input$baseline_start, input$baseline_end)
+          pl <- polygon_df()
+          plot <- ggplotly_render(intersections_df(),
                                   baseline = input$mark_line_to_rotate,
                                   b_min = input$baseline_start,
                                   b_max = input$baseline_end,
@@ -1642,26 +1718,43 @@ server <- function(input, output) {
                                   r_max = input$area_end,
                                   ready = FALSE) +
             scale_color_manual(values='black')
-          
+
           if (input$mark_line_to_calculate[[1]] %% 2 == 1) {
-            
-            b <- b_find(pl, input$baseline_start, input$baseline_end)
-            
+
+
             plot <- plot +
               geom_hline(yintercept=b, color = "blue") +
-              polygon_function(pl, input$area_start, input$area_end, input$intersection_region, b)
+              geom_polygon(mapping=aes(pl[[1]],
+                                       pl[[2]]),
+                           fill = 'green') +
+              geom_point(mapping=aes(pl[[1]],
+                                     pl[[2]]),
+                         size = 1,
+                         colour = "red")
+
           }
-            
-            
-          ggplotly(plot)  }) # output$plot_single_area_out
 
-        
-        
-        }, ignoreNULL = FALSE) # observeEvent(ignoreInit = TRUE, list(
+
+      ggplotly(plot)  }) # output$plot_single_area_out
+
+
+
+    }, ignoreNULL = FALSE) # observeEvent(ignoreInit = TRUE, list(
 
     
     
     
+    polygon_df <- eventReactive(eventExpr = {
+      intersections_df()
+      }, 
+                                valueExpr = {
+                                  
+                                  b <- b_value()
+                                  
+                                  dfres <- polygon_function(intersections_df(), input$area_start, input$area_end, b)
+                                  
+                                  return(dfres)
+                                })
     
     
     

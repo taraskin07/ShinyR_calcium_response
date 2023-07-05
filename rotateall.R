@@ -113,70 +113,61 @@ ggplotly_render(pl,
 
 
 
-x <- find_intersection(data_frame_input, 560, 25, b)
-x
+df_rotated <- read_excel("~/Rprojects/Test_files/2023-04-29-mpkCCD007-TEST.xlsx", 
+                                                  sheet = "ratio")
 
-area25 <- subset(NA_Rotated, (Time < (r_min + 25) & Time > (r_min - 25)))
+df_rotated <- read_excel("~/Rprojects/Test_files/2023-05-12-mpkCCD003-CleanTable-Shifted-Rotated.xlsx", 
+                                                               sheet = "data_rotated")
 
-area25[area25$Average > averb, ]['Average']
+ggplotly_render(average_curve(df_rotated))
 
+# df_rotated <- getting_a_slice_of_df(df_rotated, 40)
 
-y <- averb
-y
-y2 <-  min(area25[area25$Average > averb, ]['Average'])
-y2
-y1 <-  max(area25[area25$Average <= averb, ]['Average'])
-y1
-x1 <- area25[area25$Average == y1, ][["Time"]]
-x1
-x2 <- area25[area25$Average == y2, ][["Time"]]
-x2
+df_rotated <- average_curve(df_rotated)
 
 
-x <- x1+(y-y1)*(x2-x1)/(y2-y1)
-x
+find_all_intersections <-  function(timeframe, b, r_min, r_max) {
+  
+  timeframe <- time_col_name(timeframe)
+  init_name <- colnames(timeframe)[2]
+  colnames(timeframe)[2] <- 'Current'
 
-ggplotly(ccurve2)
-
-
-subset_poly <- subset(NA_Rotated, (Time <= r_max & Time >= r_min))
-polygonX <- subset_poly$Time
-polygonY <- subset_poly$Average
-
-polygonX
-length(polygonX)
-polygonY
-length(polygonY)
-
-nrow(NA_Rotated)
-
-polygonX <- c(polygonX, r_max, r_min)
-polygonY <- c(polygonY, y, y)
-
-polygonX <- c(polygonX, rep(x, length.out=(nrow(NA_Rotated)-length(polygonX))))
-polygonY <- c(polygonY, rep(y, length.out=(nrow(NA_Rotated)-length(polygonY))))
+  
+  df_part <-subset(timeframe, (Time <= r_max & Time >= r_min))
+  
+  
+  for (value in df_part$values) {
+    
+    
+    
+  }
+  
+} 
 
 
-polygonX
-length(polygonX)
-polygonY
-length(polygonY)
+timeframe <- read_excel("~/Rprojects/Test_files/2023-05-12-mpkCCD003-CleanTable-Shifted-Rotated.xlsx", 
+                         sheet = "data_rotated")
 
-data_poly <- data.frame(X=polygonX, Y=polygonY)
-
-polygonX
-length(polygonX)
-polygonY
-length(polygonY)
-
-polyX <- rep(polygonX, length.out=nrow(NA_Rotated))
-length(polyX)
+timeframe <- read_excel("~/Rprojects/Test_files/2023-04-29-mpkCCD007-TEST.xlsx", 
+           sheet = "ratio")
 
 
-ccurve3 <- ccurve2 +
-  geom_polygon(mapping=aes(x=polygonX, y=polygonY), fill = 'green')
+timeframe <- average_curve(timeframe)
 
-ggplotly(ccurve3)
+# r_min <- 500
+# r_max <- 755
+
+r_min <- 120
+r_max <- 330
+
+averb <- b_find(timeframe, 0, 120)
+b <- averb
+
+plot_func(timeframe)
+
+
+
+polygon_df <- dataframe_with_intersections(timeframe, r_min, r_max, b)
 
 
 
@@ -184,37 +175,193 @@ ggplotly(ccurve3)
 
 
 
+df_rotated2 <- polygon_df
+
+df_rotated2$Current[(df_rotated2$Time > (r_min - region1) & df_rotated2$Time < (r_max + region2) & df_rotated2$Current < averb)] <- averb
+df_rotated2$Current[(df_rotated2$Time <= (r_min - region1) | df_rotated2$Time > (r_max + region2))] <- averb
+df_rotated2$Time[df_rotated2$Time > (r_max + region2)] <- r_max
+
+df_rotated2 <- polygon_function(polygon_df, r_min, r_max, b) 
+
+df_rotated2
+
+plot <-  ggplotly_render(polygon_df,baseline = T,
+                         b_min = 0,
+                         b_max = 120,
+                         region = T,
+                         r_min = r_min,
+                         r_max = r_max, ready = F) +
+  theme(legend.position = "none") + 
+  scale_color_manual(values='black') + 
+  geom_hline(yintercept=averb, color = "blue") + 
+    geom_polygon(mapping=aes(x=df_rotated2$Time, y=df_rotated2$Current), fill = 'green')+
+  geom_point(mapping=aes(df_rotated2$Time, df_rotated2$Current), size = 1, colour = "red")
+ggplotly(plot)
+
+
+# > square_auc
+# [1] 48.21984
+
+
+df_rotated2
 
 
 
 
 
 
-# AUC(x, y, from = min(x, na.rm = TRUE), to = max(x, na.rm = TRUE), 
-#     method = c("trapezoid", "step", "spline", "linear"), 
-#     absolutearea = FALSE, subdivisions = 100, na.rm = FALSE, ...) 
-
-auc2 <-  AUC(NA_Rotated$Time, NA_Rotated$Average, from = r_min, to = r_max, method = "spline")
+auc2 <-  AUC(polygon_df$Time, 
+             df_rotated2$Current, 
+             from = r_min, 
+             to = r_max, 
+             method = "trapezoid")
 auc2
+# [1] 300.0014
 
-
-auc1 <- AUC(NA_Rotated$Time, rep(y, length.out = length(NA_Rotated$Time)), from = r_min, to = r_max, method = "spline")
+auc1 <- AUC(polygon_df$Time, 
+            rep(b, length.out = length(polygon_df$Time)), 
+            from = r_min, 
+            to = r_max, 
+            method = "trapezoid")
 auc1
-
+# [1] 251.7816
 square_auc <- auc2 - auc1
+square_auc
+# [1] 48.21984
+
+auc2_1 <- AUC(polygon_df$Time, 
+              polygon_df$Current, 
+              from = 121, 
+              to = 134, 
+              method = "trapezoid")
+auc2_1
+
+auc2_2 <- AUC(polygon_df$Time, 
+              polygon_df$Current, 
+              from = 146, 
+              to = 221, 
+              method = "trapezoid")
+auc2_2
+
+
+auc2_3 <- AUC(polygon_df$Time, 
+              polygon_df$Current, 
+              from = 251, 
+              to = 330, 
+              method = "trapezoid")
+auc2_3
+
+
+auc2_1+auc2_2+auc2_3
+# [1] 248.4462
+
+
+
+auc1_1 <- AUC(polygon_df$Time, 
+              rep(b, length.out = length(polygon_df$Time)), 
+              from = 121, 
+              to = 134, 
+              method = "trapezoid")
+auc1_1
+
+auc1_2 <- AUC(polygon_df$Time, 
+              rep(b, length.out = length(polygon_df$Time)), 
+              from = 146, 
+              to = 221, 
+              method = "trapezoid")
+auc1_2
+
+
+auc1_3 <- AUC(polygon_df$Time, 
+              rep(b, length.out = length(polygon_df$Time)), 
+              from = 251, 
+              to = 330, 
+              method = "trapezoid")
+auc1_3
+
+auc1_1+auc1_2+auc1_3
+# [1] 200.2263
+
+auc2_1+auc2_2+auc2_3 - (auc1_1+auc1_2+auc1_3)
+# [1] 48.21984
 square_auc
 
 
 
+# SPLINES
+
+auc2 <-  AUC(polygon_df$Time, 
+             df_rotated2$Current, 
+             from = r_min, 
+             to = r_max, 
+             method = "spline")
+auc2
+# [1] 300.0014
+
+auc1 <- AUC(polygon_df$Time, 
+            rep(b, length.out = length(polygon_df$Time)), 
+            from = r_min, 
+            to = r_max, 
+            method = "spline")
+auc1
+# [1] 251.7816
+square_auc <- auc2 - auc1
+square_auc
+# [1] 48.21984
+
+auc2_1 <- AUC(polygon_df$Time, 
+              polygon_df$Current, 
+              from = 121, 
+              to = 134, 
+              method = "spline")
+auc2_1
+
+auc2_2 <- AUC(polygon_df$Time, 
+              polygon_df$Current, 
+              from = 146, 
+              to = 221, 
+              method = "spline")
+auc2_2
+
+
+auc2_3 <- AUC(polygon_df$Time, 
+              polygon_df$Current, 
+              from = 251, 
+              to = 330, 
+              method = "spline")
+auc2_3
+
+
+auc2_1+auc2_2+auc2_3
+# [1] 248.4462
 
 
 
+auc1_1 <- AUC(polygon_df$Time, 
+              rep(b, length.out = length(polygon_df$Time)), 
+              from = 121, 
+              to = 134, 
+              method = "spline")
+auc1_1
+
+auc1_2 <- AUC(polygon_df$Time, 
+              rep(b, length.out = length(polygon_df$Time)), 
+              from = 146, 
+              to = 221, 
+              method = "spline")
+auc1_2
 
 
+auc1_3 <- AUC(polygon_df$Time, 
+              rep(b, length.out = length(polygon_df$Time)), 
+              from = 251, 
+              to = 330, 
+              method = "spline")
+auc1_3
 
+auc1_1+auc1_2+auc1_3
+# [1] 200.2263
 
-
-
-
-
-
+auc2_1+auc2_2+auc2_3 - (auc1_1+auc1_2+auc1_3)
+# [1] 48.21984
+square_auc
