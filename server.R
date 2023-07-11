@@ -101,7 +101,8 @@ server <- function(input, output) {
   output$SaveXlsBox1 <- downloadHandler(
     filename = function() { filename(input$fluorescence, "ProcessedTable.xlsx")},
     content = function(file) {write_xlsx(list('340'=df_340_ready(), '380'=df_380_ready(), 'ratio' = df_ratio_ready(), 'custom_ratio' = df_custom_ratio_ready()), path = file)}
-  )
+    # content = function(file) {write_xlsx('ratio' = df_ratio_ready(), path = file)}
+    )
   
   
   
@@ -1249,7 +1250,10 @@ server <- function(input, output) {
         req(data_to_rotate())
         
         
-        rmcellValues$cells_altered_manually <- unique(c(shiny::isolate(rmcellValues$cells_altered_manually), shiny::isolate({finding_cell_name(data_to_rotate(), input$cell_to_plot_to_rotate)})))
+        rmcellValues$cells_altered_manually <- 
+          unique(c(shiny::isolate(rmcellValues$cells_altered_manually), 
+                   shiny::isolate({finding_cell_name(data_to_rotate(), 
+                                                     input$cell_to_plot_to_rotate)})))
         
         
         
@@ -1263,15 +1267,18 @@ server <- function(input, output) {
     
     observeEvent(input$reset_current_changes, {
       
-      dataframe_to_process_new <- replace_columns_in_dfs(dataframe_to_process(), 
-                                                         getting_a_slice_of_df(data_to_rotate(), 
-                                                                               input$cell_to_plot_to_rotate))
+      dataframe_to_process_new <- 
+        replace_columns_in_dfs(dataframe_to_process(),
+                               getting_a_slice_of_df(data_to_rotate(), 
+                                                     input$cell_to_plot_to_rotate))
+      
       dataframe_to_process(dataframe_to_process_new)
       
       req(rmcellValues$cells_altered_manually)
-      rmcellValues$cells_altered_manually <- rmcellValues$cells_altered_manually[-grep(finding_cell_name(data_to_rotate(), 
-                                                                                                         input$cell_to_plot_to_rotate), 
-                                                                                       rmcellValues$cells_altered_manually)]
+      rmcellValues$cells_altered_manually <- 
+        rmcellValues$cells_altered_manually[-grep(finding_cell_name(data_to_rotate(),
+                                                                    input$cell_to_plot_to_rotate),
+                                                  rmcellValues$cells_altered_manually)]
       
       
       output$list_of_cells_altered_manually<-renderPrint({
@@ -1283,11 +1290,16 @@ server <- function(input, output) {
     
     observeEvent(input$reset_last_changes, {
       
-      dataframe_to_process_new <- replace_columns_in_dfs(dataframe_to_process(), getting_a_slice_of_df(data_to_rotate(), rmcellValues$cells_altered_manually[length(rmcellValues$cells_altered_manually)], c_name = T))
+      dataframe_to_process_new <- 
+        replace_columns_in_dfs(dataframe_to_process(), 
+                               getting_a_slice_of_df(data_to_rotate(), 
+                                                     rmcellValues$cells_altered_manually[length(rmcellValues$cells_altered_manually)], c_name = T))
+      
       dataframe_to_process(dataframe_to_process_new)
       
       req(rmcellValues$cells_altered_manually)
-      rmcellValues$cells_altered_manually <- rmcellValues$cells_altered_manually[-length(rmcellValues$cells_altered_manually)]
+      rmcellValues$cells_altered_manually <- 
+        rmcellValues$cells_altered_manually[-length(rmcellValues$cells_altered_manually)]
       
       
       output$list_of_cells_altered_manually<-renderPrint({
@@ -1401,9 +1413,9 @@ server <- function(input, output) {
         }
 
         if (shiftv) {
-          text <- paste0(text, ' and shifted to match the next value')
+          text <- paste0(text, ' and baseline shifted to match the next value')
         } else {
-          text <- paste0(text, ' and not shifted')
+          text <- paste0(text, ' and baseline is not shifted')
         }
 
         if ((baselinev != input$rotate_baseline_as_well) | (shiftv != input$rotate_single_down)) {
@@ -1670,8 +1682,10 @@ server <- function(input, output) {
       })
     
     
-    
-    polygon_df <- eventReactive(eventExpr = {intersections_df()}, 
+    polygon_df <- eventReactive(eventExpr = {intersections_df()
+                                             input$area_start
+                                             input$area_end
+                                             b_value()}, 
                                 valueExpr = {
   
       b <- b_value()
@@ -1682,6 +1696,8 @@ server <- function(input, output) {
     })
     
     
+
+
     
     observeEvent(ignoreInit = TRUE, list(
       input$render_rotated_plots,
@@ -1692,15 +1708,30 @@ server <- function(input, output) {
       input$area_start,
       input$area_end,
       input$intersection_region), {
+        
+        
+        #  Calculate area is:
 
         output$area_value <- renderPrint({
           
-          df_slice <- getting_a_slice_of_df(dataframe_to_process(), input$rotated_plots)
+          auc_upper <-  AUC(intersections_df()[[1]], 
+                            polygon_df()[[2]], 
+                            from = input$area_start, 
+                            to = input$area_end, 
+                            method = "trapezoid")
           
-          b <- b_find(df_slice, input$baseline_start, input$baseline_end)
+          auc_lower <- AUC(intersections_df()[[1]], 
+                           rep(b_value(), length.out = nrow(polygon_df())), 
+                           from = input$area_start, 
+                           to = input$area_end, 
+                           method = "trapezoid")
           
-          print(b)
+          auc <- auc_upper - auc_lower
+          
+          return(decim(auc))
         })
+        
+        
 
         output$plot_single_area_out <- renderPlotly({
           req(input$render_rotated_plots, polygon_df(), input$render_rotated_plots)
@@ -1717,12 +1748,13 @@ server <- function(input, output) {
                                   r_min = input$area_start,
                                   r_max = input$area_end,
                                   ready = FALSE) +
-            scale_color_manual(values='black')
+                        scale_color_manual(values='black')
 
           if (input$mark_line_to_calculate[[1]] %% 2 == 1) {
 
 
             plot <- plot +
+              geom_point(size = 2) +
               geom_hline(yintercept=b, color = "blue") +
               geom_polygon(mapping=aes(pl[[1]],
                                        pl[[2]]),
@@ -1741,25 +1773,253 @@ server <- function(input, output) {
 
     }, ignoreNULL = FALSE) # observeEvent(ignoreInit = TRUE, list(
 
+ 
+
+# Calculating area values -------------------------------------------------
+
+       
     
-    
-    
-    polygon_df <- eventReactive(eventExpr = {
-      intersections_df()
-      }, 
-                                valueExpr = {
-                                  
-                                  b <- b_value()
-                                  
-                                  dfres <- polygon_function(intersections_df(), input$area_start, input$area_end, b)
-                                  
-                                  return(dfres)
+    all_curves_area <- 
+      eventReactive(eventExpr = {input$calculate_area},
+                    valueExpr = {
+                      
+                      area_df <- polygon_df() %>% 
+                        pivot_longer(!Time, names_to = "cell", values_to = "value")
+                      
+                      result_area_df <- summarize(group_by(area_df, cell),
+                                        Area_under_the_curve = (AUC(x = Time, 
+                                                                    y = value, 
+                                                                    from = input$area_start, 
+                                                                    to = input$area_end, 
+                                                                    method = "trapezoid")-
+                                                                  AUC(x = Time, 
+                                                                      y = b_value(),
+                                                                      from = input$area_start, 
+                                                                      to = input$area_end, 
+                                                                      method = "trapezoid")
+                                                                )
+                                                  
+                                                  
+                                                  )
+                      
+                      return(result_area_df)
                                 })
     
     
+    # ALL_POLYGONS_DF ---------------------------------------------------------
+    
+    
+    all_polygons_df <-
+      eventReactive(eventExpr = {input$calculate_area},
+                    valueExpr = {
+                      
+                      rotated_df <- dataframe_to_process()
+                      
+                      idx_c <- c()
+                      res_table <- data.frame(Cell = character(), 
+                                              Area = numeric(), 
+                                              Difference = numeric(),
+                                              Area_by_Dif = numeric(),
+                                              Maximum = numeric(),
+                                              Baseline_average = numeric(),
+                                              SD_baseline = numeric(),
+                                              CV_baseline_pct = numeric()
+                      )
+                      
+                      for (idx in 2:ncol(rotated_df)) {
+                        
+                        df_slice <- rotated_df[, c(1, idx)]
+                        b <- b_find(df_slice, input$baseline_start, input$baseline_end)
+                        intersections_df <- dataframe_with_intersections(df_slice, input$area_start, input$area_end, b)
+                        dfres <- polygon_function(intersections_df, input$area_start, input$area_end, b)
+                        dfres[, 1] <- intersections_df[, 1]
+                        
+                        auc_upper <-  AUC(dfres[[1]], 
+                                          dfres[[2]], 
+                                          from = input$area_start, 
+                                          to = input$area_end, 
+                                          method = "trapezoid")
+                        
+                        auc_lower <- AUC(dfres[[1]], 
+                                         rep(b, length.out = nrow(dfres)), 
+                                         from = input$area_start, 
+                                         to = input$area_end, 
+                                         method = "trapezoid")
+                        
+                        auc <- auc_upper - auc_lower
+                        
+                        sd = SD(subset(df_slice, (Time >= input$baseline_start) & (Time <= input$baseline_end))[[2]])
+                        cv = (sd / b)*100
+                        maximum = max(subset(df_slice, (Time >= input$area_start) & (Time <= input$area_end))[[2]])
+                        difference <- maximum - b
+                        
+                        area_by_dif <- auc/difference
+                        
+                        res_table[nrow(res_table)+1, ] <- 
+                          c(Cell = colnames(rotated_df)[idx], 
+                            Area = decim(auc), 
+                            Difference = decim(difference), 
+                            Area_by_Dif = decim(area_by_dif),
+                            Maximum = decim(maximum),
+                            Baseline_average = decim(b),
+                            SD_baseline = decim(sd),
+                            CV_baseline_pct = decim(cv, 1)
+                          )
+                        
+                      }
+                      
+                      
+                      return(res_table)
+                    })
+    
+    result_table <- reactiveVal(NULL)
+    
+    observeEvent(input$calculate_area, {
+      
+      output$area_data_out <- renderDataTable({
+        req(all_polygons_df())
+        result_table(all_polygons_df())
+        result_table_n <- result_table()
+        for (n in 2:ncol(result_table_n)) {
+          result_table_n[n] <- as.numeric(result_table_n[[n]])
+        }
+        return(result_table_n)
+      })
+      
+    }
+    ) # observeEvent(input$calculate_area, {
+    
+    
+    observeEvent(input$save_area_single, {
+      
+      
+      single_polygon_df <-
+        eventReactive(eventExpr = {input$calculate_area},
+                      valueExpr = {
+                        
+                        if (!is.null(result_table())) {
+                          df_slice <- df_slice()
+                          b <- b_value()
+                          res_table <- all_polygons_df()
+                          
+                          auc_upper <-  AUC(intersections_df()[[1]],
+                                            polygon_df()[[2]],
+                                            from = input$area_start,
+                                            to = input$area_end,
+                                            method = "trapezoid")
+                          
+                          auc_lower <- AUC(intersections_df()[[1]],
+                                           rep(b, length.out = nrow(polygon_df())),
+                                           from = input$area_start,
+                                           to = input$area_end,
+                                           method = "trapezoid")
+                          
+                          auc <- auc_upper - auc_lower
+                          
+                          sd = SD(subset(df_slice, (Time >= input$baseline_start) & (Time <= input$baseline_end))[[2]])
+                          cv = (sd / b)*100
+                          maximum = max(subset(df_slice, (Time >= input$area_start) & (Time <= input$area_end))[[2]])
+                          difference <- maximum - b
+                          
+                          res_table[which(res_table$Cell == colnames(df_slice)[2]), ] <-
+                            c(Cell = colnames(df_slice)[2],
+                              Area = decim(auc),
+                              Difference = decim(difference),
+                              Area_by_Dif = decim(auc/difference),
+                              Maximum = decim(maximum),
+                              Baseline_average = decim(b),
+                              SD_baseline = decim(sd),
+                              CV_baseline_pct = decim(cv, 1)
+                            )
+                        }
+                        
+                        return(res_table)
+                      })
+      
+      result_table(single_polygon_df())
+      
+      output$area_data_out <- renderDataTable({
+        req(all_polygons_df())
+        result_table <- result_table()
+        for (n in 2:ncol(result_table)) {
+          result_table[n] <- as.numeric(result_table[[n]])
+        }
+        return(result_table)
+      })
+      
+    }
+    ) # observeEvent(input$save_area_single, {
     
     
     
+    
+    result_statistics_df <-
+      eventReactive(eventExpr = {input$calculate_area_statistics},
+                    
+                    
+                    valueExpr = {
+                      
+                      if (!is.null(result_table())) {
+                        
+                        res_table <- result_table()
+                        
+                        for (n in 2:ncol(res_table)) {
+                          res_table[, n] <- as.numeric(res_table[, n])
+                        }
+                        
+                        Mean_Area = mean(res_table$Area)
+                        
+                        
+                        res_statistics <- data.frame(
+                          Mean_Area = decim(mean(res_table$Area)),
+                          SD_Area = decim(SD(res_table$Area)),
+                          CV_Area_pct = decim(100*SD(res_table$Area)/mean(res_table$Area), 1),
+                          Mean_Difference = decim(mean(res_table$Difference)),
+                          SD_Difference = decim(SD(res_table$Difference)),
+                          CV_Difference_pct = decim(100*SD(res_table$Difference)/mean(res_table$Difference), 1),
+                          Shapiro_Wilk_area_W = decim(shapiro.test(res_table$Area)[[1]]),
+                          Shapiro_Wilk_area_P = shapiro.test(res_table$Area)[[2]],
+                          Shapiro_Wilk_difference_W = decim(shapiro.test(res_table$Difference)[[1]]),
+                          Shapiro_Wilk_difference_P = shapiro.test(res_table$Difference)[[2]],
+                          Mean_A_by_d = decim(mean(res_table$Area_by_Dif)),
+                          CV_A_by_d_pct = decim(100*SD(res_table$Area_by_Dif)/mean(res_table$Area_by_Dif), 1),
+                          Mean_Baseline_av = decim(mean(res_table$Baseline_average)),
+                          CV_Baseline_av_pct = decim(100*SD(res_table$Baseline_average)/mean(res_table$Baseline_average), 1)
+                        )
+                        
+
+
+                      }
+                      
+                      return(res_statistics)
+                      
+                    })
+    
+    output$result_statistics_out <- renderDataTable({
+      req(input$calculate_area_statistics,
+          result_statistics_df())
+      
+      result_statistics_df()})
+    
+    
+# Saving data with area statistics -------------------------------------------------
+    
+    output$SaveAreaStatistics <- downloadHandler(
+      filename = function() {filename(input$read_curves$name, "Area_Statistics.xlsx")},
+      content = function(file) {
         
+
+        
+        
+        df_list <- list('area' = result_table(),
+                        'statistics' = result_statistics_df(),
+                        'data_rotated' = dataframe_to_process()
+        )
+        
+        
+        write_xlsx(df_list, path = file)
+        
+      }
+    )       
     
 } # level 0

@@ -16,7 +16,7 @@ library(shinyWidgets)
 
 
 rsconnect::setAccountInfo(name='haloperidol', token='7C5800D103FB6DA527A3ABEADCE68B65', secret='i3glrbXppnTiBIwWOQyfDxUQKoEDckXQwP/unAIV')
-# rsconnect::deployApp()
+rsconnect::deployApp()
 
 
 
@@ -174,7 +174,6 @@ ggplotly_render <- function(df_n, baseline = FALSE, b_min = 0, b_max = 120, regi
   
     p <- ggplot(df, aes(Time, Signal, group = cells, color = cells)) + 
       geom_line(size=0.5) +
-      geom_point(size = 2) + 
       scale_color_manual(values=randomColor(count = unique_vals, hue = 'random', luminosity = 'bright'))
     
     if (baseline == T) {
@@ -832,12 +831,11 @@ rotating_plot <- function(df_to_rotate, lower_t, upper_t, part = FALSE, shift_do
 
 
 
-# For single plot replacing the column with new values (rotated)
+# For single plot replacing the column with new values
 
 replace_columns_in_dfs <- function(df_full, df_part) {
   
   inter <- intersect(colnames(df_full), colnames(df_part)[!grepl('([Tt]ime\\s?)', colnames(df_part))])
-  
   
   df_full[which(colnames(df_full)==inter)] <- df_part[!grepl('([Tt]ime\\s?)', colnames(df_part))]
   

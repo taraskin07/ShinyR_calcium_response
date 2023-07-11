@@ -655,17 +655,32 @@ sidebarLayout(
                tags$hr('Define region to calculate the intersection X (time) coordinate'),
                numericInput("intersection_region", "Region +/-: (sec)", 25),
                tags$hr(),
-               numericInput("area_start", "Calculate area START: (sec)", 560),
-               numericInput("area_end", "Calculate area END: (sec)", 775),
+               numericInput("area_start", "Calculate area START: (sec)", 560, step = 5),
+               numericInput("area_end", "Calculate area END: (sec)", 775, step = 5),
                tags$hr(),
                actionButton("mark_line_to_calculate", "Mark area", width = "100%"),
                tags$br(),
                tags$br(),
-               actionButton("calculate_area", "Calculate area for all curves"),
-               actionButton("calculate_area_single", "Calculate area under current curve "),
+               actionButton("calculate_area", 
+                            "Calculate area for all curves", 
+                            style="color: white; 
+                            background-color: blue; 
+                            border-color: black"),
+               tags$br(),
+               tags$br(),
+               actionButton("save_area_single", "Save manually calculated area for the current curve"),
+               tags$br(),
+               tags$br(),
+               actionButton("calculate_area_statistics", 
+                            "Calculate statistics",
+               style="color: white;
+               background-color: blue;
+               border-color: black"),
+               
                tags$br('The calculated area is:'),
                verbatimTextOutput("area_value", placeholder = TRUE),
                tags$br(),
+               downloadButton("SaveAreaStatistics", "Save statistics as excel file"),
                
                
 
@@ -685,6 +700,8 @@ sidebarLayout(
     DT::dataTableOutput('data_to_rotate_out2'),
     plotlyOutput("plot_average_out2"),
     plotlyOutput("plot_single_area_out"),
+    DT::dataTableOutput('area_data_out'),
+    DT::dataTableOutput('result_statistics_out'),
 
     
   ), # 3 level - mainPanel - Rotating plot/ box 2 - Visualization
