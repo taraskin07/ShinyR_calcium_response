@@ -1,2 +1,2 @@
-# ShinyR_calcium_response
+# Calcium imaging application
 Shiny application for calcium response plots adjustment
