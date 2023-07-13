@@ -2,7 +2,7 @@ source('engine.R')
 
 
 # Define UI for data upload app ----
-ui <- navbarPage("Calcium response plots adjustment", fluid = TRUE, position = "static-top", # 0 level
+ui <- navbarPage("Calcium response plots adjustment", theme = shinytheme("cosmo"), fluid = TRUE, position = "static-top", # 0 level
 
 
                  
@@ -148,7 +148,7 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
       tags$hr('Cells to be excluded:'),
       verbatimTextOutput("list_of_cells", placeholder = TRUE),
       
-      tags$br('Cells to be excluded:'),
+      tags$br(),
       actionButton("new_dataframes", "Obtain new tables"),
       actionButton("plot_new_all", "Plot all new graphs"),
       
@@ -334,7 +334,7 @@ mainPanel(
 
 
 
-# Shifting curves ---------------------------------------------------------
+# TAB PANEL Shifting curves ---------------------------------------------------------
 
 
 tabPanel("Shifting curves", # /level 1 - tabPanel Shifting curves
@@ -345,8 +345,10 @@ tabPanel("Shifting curves", # /level 1 - tabPanel Shifting curves
 
 # Shifting curves / box 1 -------------------------------------------------
 
+
          # Sidebar panel for inputs: file input and preferences
-         sidebarLayout(
+
+sidebarLayout(
          sidebarPanel(
                       
                       # Input: Select a file ----
@@ -375,12 +377,14 @@ tabPanel("Shifting curves", # /level 1 - tabPanel Shifting curves
 position = 'left'), # 2 level - sidebarLayout - Shifting curves / box 1
 
 
+
 # Shifting curves / box 2 -------------------------------------------------
 
-          # Sidebar panel for inputs: file input and shifting
+
+          # Sidebar panel for plots
 
 sidebarLayout(
-          sidebarPanel(style = "max-height: 100%",
+          sidebarPanel(style = "height: 100%",
   
                       tags$br("Enter timeframe for the baseline and region to analyze"),
                       tags$hr(),
@@ -394,19 +398,22 @@ sidebarLayout(
                       tags$hr(),
                       actionButton("plots_init_single", "Render single plot", width = "100%"),
                       tags$br(),
+                      tags$br(),
                       actionButton("plots_init_all", "Render all plots", width = "100%"),
                       tags$hr(),
                       numericInput("max_lag", "Enter maximum lag", 40),
                       tags$hr(),
                       actionButton("shift_curves", "Shift the curves using CCF", width = "100%"),
-                      tags$hr(),
+                      tags$hr(style= 'border-style: inset;'),
                       actionButton("plots_shift_single", "Render single shifted plot", width = "100%"),
                       tags$br(),
+                      tags$br(),
                       actionButton("plots_shift_all", "Render all shifted plots", width = "100%"),
-                      tags$hr(),
+                      tags$hr(style= 'border-style: inset;'),
                       actionButton("plots_shift_omit", "Omit NA values in columns", width = "100%"),
                       
                       # Save SHIFTED curves as excel file
+                      tags$br(),
                       tags$br('Save shifted curves as excel file'),
                       verbatimTextOutput("read_sheets_value_out", placeholder = TRUE),
                       downloadButton("SavePltsShift", "Save as excel file"),
@@ -414,7 +421,7 @@ sidebarLayout(
   
   
   
-                      ), # 3 level - main layout with sidebar, sidebarPanel - Shifting curves / box 1
+                      ), # 3 level - main layout with sidebar, sidebarPanel - Shifting curves / box 2
 
 
           mainPanel(
@@ -423,12 +430,13 @@ sidebarLayout(
             DT::dataTableOutput("lag_values_df_out"),
             
 
-                    ), # 3 level - mainPanel - Shifting curves / box 1
+                    ), # 3 level - mainPanel - Shifting curves / box 2
 
-position = 'left'), # 2 level - sidebarLayout - Shifting curves / box 1
+position = 'left'), # 2 level - sidebarLayout - Shifting curves / box 2
 
 
 
+          # Sidebar panel for plots with average
 
 
 sidebarLayout(
@@ -472,12 +480,281 @@ sidebarLayout(
 
 
 
+# TAB PANEL Rotating plot -------------------------------------------------
 
 
+
+tabPanel("Rotating plot", # /level 1 - tabPanel Rotating plot
+         
+         
+  
+         # Panel title ----
+         titlePanel("Upload data to rotate"), # 2 level - titlePanel "Shifting ratio plot"
+  
+  
+  
+# Rotating plot / box 1 -------------------------------------------------
+         
+         
+         # Sidebar panel for inputs: file input and preferences
+         
+         sidebarLayout(
+           sidebarPanel(
+             
+             # Input: Select a file ----
+             fileInput("read_curves", "Choose excel File",
+                       multiple = FALSE,
+                       accept = c(".xls",
+                                  ".xlsx")),
+             
+             # Horizontal line 
+             tags$hr(),
+             
+             selectInput("data_sheets", 'Select the sheet in file', '', selected = '', multiple = FALSE),
+             
+             
+             
+             
+             
+           ), # 3 level - main layout with sidebar, sidebarPanel - Rotating plot / box 1
+           
+           
+           mainPanel(
+             DT::dataTableOutput("data_to_rotate_out")
+             
+           ), # 3 level - mainPanel - Rotating plot / box 1
+           
+           position = 'left'), # 2 level - sidebarLayout - Rotating plot / box 1
+  
+  
+  
+  
+  
+
+# Rotating plot / box 2 - Visualization ------------------------------------
+
+
+  
+
+        # Sidebar panel for plots
+
+sidebarLayout(
+  sidebarPanel(style = "height: 100%",
+               
+               tags$br("Enter timeframe for the line to rotate and region to calculate area"),
+               tags$hr(),
+               actionButton("render_plot_with_average", "Render average plot", width = "100%"),
+               
+               
+               
+               
+               tags$br(),
+               tags$br(),
+               switchInput(inputId = "rotate_average",
+                           label = "Rotate the whole plot",
+                           value = FALSE, size = "normal", onStatus = "statusON",
+                           offStatus = "statusOFF", onLabel = "Rotate",
+                           offLabel = "OFF", labelWidth = "100000px"),
+               switchInput(inputId = "rotate_part",
+                           label = "Rotate the chosen part of the plot",
+                           value = FALSE, size = "normal", onStatus = "statusON",
+                           offStatus = "statusOFF", onLabel = "Rotate",
+                           offLabel = "OFF", labelWidth = "100000px"),
+               switchInput(inputId = "rotate_down",
+                           label = "Shift rotated part downwards",
+                           value = TRUE, size = "normal", onStatus = "statusON",
+                           offStatus = "statusOFF", onLabel = "Rotate",
+                           offLabel = "OFF", labelWidth = "100000px"),
+               actionButton("reset_plot", "Reset plot to initial", width = "100%"),
+               
+               
+               
+               tags$hr(),
+               switchInput(inputId = "mark_line_to_rotate",
+                           label = "Mark lines",
+                           value = TRUE, size = "normal", onStatus = "statusON",
+                           offStatus = "statusOFF", labelWidth = "100000px"),
+               
+               numericInput("line_start", "Line to rotate START: (sec)", 0),
+               numericInput("line_end", "Line to rotate END: (sec)", 120),
+               tags$br(),
+               numericInput("flat_start", "Plot to rotate START: (sec)", 200),
+               numericInput("flat_end", "Plot to rotate END: (sec)", 500),
+
+               
+               
+               
+               # Plotting single graph and rotate
+               tags$hr(),
+               numericInput("cell_to_plot_to_rotate", "Enter number of cell", 1),
+               actionButton("plot_single_to_rotate", "Plot single graph (Remove unsaved manipulations)", width = "100%"),
+               
+               tags$br(),
+               tags$br(),
+               
+               actionButton("rotate_single_plot", "Rotate single plot"),
+               actionButton("rotate_single_plot_part", "Rotate the part of the single plot"),
+               switchInput(inputId = "rotate_single_down",
+                           label = "Shift down",
+                           value = TRUE, size = "normal", onStatus = "statusON",
+                           offStatus = "statusOFF", onLabel = "Shift",
+                           offLabel = "OFF"),
+               tags$br(),
+               tags$br(),
+               
+               actionButton("render_rotated_single_plot", "Render rotated single plot"),
+               tags$br(),
+               tags$br(),
+               actionButton("reset_current_changes", "Reset changes to current cell number"),
+               actionButton("reset_last_changes", "Reset last changes"),
+               actionButton("reset_all_changes", "Reset all"),
+
+               tags$hr('Cells, that are changed manually:'),
+               verbatimTextOutput("list_of_cells_altered_manually", placeholder = TRUE),
+               
+               
+               tags$hr(),
+               actionButton("rotate_all_other_cells", "Rotate all other cells"),
+               actionButton("rotate_all_cells_from_scratch", "Rotate all cells from scratch", style="color: white; background-color: blue; border-color: black"),
+               switchInput(inputId = "rotate_baseline_as_well",
+                           label = "Rotate baseline as well",
+                           value = TRUE, size = "normal", onStatus = "statusON",
+                           offStatus = "statusOFF", onLabel = "Rotate",
+                           offLabel = "OFF"),
+               
+             
+
+               
+
+               
+               # Save SHIFTED curves as excel file
+               tags$br(),
+               tags$br('Save final curve as excel file'),
+               downloadButton("SaveFinal", "Save as excel file"),
+               
+               
+               tags$hr(style= 'border-style: inset;'),
+               
+               
+               
+               actionButton("plot_rotated_result", "Plot rotated average result", width = "100%"),
+
+               
+               # Plotting ROTATED single graph 
+               tags$hr(),
+               numericInput("rotated_plots", "Enter number of cell", 1),
+               actionButton("render_rotated_plots", "Plot single graph", width = "100%"),
+               
+               
+
+               tags$hr('Define the baseline timeline and the region with maximum'),
+               tags$br(),
+               numericInput("baseline_start", "Baseline START: (sec)", 0),
+               numericInput("baseline_end", "Baseline END: (sec)", 120),
+               tags$hr(),
+               tags$hr(),
+               numericInput("area_start", "Calculate area START: (sec)", 560, step = 5),
+               numericInput("area_end", "Calculate area END: (sec)", 775, step = 5),
+               tags$hr(),
+               actionButton("mark_line_to_calculate", "Mark area", width = "100%"),
+               tags$br(),
+               tags$br(),
+               actionButton("calculate_area", 
+                            "Calculate area for all curves", 
+                            style="color: white; 
+                            background-color: blue; 
+                            border-color: black"),
+               tags$br(),
+               tags$br(),
+               actionButton("save_area_single", "Save manually calculated area for the current curve"),
+               tags$br(),
+               tags$br(),
+               actionButton("calculate_area_statistics", 
+                            "Calculate statistics",
+               style="color: white;
+               background-color: blue;
+               border-color: black"),
+               
+               tags$br('The calculated area is:'),
+               verbatimTextOutput("area_value", placeholder = TRUE),
+               tags$br(),
+               downloadButton("SaveAreaStatistics", "Save statistics as excel file"),
+               
+               
+
+               
+
+               
+               
+               
+               
+  ), # 3 level - main layout with sidebar, sidebarPanel - Rotating plot / box 2 - Visualization
+  
+  
+  mainPanel(
+    plotlyOutput("plot_average_out"),
+    plotlyOutput("plot_single_out"),
+    plotlyOutput("plot_single_out2"),
+    DT::dataTableOutput('data_to_rotate_out2'),
+    plotlyOutput("plot_average_out2"),
+    plotlyOutput("plot_single_area_out"),
+    DT::dataTableOutput('area_data_out'),
+    DT::dataTableOutput('result_statistics_out'),
+
+    
+  ), # 3 level - mainPanel - Rotating plot/ box 2 - Visualization
+  
+  position = 'left'), # 2 level - sidebarLayout - Rotating plot / box 2 - Visualization
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    
+  
+), # /level 1 - tabPanel Rotating plot
 
 
 
 # Final part (navbarPage) -------------------------------------------------
+
+#switchInput color while on
+tags$head(tags$style(HTML('.bootstrap-switch .bootstrap-switch-handle-off.bootstrap-switch-statusON,
+                                       .bootstrap-switch .bootstrap-switch-handle-on.bootstrap-switch-statusON {
+                                        background: black;
+                                        color: white;
+                                        }'))),
+
+#switchInput color while off
+tags$head(tags$style(HTML('.bootstrap-switch .bootstrap-switch-handle-off.bootstrap-switch-statusOFF,
+                                       .bootstrap-switch .bootstrap-switch-handle-on.bootstrap-switch-statusOFF {
+                                        background: red;
+                                        color: black;
+                                        }'))),
+
+
+
+tags$head(tags$style(HTML('.bootstrap-switch.bootstrap-switch-focused {
+                                  -webkit-box-shadow: none;
+                                  border-color: black;
+                                  box-shadow: none;
+                                  outline: none;
+                                  }'))),
+
+
+
 
 
  ) # 0 level - navbarPage
