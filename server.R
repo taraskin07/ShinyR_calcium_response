@@ -101,7 +101,8 @@ server <- function(input, output) {
   output$SaveXlsBox1 <- downloadHandler(
     filename = function() { filename(input$fluorescence, "ProcessedTable.xlsx")},
     content = function(file) {write_xlsx(list('340'=df_340_ready(), '380'=df_380_ready(), 'ratio' = df_ratio_ready(), 'custom_ratio' = df_custom_ratio_ready()), path = file)}
-  )
+    # content = function(file) {write_xlsx('ratio' = df_ratio_ready(), path = file)}
+    )
   
   
   
@@ -268,8 +269,15 @@ server <- function(input, output) {
   
     }) # /level 1, observeEvent input$plot_single
 
+
     
-    # Now creating reactive values list of cells to include
+# Excluding cells ---------------------------------------------------------
+    
+    
+# Button to obtain new dataframes without bad cells information    
+    
+    
+    # Now creating reactive values list of cells to exclude
     
     rmcellValues <- reactiveValues()
       
@@ -279,7 +287,7 @@ server <- function(input, output) {
     observeEvent(input$exclude_cell, {
       
       
-      rmcellValues$cList <- unique(c(isolate(rmcellValues$cList), isolate(constructing_names(input$cellName, input$cell_to_plot, format = input$change_names))))
+      rmcellValues$cList <- unique(c(shiny::isolate(rmcellValues$cList), shiny::isolate(constructing_names(input$cellName, input$cell_to_plot, format = input$change_names))))
       
       
       output$list_of_cells<-renderPrint({
@@ -308,7 +316,7 @@ server <- function(input, output) {
     
     observeEvent(input$include_cell, {
       req(rmcellValues$cList)
-      rmcellValues$cList <- rmcellValues$cList[!rmcellValues$cList == isolate(constructing_names(input$cellName, input$cell_to_plot, format = input$change_names))]
+      rmcellValues$cList <- rmcellValues$cList[!rmcellValues$cList == shiny::isolate(constructing_names(input$cellName, input$cell_to_plot, format = input$change_names))]
       
       
       output$list_of_cells<-renderPrint({
@@ -319,10 +327,7 @@ server <- function(input, output) {
     
     
 
-# Excluding cells ---------------------------------------------------------
 
-    
-    # Button to obtain new dataframes without bad cells information
     
       
       df_340_excluded <- eventReactive(eventExpr = {input$new_dataframes}, 
@@ -662,7 +667,7 @@ server <- function(input, output) {
     
     
 
-# Shifting curves / box 2 ---------------------------------------------------------
+# Shifting curves / box 1 ---------------------------------------------------------
 
     # Getting the list of sheets in excel file
     sheets_in_the_file = eventReactive(eventExpr = {input$read_sheets},
@@ -678,7 +683,8 @@ server <- function(input, output) {
                         )
             })
     
-    
+
+
     
     # Rendering datatable related to selected sheet
     dt_to_shift <- eventReactive(eventExpr = {input$read_sheets
@@ -691,6 +697,9 @@ server <- function(input, output) {
       req(input$sheets)
       dt_to_shift()
     }) 
+ 
+ 
+# Shifting curves / box 2 -------------------------------------------------
     
     
     # Rendering initial plot single
@@ -918,13 +927,1098 @@ server <- function(input, output) {
     
     
     
+
+    
+    
+    
+# Rotating plot / box 1 ---------------------------------------------------------
+    
+    
+    # Getting the list of sheets in excel file
+    data_sheets_in_file <-  eventReactive(eventExpr = {input$read_curves},
+                                       valueExpr ={
+                                         excel_sheets(input$read_curves$datapath)
+                                       })
+    
+    
+    # Creating SelectInput list with values = sheets
+    observeEvent(input$read_curves,{
+      updateSelectInput(inputId = "data_sheets",
+                        choices = data_sheets_in_file(),
+                        selected = str_extract(data_sheets_in_file(), '^[Rr]atio$')
+      )
+    })   
+    
+    # Later it will be used to save changes in dataframe after single correction
+    dataframe_to_process <- reactiveVal(NULL)
+    
+    # Rendering datatable related to selected sheet
+    data_to_rotate <- eventReactive(eventExpr = {input$read_curves
+      input$data_sheets},
+      valueExpr = {
+        dataframe_to_process(read_excel(input$read_curves$datapath, sheet = input$data_sheets))
+        read_excel(input$read_curves$datapath, sheet = input$data_sheets)})
+    
+    
+    
+    output$data_to_rotate_out <- DT::renderDataTable({
+      req(input$read_curves)
+      req(input$data_sheets)
+      data_to_rotate()
+    }) 
+    
+    
+    
+
+# Rotating plot / box 2 - Visualization -----------------------------------
+
+    
+    
+    # check_value <- reactive({
+    #   
+    #   input$rotate_plot[1]
+    #   
+    # })
+    # 
+    # output$area_value <- renderPrint({check_value()})
     
     
     
     
     
+    # Rotating the whole plot
+    
+    plot_average <- eventReactive(eventExpr = {input$render_plot_with_average
+                                               input$rotate_average
+                                                                                                    },
+                                  valueExpr = {
+                                    
+                                    plot <- average_curve(data_to_rotate())
+                                    
+                                    if (input$rotate_average == T) {
+                                      
+                                      st <- input$flat_start
+                                      en <- input$flat_end
+                                      
+                                      plot <- 
+                                        rotating_plot(plot, st, en)
+                                        
+                                    }
+                                    
+                                    return(plot)
+                                    
+                                    }, ignoreNULL = FALSE)
     
     
+
+    # Rotating the part of the plot
+    
+    plot_average_part <- eventReactive(eventExpr = {
+      input$render_plot_with_average
+      input$rotate_average
+      input$rotate_part
+      input$rotate_down},
+      
+    valueExpr = {
+      
+      req(plot_average())
+      
+      if (input$rotate_part == T) {
         
+        st <- input$line_start
+        en <- input$line_end
+      
+        plot <- rotating_plot(plot_average(), st, en, part = input$rotate_part, shift_down = input$rotate_down)
+        
+        
+      } else {plot <- plot_average()}
+      
+      return(plot)
+    
+    }, ignoreNULL = FALSE)
+    
+    
+    
+# Single PLOT -------------------------------------------------------------
+    
+    
+    dataframe_to_process <- reactiveVal(NULL)
+    
+    
+    
+    
+    # Plotting single graph and rotate
+    
+    observeEvent(ignoreInit = TRUE, list(
+      input$plot_single_to_rotate,
+      input$cell_to_plot_to_rotate
+      ), {
+      
+      
+
+      output$plot_single_out <- renderPlotly({
+        
+        req(data_to_rotate())
+        req(input$cell_to_plot_to_rotate)
+        
+        
+        render_plot <- getting_a_slice_of_df(data_to_rotate(), input$cell_to_plot_to_rotate)
+        
+        
+        plot <- ggplotly_render(render_plot,
+                                baseline = input$mark_line_to_rotate,
+                                b_min = input$line_start,
+                                b_max = input$line_end,
+                                region = input$mark_line_to_rotate,
+                                r_min = input$flat_start,
+                                r_max = input$flat_end,
+                                ready = FALSE) +
+          scale_color_manual(values='black')
+        
+        
+        
+        ggplotly(plot)
+        
+      })
+      
+      
+    }) # /level 1, observeEvent input$plot_single_to_rotate  
+    
+    
+    
+    
+    
+    
+    # Rotating the whole SINGLE plot
+    
+
+    df2dim_single_and_rotated <- eventReactive(eventExpr = {input$rotate_single_plot
+
+    },
+
+    valueExpr = {
+
+       df2dim <- getting_a_slice_of_df(dataframe_to_process(), input$cell_to_plot_to_rotate)
+
+        st <- input$flat_start
+        en <- input$flat_end
+
+        df2dim <-rotating_plot(df2dim, st, en)
+
+      return(df2dim)
+      
+
+
+    })
+    
+    observeEvent(input$rotate_single_plot, {
+      req(df2dim_single_and_rotated())
+      dataframe_to_process_new <- replace_columns_in_dfs(dataframe_to_process(), df2dim_single_and_rotated())
+      dataframe_to_process(dataframe_to_process_new)
+      })
+    
+    
+    
+    
+    observeEvent(input$rotate_single_plot, {
+      
+      output$plot_single_out <- renderPlotly({
+        
+        req(df2dim_single_and_rotated())
+        
+        
+        render_plot <- df2dim_single_and_rotated()
+        
+        
+        plot <- ggplotly_render(render_plot,
+                                baseline = input$mark_line_to_rotate,
+                                b_min = input$line_start,
+                                b_max = input$line_end,
+                                region = input$mark_line_to_rotate,
+                                r_min = input$flat_start,
+                                r_max = input$flat_end,
+                                ready = FALSE) +
+          scale_color_manual(values='black')
+        
+        
+        
+        ggplotly(plot)
+        
+      })
+      
+    })
+    
+    
+    # Rotating the part of the SINGLE plot
+    
+    df2dim_single_and_rotated_part <- eventReactive(eventExpr = {input$rotate_single_plot_part
+                                                                 input$rotate_single_down  
+      
+    },
+    
+    valueExpr = {
+      
+      df2dim <- getting_a_slice_of_df(dataframe_to_process(), input$cell_to_plot_to_rotate)
+      
+      st <- input$line_start
+      en <- input$line_end
+      
+      df2dim <-rotating_plot(df2dim, st, en, part = TRUE, shift_down = input$rotate_single_down)
+      
+      return(df2dim)
+      
+      
+    })
+    
+
+    observeEvent(input$rotate_single_plot_part, {
+      
+      req(df2dim_single_and_rotated_part())
+      dataframe_to_process_new2 <- replace_columns_in_dfs(dataframe_to_process(), df2dim_single_and_rotated_part())
+      dataframe_to_process(dataframe_to_process_new2)
+      
+    })
+
+    
+    
+    observeEvent(input$rotate_single_plot_part, {
+      
+      output$plot_single_out <- renderPlotly({
+        
+        req(df2dim_single_and_rotated_part())
+        
+        
+        render_plot <- df2dim_single_and_rotated_part()
+        
+        
+        plot <- ggplotly_render(render_plot,
+                                baseline = input$mark_line_to_rotate,
+                                b_min = input$line_start,
+                                b_max = input$line_end,
+                                region = input$mark_line_to_rotate,
+                                r_min = input$flat_start,
+                                r_max = input$flat_end,
+                                ready = FALSE) +
+          scale_color_manual(values='black')
+        
+        
+        ggplotly(plot)
+        
+      })
+      
+    })
+    
+    
+
+    
+    observeEvent(input$render_rotated_single_plot, {
+
+      
+      output$plot_single_out2 <- renderPlotly({        
+        
+      pl <- getting_a_slice_of_df(dataframe_to_process(), input$cell_to_plot_to_rotate)
+      
+      plot <- ggplotly_render(pl,
+                              baseline = input$mark_line_to_rotate,
+                              b_min = input$line_start,
+                              b_max = input$line_end,
+                              region = input$mark_line_to_rotate,
+                              r_min = input$flat_start,
+                              r_max = input$flat_end,
+                              ready = FALSE) +
+        scale_color_manual(values='black')
+      
+      
+      ggplotly(plot)  })
+    
+      
+      }) # observeEvent(input$render_rotated_single_plot)
+    
+
+    
+    
+# Button to obtain list of dataframes that have been changed manually -----------------------------    
+    
+    
+    
+    
+    # Buttons to Exclude/Undo/Include/Reset cells
+    
+    observeEvent(ignoreInit = TRUE, list(
+      input$rotate_single_plot, input$rotate_single_plot_part), {
+        
+        req(data_to_rotate())
+        
+        
+        rmcellValues$cells_altered_manually <- 
+          unique(c(shiny::isolate(rmcellValues$cells_altered_manually), 
+                   shiny::isolate({finding_cell_name(data_to_rotate(), 
+                                                     input$cell_to_plot_to_rotate)})))
+        
+        
+        
+        output$list_of_cells_altered_manually<-renderPrint({
+          gtools::mixedsort(rmcellValues$cells_altered_manually, decreasing = F)
+          
+        })
+      }) # /level 1, observeEvent input$rotate_single_plot | input$rotate_single_plot_part
+    
+    
+    
+    observeEvent(input$reset_current_changes, {
+      
+      dataframe_to_process_new <- 
+        replace_columns_in_dfs(dataframe_to_process(),
+                               getting_a_slice_of_df(data_to_rotate(), 
+                                                     input$cell_to_plot_to_rotate))
+      
+      dataframe_to_process(dataframe_to_process_new)
+      
+      req(rmcellValues$cells_altered_manually)
+      rmcellValues$cells_altered_manually <- 
+        rmcellValues$cells_altered_manually[-grep(finding_cell_name(data_to_rotate(),
+                                                                    input$cell_to_plot_to_rotate),
+                                                  rmcellValues$cells_altered_manually)]
+      
+      
+      output$list_of_cells_altered_manually<-renderPrint({
+        gtools::mixedsort(rmcellValues$cells_altered_manually, decreasing = F)
+      })
+    }) # /level 1, observeEvent input$reset_last_changes
+    
+    
+    
+    observeEvent(input$reset_last_changes, {
+      
+      dataframe_to_process_new <- 
+        replace_columns_in_dfs(dataframe_to_process(), 
+                               getting_a_slice_of_df(data_to_rotate(), 
+                                                     rmcellValues$cells_altered_manually[length(rmcellValues$cells_altered_manually)], c_name = T))
+      
+      dataframe_to_process(dataframe_to_process_new)
+      
+      req(rmcellValues$cells_altered_manually)
+      rmcellValues$cells_altered_manually <- 
+        rmcellValues$cells_altered_manually[-length(rmcellValues$cells_altered_manually)]
+      
+      
+      output$list_of_cells_altered_manually<-renderPrint({
+        gtools::mixedsort(rmcellValues$cells_altered_manually, decreasing = F)
+      })
+    }) # /level 1, observeEvent input$reset_last_changes
+    
+    
+    
+    
+    observeEvent(input$reset_all_changes, {
+      
+      dataframe_to_process(data_to_rotate())
+      
+      rmcellValues$cells_altered_manually <- c()
+      
+      
+      output$list_of_cells_altered_manually<-renderPrint({
+        rmcellValues$cells_altered_manually
+      })
+      
+      
+    }) # /level 1, observeEvent input$reset_all_changes
+    
+    
+    
+
+# Rotating every cell's plot one by one -----------------------------------
+
+    observeEvent(input$rotate_all_other_cells, {
+      
+      baselinev <- shiny::isolate(input$rotate_baseline_as_well)
+      shiftv <- shiny::isolate(input$rotate_single_down)
+      
+      dataframe_to_process_new2 <- rotate_all(dataframe_to_process(), 
+                                              rmcellValues$cells_altered_manually, 
+                                              lower_base = input$line_start, 
+                                              upper_base = input$line_end,
+                                              lower_reg = input$flat_start,  
+                                              upper_reg = input$flat_end, 
+                                              baseline_r = input$rotate_baseline_as_well,
+                                              shift_down = input$rotate_single_down)
+      
+      dataframe_to_process(dataframe_to_process_new2)
+      
+      
+      output$plot_single_out2 <- renderPlotly({        
+        
+        pl <- getting_a_slice_of_df(dataframe_to_process(), input$cell_to_plot_to_rotate)
+        
+        plot <- ggplotly_render(pl,
+                                baseline = input$mark_line_to_rotate,
+                                b_min = input$line_start,
+                                b_max = input$line_end,
+                                region = input$mark_line_to_rotate,
+                                r_min = input$flat_start,
+                                r_max = input$flat_end,
+                                ready = FALSE) +
+          scale_color_manual(values='black')
+        
+        
+        ggplotly(plot)  })
+      
+      output$list_of_cells_altered_manually<-renderPrint({
+        
+
+        if ((baselinev != input$rotate_baseline_as_well) | (shiftv != input$rotate_single_down)) {
+          
+          text <- ("Press 'Reset all' button to recalculate!")
+          print(text)
+          
+        } else {gtools::mixedsort(rmcellValues$cells_altered_manually, decreasing = F)}
+        
+        
+        
+      })
+      
+      
+
+    })    
+    
+    
+    
+    observeEvent(input$rotate_all_cells_from_scratch, {
+
+      rmcellValues$cells_altered_manually <- c()
+
+      baselinev <- shiny::isolate(input$rotate_baseline_as_well)
+      shiftv <- shiny::isolate(input$rotate_single_down)
+
+      dataframe_to_process_new2 <- rotate_all(data_to_rotate(),
+                                              rmcellValues$cells_altered_manually,
+                                              lower_base = input$line_start,
+                                              upper_base = input$line_end,
+                                              lower_reg = input$flat_start,
+                                              upper_reg = input$flat_end,
+                                              baseline_r = input$rotate_baseline_as_well,
+                                              shift_down = input$rotate_single_down)
+
+      dataframe_to_process(dataframe_to_process_new2)
+
+
+      output$list_of_cells_altered_manually<-renderPrint({
+
+        text <- ("All curves were rotated automatically: ")
+
+        if (baselinev) {
+          text <- paste0(text, '(main region + baseline)')
+        } else {
+          text <- paste0(text, '(main region only)')
+        }
+
+        if (shiftv) {
+          text <- paste0(text, ' and baseline shifted to match the next value')
+        } else {
+          text <- paste0(text, ' and baseline is not shifted')
+        }
+
+        if ((baselinev != input$rotate_baseline_as_well) | (shiftv != input$rotate_single_down)) {
+
+          text <- ("Press button to rotate all the rest or from scratch!")
+
+        }
+
+        print(text)
+      })
+
+
+
+
+      output$data_to_rotate_out2 <- DT::renderDataTable({
+        req(data_to_rotate())
+        dataframe_to_process()
+      })
+
+
+
+      output$plot_single_out2 <- renderPlotly({
+
+        pl <- getting_a_slice_of_df(dataframe_to_process(), input$cell_to_plot_to_rotate)
+
+        plot <- ggplotly_render(pl,
+                                baseline = input$mark_line_to_rotate,
+                                b_min = input$line_start,
+                                b_max = input$line_end,
+                                region = input$mark_line_to_rotate,
+                                r_min = input$flat_start,
+                                r_max = input$flat_end,
+                                ready = FALSE) +
+          scale_color_manual(values='black')
+
+
+        ggplotly(plot)  })
+
+
+    })
+    
+    # Mark lines on the plot
+    
+    plot_average_output <- eventReactive(eventExpr = {input$render_plot_with_average
+                                                      input$rotate_average
+                                                      input$mark_line_to_rotate
+                                                      input$rotate_part
+                                                      input$rotate_down
+                                                      input$line_start
+                                                      input$line_end},
+    valueExpr = {
+      
+      req(plot_average_part())
+      
+      baseline <- input$mark_line_to_rotate
+      region <- input$mark_line_to_rotate
+      
+      
+      curve <- ggplotly_render(plot_average_part(), 
+                                 baseline, 
+                                 b_min = input$line_start, 
+                                 b_max = input$line_end, 
+                                 region,
+                                 r_min = input$flat_start,
+                                 r_max = input$flat_end,
+                                 ready = FALSE) +
+        scale_color_manual(values='black')
+      
+      return(ggplotly(curve))
+      
+      
+    }, ignoreNULL = FALSE)
+    
+
+    
+    # Render average plot
+    
+    observeEvent(input$render_plot_with_average, {
+
+      output$plot_average_out <- renderPlotly({plot_average_output()}) # output$plot_average_out
+
+
+
+    }) # /level 1, observeEvent input$render_plot_with_average
+    
+    
+
+    
+    # Reset switchInput values
+    
+    observeEvent(input$reset_plot, {
+      
+      updateSwitchInput(
+        inputId = "mark_line_to_rotate",
+        value = FALSE
+      )
+      
+      updateSwitchInput(
+        inputId = "rotate_average",
+        value = FALSE
+      )
+      
+      updateSwitchInput(
+        inputId = "rotate_part",
+        value = FALSE
+      )
+      
+      updateSwitchInput(
+        inputId = "rotate_down",
+        value = FALSE
+      )
+      
+                }) # output$reset_plot
+    
+    
+    
+    # Saving data with Average column
+    
+    output$SaveFinal <- downloadHandler(
+      filename = function() {filename(input$read_curves$name, "Rotated.xlsx")},
+      content = function(file) {
+        
+        pattern <- grep('([Tt]ime\\s?)', colnames(dataframe_to_process()))
+        
+        
+        # dataframe_to_process <- cbind(dataframe_to_process()[pattern], 
+        #                               data.frame(lapply(dataframe_to_process()[-pattern], decim)))
+        
+        
+        dataframe_to_process <- cbind(dataframe_to_process()[pattern], 
+                                      dcm((dataframe_to_process()[-pattern])))
+        
+        # dataframe_to_process <- data.frame(lapply(dataframe_to_process()[-pattern], decim))
+        
+        
+        df_list <- list('first' = dataframe_to_process,
+                        'second' = average_curve(dataframe_to_process()),
+                        'third' = data_to_rotate(),
+                        'forth' = average_curve(data_to_rotate()),
+                        'fifth' = plot_average_part()
+                        )
+        
+        names(df_list) <- c(paste0(input$sheets, 'data_rotated'), 
+                            paste0(input$sheets, '_av_rotated'), 
+                            paste0(input$sheets, 'data_initial'), 
+                            paste0(input$sheets, '_av_initial'),
+                            paste0(input$sheets, '_av_rotated_initial'))
+        write_xlsx(df_list, path = file)
+        
+      }
+    )
+    
+
+# Rotating plot / box 2 - Plot rotated result -----------------------------
+
+    
+    
+    
+    
+    # Render plot
+    
+    
+    plot_average_output2 <- eventReactive(eventExpr = {input$plot_rotated_result
+      input$rotate_average
+      input$rotate_part
+      input$rotate_down
+      input$baseline_start 
+      input$baseline_end 
+      input$area_start
+      input$area_end      
+      
+      },
+
+      valueExpr = {
+        
+        req(dataframe_to_process())
+        
+        baseline <- input$mark_line_to_rotate
+        
+        curve <- ggplotly_render(average_curve(dataframe_to_process()), 
+                                 baseline = T, 
+                                 b_min = input$baseline_start, 
+                                 b_max = input$baseline_end, 
+                                 region = T,
+                                 r_min = input$area_start,
+                                 r_max = input$area_end,
+                                 ready = FALSE) +
+          scale_color_manual(values='black')
+        
+        return(ggplotly(curve))
+        
+        
+      }, ignoreNULL = FALSE)
+    
+    
+    
+    observeEvent(input$plot_rotated_result, {
+      
+      output$plot_average_out2 <- renderPlotly({plot_average_output2()}) # output$plot_average_out
+      
+      
+      
+    })
+    
+    
+    
+
+    
+
+# Calculating area on a plot ----------------------------------------------
+
+    df_slice <- eventReactive(eventExpr = {
+      input$rotated_plots
+      input$mark_line_to_calculate
+      input$render_rotated_plots
+      input$baseline_start
+      input$baseline_end
+      input$area_start
+      input$area_end
+      
+    }, valueExpr = {
+      
+      df_slice <- getting_a_slice_of_df(dataframe_to_process(), input$rotated_plots)
+
+      return(df_slice)
+    })
+    
+    
+    b_value <- eventReactive(eventExpr = {
+      input$rotated_plots
+      input$mark_line_to_calculate
+      input$render_rotated_plots
+      input$baseline_start
+      input$baseline_end
+      input$area_start
+      input$area_end
+      
+    }, valueExpr = {
+      
+      df_slice <- df_slice()
+      
+      b_value <- b_find(df_slice, input$baseline_start, input$baseline_end)
+      
+      return(b_value)
+    })
+
+    
+    intersections_df <- eventReactive(eventExpr = {
+      input$rotated_plots
+      input$mark_line_to_calculate
+      input$render_rotated_plots
+      input$baseline_start
+      input$baseline_end
+      input$area_start
+      input$area_end
+      
+      }, valueExpr = {
+        
+      b <- b_value()
+
+      dfres <- dataframe_with_intersections(df_slice(), input$area_start, input$area_end, b)
+      
+      return(dfres)
+      })
+    
+    
+    polygon_df <- eventReactive(eventExpr = {intersections_df()
+                                             input$area_start
+                                             input$area_end
+                                             b_value()}, 
+                                valueExpr = {
+  
+      b <- b_value()
+      
+      dfres <- polygon_function(intersections_df(), input$area_start, input$area_end, b)
+      
+      return(dfres)
+    })
+    
+    
+
+
+    
+    observeEvent(ignoreInit = TRUE, list(
+      input$render_rotated_plots,
+      input$mark_line_to_calculate,
+      input$rotated_plots,
+      input$baseline_start,
+      input$baseline_end,
+      input$area_start,
+      input$area_end), {
+        
+        
+        #  Calculate area is:
+
+        output$area_value <- renderPrint({
+          
+          auc_upper <-  AUC(intersections_df()[[1]], 
+                            polygon_df()[[2]], 
+                            from = input$area_start, 
+                            to = input$area_end, 
+                            method = "trapezoid")
+          
+          auc_lower <- AUC(intersections_df()[[1]], 
+                           rep(b_value(), length.out = nrow(polygon_df())), 
+                           from = input$area_start, 
+                           to = input$area_end, 
+                           method = "trapezoid")
+          
+          auc <- auc_upper - auc_lower
+          
+          return(decim(auc))
+        })
+        
+        
+
+        output$plot_single_area_out <- renderPlotly({
+          req(input$render_rotated_plots, polygon_df(), input$render_rotated_plots)
+
+          
+          df_slice <- getting_a_slice_of_df(dataframe_to_process(), input$rotated_plots)
+          b <- b_find(df_slice, input$baseline_start, input$baseline_end)
+          pl <- polygon_df()
+          plot <- ggplotly_render(intersections_df(),
+                                  baseline = input$mark_line_to_rotate,
+                                  b_min = input$baseline_start,
+                                  b_max = input$baseline_end,
+                                  region = input$mark_line_to_rotate,
+                                  r_min = input$area_start,
+                                  r_max = input$area_end,
+                                  ready = FALSE) +
+                        scale_color_manual(values='black')
+
+          if (input$mark_line_to_calculate[[1]] %% 2 == 1) {
+
+
+            plot <- plot +
+              geom_point(size = 2) +
+              geom_hline(yintercept=b, color = "blue") +
+              geom_polygon(mapping=aes(pl[[1]],
+                                       pl[[2]]),
+                           fill = 'green') +
+              geom_point(mapping=aes(pl[[1]],
+                                     pl[[2]]),
+                         size = 1,
+                         colour = "red")
+
+          }
+
+
+      ggplotly(plot)  }) # output$plot_single_area_out
+
+
+
+    }, ignoreNULL = FALSE) # observeEvent(ignoreInit = TRUE, list(
+
+ 
+
+# Calculating area values -------------------------------------------------
+
+       
+    
+    all_curves_area <- 
+      eventReactive(eventExpr = {input$calculate_area},
+                    valueExpr = {
+                      
+                      area_df <- polygon_df() %>% 
+                        pivot_longer(!Time, names_to = "cell", values_to = "value")
+                      
+                      result_area_df <- summarize(group_by(area_df, cell),
+                                        Area_under_the_curve = (AUC(x = Time, 
+                                                                    y = value, 
+                                                                    from = input$area_start, 
+                                                                    to = input$area_end, 
+                                                                    method = "trapezoid")-
+                                                                  AUC(x = Time, 
+                                                                      y = b_value(),
+                                                                      from = input$area_start, 
+                                                                      to = input$area_end, 
+                                                                      method = "trapezoid")
+                                                                )
+                                                  
+                                                  
+                                                  )
+                      
+                      return(result_area_df)
+                                })
+    
+    
+    # ALL_POLYGONS_DF ---------------------------------------------------------
+    
+    
+    all_polygons_df <-
+      eventReactive(eventExpr = {input$calculate_area},
+                    valueExpr = {
+                      
+                      rotated_df <- dataframe_to_process()
+                      
+                      idx_c <- c()
+                      res_table <- data.frame(Cell = character(), 
+                                              Area = numeric(), 
+                                              Difference = numeric(),
+                                              Area_by_Dif = numeric(),
+                                              Maximum = numeric(),
+                                              Baseline_average = numeric(),
+                                              SD_baseline = numeric(),
+                                              CV_baseline_pct = numeric()
+                      )
+                      
+                      for (idx in 2:ncol(rotated_df)) {
+                        
+                        df_slice <- rotated_df[, c(1, idx)]
+                        b <- b_find(df_slice, input$baseline_start, input$baseline_end)
+                        intersections_df <- dataframe_with_intersections(df_slice, input$area_start, input$area_end, b)
+                        dfres <- polygon_function(intersections_df, input$area_start, input$area_end, b)
+                        dfres[, 1] <- intersections_df[, 1]
+                        
+                        auc_upper <-  AUC(dfres[[1]], 
+                                          dfres[[2]], 
+                                          from = input$area_start, 
+                                          to = input$area_end, 
+                                          method = "trapezoid")
+                        
+                        auc_lower <- AUC(dfres[[1]], 
+                                         rep(b, length.out = nrow(dfres)), 
+                                         from = input$area_start, 
+                                         to = input$area_end, 
+                                         method = "trapezoid")
+                        
+                        auc <- auc_upper - auc_lower
+                        
+                        sd = SD(subset(df_slice, (Time >= input$baseline_start) & (Time <= input$baseline_end))[[2]])
+                        cv = (sd / b)*100
+                        maximum = max(subset(df_slice, (Time >= input$area_start) & (Time <= input$area_end))[[2]])
+                        difference <- maximum - b
+                        
+                        area_by_dif <- auc/difference
+                        
+                        res_table[nrow(res_table)+1, ] <- 
+                          c(Cell = colnames(rotated_df)[idx], 
+                            Area = decim(auc), 
+                            Difference = decim(difference), 
+                            Area_by_Dif = decim(area_by_dif),
+                            Maximum = decim(maximum),
+                            Baseline_average = decim(b),
+                            SD_baseline = decim(sd),
+                            CV_baseline_pct = decim(cv, 1)
+                          )
+                        
+                      }
+                      
+                      
+                      return(res_table)
+                    })
+    
+    result_table <- reactiveVal(NULL)
+    
+    observeEvent(input$calculate_area, {
+      
+      output$area_data_out <- renderDataTable({
+        req(all_polygons_df())
+        result_table(all_polygons_df())
+        result_table_n <- result_table()
+        for (n in 2:ncol(result_table_n)) {
+          result_table_n[n] <- as.numeric(result_table_n[[n]])
+        }
+        return(result_table_n)
+      })
+      
+    }
+    ) # observeEvent(input$calculate_area, {
+    
+    
+    observeEvent(input$save_area_single, {
+      
+      
+      single_polygon_df <-
+        eventReactive(eventExpr = {input$calculate_area},
+                      valueExpr = {
+                        
+                        if (!is.null(result_table())) {
+                          df_slice <- df_slice()
+                          b <- b_value()
+                          res_table <- all_polygons_df()
+                          
+                          auc_upper <-  AUC(intersections_df()[[1]],
+                                            polygon_df()[[2]],
+                                            from = input$area_start,
+                                            to = input$area_end,
+                                            method = "trapezoid")
+                          
+                          auc_lower <- AUC(intersections_df()[[1]],
+                                           rep(b, length.out = nrow(polygon_df())),
+                                           from = input$area_start,
+                                           to = input$area_end,
+                                           method = "trapezoid")
+                          
+                          auc <- auc_upper - auc_lower
+                          
+                          sd = SD(subset(df_slice, (Time >= input$baseline_start) & (Time <= input$baseline_end))[[2]])
+                          cv = (sd / b)*100
+                          maximum = max(subset(df_slice, (Time >= input$area_start) & (Time <= input$area_end))[[2]])
+                          difference <- maximum - b
+                          
+                          res_table[which(res_table$Cell == colnames(df_slice)[2]), ] <-
+                            c(Cell = colnames(df_slice)[2],
+                              Area = decim(auc),
+                              Difference = decim(difference),
+                              Area_by_Dif = decim(auc/difference),
+                              Maximum = decim(maximum),
+                              Baseline_average = decim(b),
+                              SD_baseline = decim(sd),
+                              CV_baseline_pct = decim(cv, 1)
+                            )
+                        }
+                        
+                        return(res_table)
+                      })
+      
+      result_table(single_polygon_df())
+      
+      output$area_data_out <- renderDataTable({
+        req(all_polygons_df())
+        result_table <- result_table()
+        for (n in 2:ncol(result_table)) {
+          result_table[n] <- as.numeric(result_table[[n]])
+        }
+        return(result_table)
+      })
+      
+    }
+    ) # observeEvent(input$save_area_single, {
+    
+    
+    
+    
+    result_statistics_df <-
+      eventReactive(eventExpr = {input$calculate_area_statistics},
+                    
+                    
+                    valueExpr = {
+                      
+                      if (!is.null(result_table())) {
+                        
+                        res_table <- result_table()
+                        
+                        for (n in 2:ncol(res_table)) {
+                          res_table[, n] <- as.numeric(res_table[, n])
+                        }
+                        
+                        Mean_Area = mean(res_table$Area)
+                        
+                        
+                        res_statistics <- data.frame(
+                          Mean_Area = decim(mean(res_table$Area)),
+                          SD_Area = decim(SD(res_table$Area)),
+                          CV_Area_pct = decim(100*SD(res_table$Area)/mean(res_table$Area), 1),
+                          Mean_Difference = decim(mean(res_table$Difference)),
+                          SD_Difference = decim(SD(res_table$Difference)),
+                          CV_Difference_pct = decim(100*SD(res_table$Difference)/mean(res_table$Difference), 1),
+                          Shapiro_Wilk_area_W = decim(shapiro.test(res_table$Area)[[1]]),
+                          Shapiro_Wilk_area_P = shapiro.test(res_table$Area)[[2]],
+                          Shapiro_Wilk_difference_W = decim(shapiro.test(res_table$Difference)[[1]]),
+                          Shapiro_Wilk_difference_P = shapiro.test(res_table$Difference)[[2]],
+                          Mean_A_by_d = decim(mean(res_table$Area_by_Dif)),
+                          CV_A_by_d_pct = decim(100*SD(res_table$Area_by_Dif)/mean(res_table$Area_by_Dif), 1),
+                          Mean_Baseline_av = decim(mean(res_table$Baseline_average)),
+                          CV_Baseline_av_pct = decim(100*SD(res_table$Baseline_average)/mean(res_table$Baseline_average), 1)
+                        )
+                        
+
+
+                      }
+                      
+                      return(res_statistics)
+                      
+                    })
+    
+    output$result_statistics_out <- renderDataTable({
+      req(input$calculate_area_statistics,
+          result_statistics_df())
+      
+      result_statistics_df()})
+    
+    
+# Saving data with area statistics -------------------------------------------------
+    
+    output$SaveAreaStatistics <- downloadHandler(
+      filename = function() {filename(input$read_curves$name, "Area_Statistics.xlsx")},
+      content = function(file) {
+        
+
+        
+        
+        df_list <- list('area' = result_table(),
+                        'statistics' = result_statistics_df(),
+                        'data_rotated' = dataframe_to_process()
+        )
+        
+        
+        write_xlsx(df_list, path = file)
+        
+      }
+    )       
     
 } # level 0

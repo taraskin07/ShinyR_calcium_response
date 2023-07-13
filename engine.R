@@ -1,4 +1,7 @@
+library(renv)
 library(shiny)
+library(shinythemes)
+library(rsconnect)
 library(readxl)
 library(writexl)
 library(pastecs)
@@ -7,6 +10,12 @@ library(ggplot2)
 library(plotly)
 library(gtools)
 library(tidyverse)
+library(DescTools)
+library(randomcoloR)
+library(shinyWidgets)
+library(shinyShortcut)
+
+
 
 
 
@@ -76,12 +85,20 @@ custom_filename <- function(file_name, str_name) {
 
 
 # Correcting Time columns -------------------------------------------------
-time_col_name <- function(datafr) {
+time_col_name <- function(datafr, integer_v = FALSE) {
 
     time_col <- '([Tt]ime\\s?)'
     colnames(datafr)[grepl(time_col, colnames(datafr))] =  "Time"
+    
+    if (grep(time_col, colnames(datafr)) != 1) {
+      
+      datafr_temp[1] <- datafr[grep(time_col, colnames(datafr))]
+      datafr <- cbind(datafr_temp, datafr[-grep(time_col, colnames(datafr))])
+      
+    }
   
-  datafr$Time <- round(datafr$Time)
+  if (integer_v == FALSE) {datafr$Time <- round(datafr$Time)}
+  
   return(datafr)
 }
 
@@ -146,14 +163,18 @@ basic_statistics <- function(df) {
 
 # Plotting ggploly graph --------------------------------------------------
 
-ggplotly_render <- function(df_n, baseline = FALSE, b_min = 0, b_max = 120, region = FALSE, r_min = 130, r_max = 330) {
+ggplotly_render <- function(df_n, baseline = FALSE, b_min = 0, b_max = 120, region = FALSE, r_min = 130, r_max = 330, ready = TRUE) {
   
-  df_n <- time_col_name(df_n)
+  df_n <- time_col_name(df_n, integer_v = T)
   
   df <- df_n %>% 
     pivot_longer(!Time, names_to = "cells", values_to = "Signal") 
   
-    p <- ggplot(df, aes(Time, Signal, group = cells, color = cells)) + geom_line(size=0.5) + geom_point(size = 0.2) 
+  unique_vals <- length(unique(df$cells))
+  
+    p <- ggplot(df, aes(Time, Signal, group = cells, color = cells)) + 
+      geom_line(size=0.5) +
+      scale_color_manual(values=randomColor(count = unique_vals, hue = 'random', luminosity = 'bright'))
     
     if (baseline == T) {
       p <- p + 
@@ -167,7 +188,8 @@ ggplotly_render <- function(df_n, baseline = FALSE, b_min = 0, b_max = 120, regi
         geom_vline(xintercept = r_min, colour="red", linetype = "dotted") 
     }
   
-  return(ggplotly(p))
+    if (ready == T) {return(ggplotly(p))} else {return(p)}
+  
   
 }
 
@@ -186,6 +208,7 @@ constructing_names <- function(cell_name, cell_number, format) {
   return(comb)
   }
 
+# CORRECT LATER -----------------------------------------------------------
 # Choose the specific column of the DataFrame -----------------------------
 
 get_col_names <- function(df, cell_name, cell_number, format) {
@@ -197,6 +220,7 @@ get_col_names <- function(df, cell_name, cell_number, format) {
   return(df[c(time_col, col)])
   
 }
+
 
 
 # CORRECT LATER -----------------------------------------------------------
@@ -400,7 +424,7 @@ find_amplitude_380 <- function(clean_df, min_time, max_time, start_time, end_tim
 
 # Rounding values ---------------------------------------------------------
 
-decim <- function(number, digits) {
+decim <- function(number, digits = 3) {
   
   
   round_result <- as.numeric(format(round(number, digits), nsmall = digits))
@@ -409,7 +433,7 @@ decim <- function(number, digits) {
 }
 
 
-
+dcm <- Vectorize(decim)
 
 
 # Amplitude Statistics ----------------------------------------------------
@@ -427,7 +451,14 @@ ampl_calculating <- amplitude %>%
   ) %>% 
   add_column(Bad_cells = nrow(excl_df)) %>% 
   add_column(Percent_of_bad_cells = 100*nrow(excl_df)/nrow(amplitude)) %>% 
-  select(Amplitude_average, Amplitude_CV_percent, Average_Baseline_CV_percent, Amount_of_cells, Bad_cells, Percent_of_bad_cells, Amplitude_SD, Amplitude_3SD)
+  select(Amplitude_average, 
+         Amplitude_CV_percent, 
+         Average_Baseline_CV_percent, 
+         Amount_of_cells, 
+         Bad_cells, 
+         Percent_of_bad_cells, 
+         Amplitude_SD, 
+         Amplitude_3SD)
 
 
 
@@ -653,3 +684,396 @@ shifting_curves_info <- function(lag_data, df, shifted_main_cell_values, lower, 
   
   return(info_df)
 }
+
+
+
+
+
+
+# Rotating plots ----------------------------------------------------------
+
+
+
+
+average_curve <- function(df_read) {
+  
+  df_rot <- time_col_name(df_read)
+  
+  if (length(grep("^([Aa]verage|[Mm]ean)", colnames(df_rot))) == 0) {
+    
+    df_rot <- df_rot %>% 
+      add_column(Average = rowMeans(df_rot[-grep('^Time$', colnames(df_rot))]))
+    
+    
+    df_rot <- df_rot[, c(grep('^Time$', colnames(df_rot)), grep("^([Aa]verage|[Mm]ean)", colnames(df_rot)))]
+    
+  } else {
+    
+    df_rot <- df_rot %>% 
+      select(c(grep('^Time$', colnames(df_rot)), grep("^([Aa]verage|[Mm]ean)", colnames(df_rot))))
+  }
+  
+  return(df_rot)
+  
+}
+
+
+getting_a_slice_of_df <- function(df_to_slice, cell_number_or_name, c_name = FALSE) {
+  
+  df_to_slice <- time_col_name(df_to_slice)
+  
+  if (c_name == TRUE) {
+    cell_name <- cell_number_or_name
+  } else {
+    cell_name <- finding_cell_name(df_to_slice, cell_number_or_name)
+  }
+  
+  
+  df_to_slice <- df_to_slice %>%
+    select('Time', all_of(cell_name))
+  
+  return(df_to_slice)
+  
+}
+
+
+# rotate_all <- function(df_to_rotate, list_of_names, listn = FALSE, lower_t, upper_t, baseline_r = TRUE, shift_down = TRUE) {
+#   
+#   if (listn == FALSE) {list_of_names <- c()}
+#   
+#   for (id in nrows)
+#   
+#   
+# }
+
+rotating_plot <- function(df_to_rotate, lower_t, upper_t, part = FALSE, shift_down = FALSE) {
+  
+  
+  if (ncol(df_to_rotate) != 2) {stop(print("Something wrong with the data: no such cell number or they are repeats!"))
+    
+  } else if (colnames(df_to_rotate)[1] != 'Time') {
+    
+    if (length(grep('([Tt]ime\\s?)', colnames(df_to_rotate))) != 1) {
+      
+      stop(print("Something wrong with the data: no Time column!"))
+      
+    } else if (grep('([Tt]ime\\s?)', colnames(df_to_rotate)) == 1) {
+      
+      colnames(df_to_rotate)[1] <- 'Time'
+      
+      
+    } else if (grep('([Tt]ime\\s?)', colnames(df_to_rotate)) == 2) {
+      
+      colnames(df_to_rotate)[2] <- 'Time'
+      df_to_rotate <- df_to_rotate[, c(2,1)]
+      
+    } else {
+      
+      stop(print("Something wrong with the data: no Time column!"))
+      
+    }
+    
+    
+  } 
+  
+  
+  
+  initial_col_name <- colnames(df_to_rotate)[2]
+  
+  colnames(df_to_rotate)[2] <- 'Cell'
+  
+  
+  
+  df_1 <- subset(df_to_rotate, Time < lower_t) 
+  
+  df_2 <- subset(df_to_rotate, (Time >= lower_t & Time <= upper_t))
+  
+  df_3 <- subset(df_to_rotate, Time > upper_t) 
+  
+  
+  # Rotating
+  
+  average_lm <- coef(lm(Cell ~ Time, data = df_2))
+  
+  # b = average_lm[[1]]
+  k = average_lm[[2]]
+  
+  
+  
+  # Rotate partially or the whole plot?
+  
+  if (part == T) {
+    
+    df_2$Cell <- df_2$Cell-k*df_2$Time
+    
+    if (shift_down == TRUE) {
+      
+      df_2$Cell <- df_2$Cell + k*df_2$Time[length(df_2$Time)]
+      
+    }
+    
+    
+    df_to_rotate <- rbind(df_1, df_2, df_3)
+    
+  } else {df_to_rotate$Cell <- df_to_rotate$Cell-k*df_to_rotate$Time}
+  
+  
+  
+  
+  # Returning initial column name if differs
+  
+  colnames(df_to_rotate)[which(names(df_to_rotate) == 'Cell')] <- initial_col_name
+  
+  return(df_to_rotate)
+  
+  
+}
+
+
+
+# For single plot replacing the column with new values
+
+replace_columns_in_dfs <- function(df_full, df_part) {
+  
+  inter <- intersect(colnames(df_full), colnames(df_part)[!grepl('([Tt]ime\\s?)', colnames(df_part))])
+  
+  df_full[which(colnames(df_full)==inter)] <- df_part[!grepl('([Tt]ime\\s?)', colnames(df_part))]
+  
+  return(df_full)
+  
+}
+
+
+
+# Opposite to intersect() function
+
+outersect <- function(x, y, ...) {
+  big.vec <- c(x, y, ...)
+  duplicates <- big.vec[duplicated(big.vec)]
+  setdiff(big.vec, unique(duplicates))
+}
+
+
+
+# Rotating every single plot one by one
+
+rotate_all <- function(df_to_rotate, 
+                       list_of_names, 
+                       lower_base, 
+                       upper_base, 
+                       lower_reg, 
+                       upper_reg, 
+                       baseline_r = TRUE, 
+                       shift_down = TRUE) 
+  
+{
+  
+  if (length(list_of_names) == 0) {
+    
+    names_list <- colnames(df_to_rotate)[-grep('([Tt]ime\\s?)', colnames(df_to_rotate))]
+  
+  } else {
+    
+    names_list <- outersect(list_of_names, 
+                            (colnames(df_to_rotate)[-grep('([Tt]ime\\s?)', colnames(df_to_rotate))]))
+    
+  }
+  
+  
+  for (name in names_list)
+  {
+    
+    df2dim_single_and_rotated <- rotating_plot(getting_a_slice_of_df(df_to_rotate, name, c_name = T), 
+                                               lower_reg, 
+                                               upper_reg, 
+                                               part = FALSE)
+    
+    if (baseline_r == TRUE) {
+      
+      df2dim_single_and_rotated_part <- rotating_plot(df2dim_single_and_rotated, 
+                                                      lower_base, 
+                                                      upper_base, 
+                                                      part = TRUE, 
+                                                      shift_down)
+      
+      df_to_rotate <- replace_columns_in_dfs(df_to_rotate, df2dim_single_and_rotated_part)
+      
+    } else {
+      
+      df_to_rotate <- replace_columns_in_dfs(df_to_rotate, df2dim_single_and_rotated)
+      
+    }
+  }
+  
+  return(df_to_rotate)
+  
+}
+
+
+# Function to find b coefficient in linear regression ---------------------
+
+
+b_find <- function(data_frame_input, b_min, b_max) {
+  
+  data_frame_input <- time_col_name(data_frame_input, integer_v = T)
+  
+  
+  subsetted <- subset(data_frame_input, (Time <= b_max & Time >= b_min))
+
+  b = mean(subsetted[[2]])
+  
+  return(b)
+  
+}
+
+
+# Filling space on plot with polygon  -------------------------------------
+
+find_intersection_time <- function(y, x1, y1, x2, y2) {
+  
+  x <- x1+(y-y1)*(x2-x1)/(y2-y1)
+  
+  return(x)
+  
+}
+
+# find_intersection <- function(df_rotated, r_min, region, averb) {
+#   
+#   df_rotated <- time_col_name(df_rotated)
+#   colnames(df_rotated)[2] <- 'Current'
+#     
+#   area <- subset(df_rotated, (Time < (r_min + region) & Time > (r_min - region)))
+#   
+#   y <- averb
+#   y2 <-  min(area[area$Current > averb, ]['Current'])
+#   y1 <-  max(area[area$Current <= averb, ]['Current'])
+#   
+#   x1 <- area[area$Current == y1, ][["Time"]]
+#   x2 <- area[area$Current == y2, ][["Time"]]
+#   
+#   x <- x1+(y-y1)*(x2-x1)/(y2-y1)
+#   
+#   return(x)
+#   
+# }
+
+dataframe_with_intersections <- function(timeframe, r_min, r_max, b) {
+
+  timeframe <- time_col_name(timeframe, integer_v = T)
+  init_name <- colnames(timeframe)[2]
+  colnames(timeframe)[2] <- 'Current'
+  
+  
+  df_part <- subset(timeframe, (Time <= r_max & Time >= r_min))
+  
+  for (id in 2:nrow(df_part)) {
+    
+    if ((df_part[id, ]$Current > b) & (df_part[id-1, ]$Current < b) |
+        (df_part[id, ]$Current < b) & (df_part[id-1, ]$Current > b)) {
+      
+      time <- find_intersection_time(b,
+                                     df_part[id, ]$Time,
+                                     df_part[id, ]$Current,
+                                     df_part[id-1, ]$Time,
+                                     df_part[id-1, ]$Current)
+      
+      df_find0 <- timeframe[timeframe$Time <= df_part[id-1, ]$Time, ]
+      # df_find0$Time <- as.numeric(df_find0$Time)
+      
+      df_find <- c("Time" = as.numeric(time), "Current" = b)
+      # df_find$Time <- as.numeric(df_find$Time)
+      
+      df_find2 <- timeframe[timeframe$Time >= df_part[id, ]$Time, ]
+      
+      timeframe <- rbind(df_find0, df_find, df_find2)
+      # timeframe$Time <- timeframe(df_find0$Time)
+    }
+    
+    
+  }
+  
+  
+  colnames(timeframe)[2] <- init_name
+  
+  
+  return(timeframe)
+  
+}
+
+
+polygon_function <- function(df_rotated, r_min, r_max, averb) {
+  
+  df_rotated <- time_col_name(df_rotated, integer_v = T)
+  init_name <- colnames(df_rotated)[2]
+  colnames(df_rotated)[2] <- 'Current'
+  
+  df_rotated2 <- df_rotated
+  
+  df_rotated2$Current[(df_rotated2$Time > r_min & 
+                         df_rotated2$Time < r_max & 
+                         df_rotated2$Current < averb)] <- averb
+  
+  
+  if (df_rotated$Current[df_rotated$Time == r_min] > averb) {
+    
+    df_rotated2$Current[(df_rotated2$Time < r_min)] <- averb
+    
+    
+  } else {df_rotated2$Current[(df_rotated2$Time <= r_min)] <- averb}
+  
+  df_rotated2$Time[df_rotated2$Time < r_min] <- r_min
+  
+  
+  if (df_rotated$Current[df_rotated$Time == r_max] > averb) {
+    
+    df_rotated2$Current[(df_rotated2$Time > r_max)] <- averb
+    
+    
+  } else {df_rotated2$Current[(df_rotated2$Time >= r_max)] <- averb}
+  
+  df_rotated2$Time[df_rotated2$Time > r_max] <- r_max
+  
+  
+  return(df_rotated2)
+}
+
+
+
+
+
+# polygon_function <- function(df_rotated, r_min, r_max, region, averb) {
+#   
+#   df_rotated <- time_col_name(df_rotated)
+#   init_name <- colnames(df_rotated)[2]
+#   colnames(df_rotated)[2] <- 'Current'
+#   
+#   area <- subset(df_rotated, (Time < (r_min + region) & Time > (r_min - region)))
+#   
+#   y <- averb
+#   y2 <-  min(area[area$Current > averb, ]['Current'])
+#   y1 <-  max(area[area$Current <= averb, ]['Current'])
+#   
+#   x1 <- area[area$Current == y1, ][["Time"]]
+#   x2 <- area[area$Current == y2, ][["Time"]]
+#   
+#   x <- x1+(y-y1)*(x2-x1)/(y2-y1)
+#   
+#   subset_poly <- subset(df_rotated, (Time <= r_max & Time >= r_min))
+#   
+#   polygonX <- subset_poly$Time
+#   polygonY <- subset_poly$Current
+#   
+#   
+#   polygonX <- c(polygonX, r_max, r_min)
+#   polygonY <- c(polygonY, y, y)
+#   
+#   
+#   polygonX <- c(polygonX, rep(x, length.out=(nrow(df_rotated)-length(polygonX))))
+#   polygonY <- c(polygonY, rep(y, length.out=(nrow(df_rotated)-length(polygonY))))
+#   
+#   data_poly <- data.frame(X=polygonX, Y=polygonY)
+#   polyX <- rep(polygonX, length.out=nrow(df_rotated))
+#   
+#   return(geom_polygon(mapping=aes(polygonX, polygonY), fill = 'green'))
+# }
+# 
