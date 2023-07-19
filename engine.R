@@ -1,9 +1,11 @@
-library(renv)
+suppressWarnings(
+{library(renv)
 library(shiny)
 library(shinythemes)
 library(rsconnect)
 library(readxl)
 library(writexl)
+library(openxlsx)
 library(pastecs)
 library(DT)
 library(ggplot2)
@@ -14,17 +16,79 @@ library(DescTools)
 library(randomcoloR)
 library(shinyWidgets)
 library(shinyShortcut)
+library(shinyjs)})
+
+# source('modules.R')
+
+# Customization functions -------------------------------------------------
+
+customDT <- function(datatbl) {
+  
+  
+  return(datatable(datatbl, 
+                   options = list(autoWidth = TRUE, 
+                                  paging = F,
+                                  scrollCollapse=T,
+                                  scrollX = T, 
+                                  scrollY = '850px',
+                                  selection = list(target = 'column'),
+                                  search = list(smart = F)
+  
+                                  )
+                   )
+         )
+  
+}
 
 
+css_styles_DT <- function(datatbl) {
+  
+  if ('Missing' %in% colnames(datatbl)) {
+    
+    if (max(datatbl$Missing) != 0) {
+    datatbl <- datatable(datatbl) %>%
 
+      formatStyle(
+        columns = c("Missing", "Time_points_amount"),
+        valueColumns = "Missing",
+        color = styleInterval(c(0, nrow(datatbl)), c('black', 'whate', 'white')),
+        backgroundColor = styleInterval(c(0, nrow(datatbl)), c('yellow', 'red', 'red'))
+      )
+    }
+  }
+
+  
+
+  return(datatbl)
+}
 
 
 
 # Preliminary analysis ----------------------------------------------------- 
 
 
+# Resolving "save sheets problem"
+list_to_save <- function(list_of_df, list_of_names, list_of_booleans) {
+  
+  if ((length(list_of_df) == length(list_of_names)) &
+      (length(list_of_names) == length(list_of_booleans))) {
+    finlist <- setNames(list_of_df, list_of_names)
+    finlist <- finlist[list_of_booleans]
+    
+    
+  } else {stop(safeError(paste0(length(list_of_df),length(list_of_names),length(list_of_booleans), "List's length are not equal!")))}
+  
+  return(finlist)
+  
+}
+
+
+
+
+
+
 # Reading XLS -------------------------------------------------------------
-reading_xls <- function(file, disp_opt, correct_time, change_names, cnames, sheet_n){
+reading_xls <- function(file, disp_opt, correct_time, step, change_names, cnames, sheet_n){
   
   # Function just read the excel file (specific sheet == sheet_n)
   
@@ -38,12 +102,12 @@ reading_xls <- function(file, disp_opt, correct_time, change_names, cnames, shee
     },
     error = function(e) {
       # return a safeError if a parsing error occurs
-      stop(safeError(e))
+      stop(safeError('Waiting data to load!'))
     }
   )
   
   if((correct_time%%2) == 1) {
-    df <- time_col_name(df)
+    df <- time_col_name(df, step = step)
   }
 
   
@@ -85,7 +149,7 @@ custom_filename <- function(file_name, str_name) {
 
 
 # Correcting Time columns -------------------------------------------------
-time_col_name <- function(datafr, integer_v = FALSE) {
+time_col_name <- function(datafr, step = 5, name_only = FALSE) {
 
     time_col <- '([Tt]ime\\s?)'
     colnames(datafr)[grepl(time_col, colnames(datafr))] =  "Time"
@@ -96,8 +160,15 @@ time_col_name <- function(datafr, integer_v = FALSE) {
       datafr <- cbind(datafr_temp, datafr[-grep(time_col, colnames(datafr))])
       
     }
+    
+
+    
   
-  if (integer_v == FALSE) {datafr$Time <- round(datafr$Time)}
+  if (name_only == FALSE) {
+    
+    datafr$Time <- seq(from = 0, by=step, length.out = length(df_time$Time))
+  
+  }
   
   return(datafr)
 }
@@ -151,10 +222,19 @@ basic_statistics <- function(df) {
   
   res <- stat.desc(df)
   res_t <- as.data.frame(t(as.matrix(res)))
-  res_a <- data.frame(Cell = rownames(res_t), Min = decim(res_t$min, 3), Max = decim(res_t$max, 3), Difference = decim(res_t$range, 3), Mean = decim(res_t$mean, 3), Median = decim(res_t$median, 3), SD.mean = decim(res_t$std.dev, 3), SE.mean = decim(res_t$SE.mean, 3), Time_points_amount = res_t$nbr.val, Missing = res_t$nbr.na)
+  res_a <- data.frame(Cell = rownames(res_t), 
+                      Min = decim(res_t$min, 3), 
+                      Max = decim(res_t$max, 3), 
+                      Difference = decim(res_t$range, 3), 
+                      Mean = decim(res_t$mean, 3), 
+                      Median = decim(res_t$median, 3), 
+                      SD.mean = decim(res_t$std.dev, 3), 
+                      SE.mean = decim(res_t$SE.mean, 3), 
+                      Time_points_amount = res_t$nbr.val, 
+                      Missing = res_t$nbr.na)
   
 
-  return(res_a)
+  return(as.data.frame(res_a))
   
 }
 
@@ -165,7 +245,8 @@ basic_statistics <- function(df) {
 
 ggplotly_render <- function(df_n, baseline = FALSE, b_min = 0, b_max = 120, region = FALSE, r_min = 130, r_max = 330, ready = TRUE) {
   
-  df_n <- time_col_name(df_n, integer_v = T)
+  df_n <- time_col_name(df_n, name_only = T)
+
   
   df <- df_n %>% 
     pivot_longer(!Time, names_to = "cells", values_to = "Signal") 
@@ -173,7 +254,7 @@ ggplotly_render <- function(df_n, baseline = FALSE, b_min = 0, b_max = 120, regi
   unique_vals <- length(unique(df$cells))
   
     p <- ggplot(df, aes(Time, Signal, group = cells, color = cells)) + 
-      geom_line(size=0.5) +
+      geom_line(linewidth=0.5) +
       scale_color_manual(values=randomColor(count = unique_vals, hue = 'random', luminosity = 'bright'))
     
     if (baseline == T) {
@@ -241,10 +322,12 @@ finding_cell_name <- function(data, number){
 
 single_plot <- function(df, cell_number) {
   
-  df_time <- time_col_name(df)
-  col <- finding_cell_name(df_time, cell_number)
+
+  col <- finding_cell_name(df, cell_number)
   
-  return(df_time[c('Time', col)])
+  df <- time_col_name(df, name_only = T)
+  
+  return(df[c('Time', col)])
   
 }
 
@@ -505,7 +588,11 @@ cbind.fill <- function(...){
 finding_shifted_curve <- function(df, main_cell_number, lower, upper, max_lag) {
   
   # Fixing the 'Time' column if necessary
-  df_time <- time_col_name(df)
+
+  df_time <- time_col_name(df, name_only = T)
+
+  
+  
   # print(paste0('1    ',df_time))
   # Obtaining list of dataframe column names
   list_of_names <- colnames(df_time)
@@ -560,7 +647,7 @@ finding_shifted_curve <- function(df, main_cell_number, lower, upper, max_lag) {
 shifting_curves <- function(df, shifted_main_cell_values, lower, upper, max_lag, counterv = 1) {
   
   # Fixing the 'Time' column if necessary
-  df_time <- time_col_name(df)
+  df_time <- time_col_name(df, name_only = T)
   
   # Obtaining list of dataframe column names
   list_of_names <- colnames(df_time)
@@ -618,7 +705,7 @@ shifting_curves <- function(df, shifted_main_cell_values, lower, upper, max_lag,
 shifting_curves_info <- function(lag_data, df, shifted_main_cell_values, lower, upper, max_lag, counterv = 1) {
   
   # Fixing the 'Time' column if necessary
-  df_time <- time_col_name(df)
+  df_time <- time_col_name(df, name_only = T)
   
   # Obtaining list of dataframe column names
   list_of_names <- colnames(df_time)
@@ -697,7 +784,9 @@ shifting_curves_info <- function(lag_data, df, shifted_main_cell_values, lower, 
 
 average_curve <- function(df_read) {
   
-  df_rot <- time_col_name(df_read)
+
+  # Fixing the 'Time' column if necessary
+  df_rot <- time_col_name(df_read, name_only = T)
   
   if (length(grep("^([Aa]verage|[Mm]ean)", colnames(df_rot))) == 0) {
     
@@ -720,7 +809,9 @@ average_curve <- function(df_read) {
 
 getting_a_slice_of_df <- function(df_to_slice, cell_number_or_name, c_name = FALSE) {
   
-  df_to_slice <- time_col_name(df_to_slice)
+
+  time_col <- '([Tt]ime\\s?)'
+  colnames(df_to_slice)[grepl(time_col, colnames(df_to_slice))] =  "Time"
   
   if (c_name == TRUE) {
     cell_name <- cell_number_or_name
@@ -915,7 +1006,7 @@ rotate_all <- function(df_to_rotate,
 
 b_find <- function(data_frame_input, b_min, b_max) {
   
-  data_frame_input <- time_col_name(data_frame_input, integer_v = T)
+  data_frame_input <- time_col_name(data_frame_input, name_only = T)
   
   
   subsetted <- subset(data_frame_input, (Time <= b_max & Time >= b_min))
@@ -937,29 +1028,12 @@ find_intersection_time <- function(y, x1, y1, x2, y2) {
   
 }
 
-# find_intersection <- function(df_rotated, r_min, region, averb) {
-#   
-#   df_rotated <- time_col_name(df_rotated)
-#   colnames(df_rotated)[2] <- 'Current'
-#     
-#   area <- subset(df_rotated, (Time < (r_min + region) & Time > (r_min - region)))
-#   
-#   y <- averb
-#   y2 <-  min(area[area$Current > averb, ]['Current'])
-#   y1 <-  max(area[area$Current <= averb, ]['Current'])
-#   
-#   x1 <- area[area$Current == y1, ][["Time"]]
-#   x2 <- area[area$Current == y2, ][["Time"]]
-#   
-#   x <- x1+(y-y1)*(x2-x1)/(y2-y1)
-#   
-#   return(x)
-#   
-# }
+
 
 dataframe_with_intersections <- function(timeframe, r_min, r_max, b) {
 
-  timeframe <- time_col_name(timeframe, integer_v = T)
+  timeframe <- time_col_name(timeframe, name_only = T)
+  
   init_name <- colnames(timeframe)[2]
   colnames(timeframe)[2] <- 'Current'
   
@@ -1003,7 +1077,9 @@ dataframe_with_intersections <- function(timeframe, r_min, r_max, b) {
 
 polygon_function <- function(df_rotated, r_min, r_max, averb) {
   
-  df_rotated <- time_col_name(df_rotated, integer_v = T)
+  df_rotated <- time_col_name(df_rotated, name_only = T)
+  
+  
   init_name <- colnames(df_rotated)[2]
   colnames(df_rotated)[2] <- 'Current'
   

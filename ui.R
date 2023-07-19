@@ -2,7 +2,7 @@ source('engine.R')
 
 
 # Define UI for data upload app ----
-ui <- navbarPage("Calcium response plots adjustment", theme = shinytheme("cosmo"), fluid = TRUE, position = "static-top", # 0 level
+ui <- navbarPage("Calcium response plots adjustment", theme = shinytheme("cosmo"), fluid = TRUE, position = "static-top", shinyjs::useShinyjs(), # 0 level
 
 
                  
@@ -26,7 +26,7 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
     sidebarPanel(
       
       # Input: Select a file ----
-      fileInput("fluorescence", "Choose excel File",
+      fileInput("dataTS", "Choose excel File",
                 multiple = FALSE,
                 accept = c(".xls",
                            ".xlsx")),
@@ -34,15 +34,28 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
       # Horizontal line 
       tags$hr(),
       
-
-      # Input: Checkbox if file has header ----
-      checkboxInput("c340", "sheet 340", TRUE),
-      checkboxInput("c380", "sheet 380", TRUE),
       checkboxInput("cRatio", "sheet Ratio", TRUE),
+      selectInput('sheetRatio', 
+                  'Select sheet for Ratio',
+                  '', selected = '', multiple = FALSE),
+
+      
+      checkboxInput("cNum", "sheet Numerator", TRUE),
+      selectInput('sheetNum', 
+                  'Select sheet for Numerator',
+                  '', selected = '', multiple = FALSE),
+      
+      
+      checkboxInput("cDen", "sheet Denominator", TRUE),
+      selectInput('sheetDen', 
+                  'Select sheet for Denominator',
+                  '', selected = '', multiple = FALSE),
       
       # Horizontal line
       tags$hr(),
       
+
+      numericInput('step', 'Enter step value for the Time column', value = 5, min = 0),
       actionButton("correct_time", "Correct 'Time' column"),
       tags$br(),
       tags$hr(),
@@ -81,13 +94,13 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
                   
                   tabPanel("Ratio", DT::dataTableOutput("df_ratio")),
                   
-                  tabPanel("340", DT::dataTableOutput("df_340")),
+                  tabPanel("Numerator", DT::dataTableOutput("df_Num")),
 
-                  tabPanel("380", DT::dataTableOutput("df_380")),
+                  tabPanel("Denominator", DT::dataTableOutput("df_Den")),
 
-                  tabPanel("Custom Ratio", DT::dataTableOutput("df_custom_ratio")),
+                  tabPanel("Num/Den", DT::dataTableOutput("df_custom_ratio")),
                   )
-      ), # /level 2, /box 1, mainPanel 340-380-Ratio-Custom ratio 
+      ), # /level 2, /box 1, mainPanel num-Den-Ratio-Num/Den 
 
 
 
@@ -117,12 +130,12 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
               
               tabPanel("Ratio", DT::dataTableOutput("df_ratio_basic_stat_out")),
               
-              tabPanel("340", DT::dataTableOutput("df_340_basic_stat_out")),
+              tabPanel("Numerator", DT::dataTableOutput("df_Num_basic_stat_out")),
 
-              tabPanel("380", DT::dataTableOutput("df_380_basic_stat_out")),
+              tabPanel("Den", DT::dataTableOutput("df_Den_basic_stat_out")),
 
 
-              tabPanel("Custom Ratio", DT::dataTableOutput("df_custom_ratio_basic_stat_out")),
+              tabPanel("Num/Den", DT::dataTableOutput("df_custom_ratio_basic_stat_out")),
   )
 ), # /level 2, /box 2, mainPanel Statistics
   
@@ -139,6 +152,8 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
       
       tags$hr(),
       numericInput("cell_to_plot", "Enter number of cell", 1),
+      tabPanel('Ratio', selectInput('trace_to_plot1', 'Choose a trace to plot', choices = '', selectize = FALSE)),
+      tabPanel('Num', selectInput('trace_to_plot2', 'Choose a trace to plot', choices = '', selectize = FALSE)),
       
       actionButton("exclude_cell", "Exclude cell"),
       actionButton("exclude_undo", "Undo"),
@@ -170,15 +185,15 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
                 ), # /level 4, /box 3, tabPanel Ratio
                 
                 
-                tabPanel("340", plotlyOutput("plot340") # /level 5, /box 3, plotlyOutput
-                        ), # /level 4, /box 3, tabPanel 340
+                tabPanel("Num", plotlyOutput("plotNum") # /level 5, /box 3, plotlyOutput
+                        ), # /level 4, /box 3, tabPanel Num
 
-                tabPanel("380", plotlyOutput("plot380") # /level 5, /box 3, plotlyOutput
-                        ), # /level 4, /box 3, tabPanel 380
+                tabPanel("Den", plotlyOutput("plotDen") # /level 5, /box 3, plotlyOutput
+                        ), # /level 4, /box 3, tabPanel Den
                 
                 
-                tabPanel("Custom Ratio", plotlyOutput("plot_custom_ratio") # /level 5, /box 3, plotlyOutput
-                        ), # /level 4, /box 3, tabPanel Custom Ratio
+                tabPanel("Num/Den", plotlyOutput("plot_custom_ratio") # /level 5, /box 3, plotlyOutput
+                        ), # /level 4, /box 3, tabPanel Num/Den
                 
                 ) # /level 3, /box 3, tabsetPanel for plots
             ), # /level 2, /box 3, mainPanel for plots
@@ -195,18 +210,18 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
 mainPanel(
   # Tabs
   tabsetPanel(type = "tabs",
-              tabPanel("df_340_ready_db", DT::dataTableOutput("df_340_ready_db") # 
+              tabPanel("df_Num_ready_db", DT::dataTableOutput("df_Num_ready_db") # 
               ), # 
               
-              tabPanel("df_340_excluded_db", DT::dataTableOutput("df_340_excluded_db") # 
+              tabPanel("df_Num_excluded_db", DT::dataTableOutput("df_Num_excluded_db") # 
               ), # 0
               # 
               tabPanel("rmcellValues_cList", verbatimTextOutput("rmcellValues_cList") # 
               ), # 
               # 
               # 
-              # tabPanel("Custom Ratio", plotlyOutput("") # /level 5, /box 3, plotlyOutput
-              # ), # /level 4, /box 3, tabPanel Custom Ratio
+              # tabPanel("Num/Den", plotlyOutput("") # /level 5, /box 3, plotlyOutput
+              # ), # /level 4, /box 3, tabPanel Num/Den
               
   ) # /level 3, /box 3, tabsetPanel for plots
 ), # /level 2, /box 3, mainPanel for plots
@@ -257,8 +272,8 @@ tabsetPanel(
     
     
     # Input: Checkbox if the file has a header ----
-    checkboxInput("cl340", "sheet 340", TRUE),
-    checkboxInput("cl380", "sheet 380", TRUE),
+    checkboxInput("clNum", "sheet Numerator", TRUE),
+    checkboxInput("clDen", "sheet Denominator", TRUE),
     checkboxInput("clRatio", "sheet Ratio", TRUE),
     
   )
@@ -271,13 +286,13 @@ mainPanel(
               
               tabPanel("Ratio", DT::dataTableOutput("cl_ratio")),
               
-              tabPanel("340", DT::dataTableOutput("cl_340")),
+              tabPanel("Num", DT::dataTableOutput("cl_Num")),
               
-              tabPanel("380", DT::dataTableOutput("cl_380")),
+              tabPanel("Den", DT::dataTableOutput("cl_Den")),
               
-              tabPanel("Custom Ratio", DT::dataTableOutput("cl_custom_ratio")),
+              tabPanel("Num/Den(custom ratio)", DT::dataTableOutput("cl_custom_ratio")),
   )
-), # Analyzing amplitude /level 2 /box 1, mainPanel 340-380-Ratio-Custom ratio 
+), # Analyzing amplitude /level 2 /box 1, mainPanel Num-Den-Ratio-Num/Den 
 
 
 
@@ -318,11 +333,11 @@ mainPanel(
               
               tabPanel("Ratio", DT::dataTableOutput("df_ratio_amplitude_out")),
               
-              tabPanel("340", DT::dataTableOutput("df_340_amplitude_out")),
+              tabPanel("Num", DT::dataTableOutput("df_Num_amplitude_out")),
  
-              tabPanel("380", DT::dataTableOutput("df_380_amplitude_out")),
+              tabPanel("Den", DT::dataTableOutput("df_Den_amplitude_out")),
 
-              tabPanel("Custom Ratio", DT::dataTableOutput("df_custom_ratio_amplitude_out")),
+              tabPanel("Num/Den", DT::dataTableOutput("df_custom_ratio_amplitude_out")),
   )
 ), # /level 2, /box 2, mainPanel Analyzing amplitude
 

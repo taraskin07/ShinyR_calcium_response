@@ -12,220 +12,360 @@ server <- function(input, output) {
   
 
 # Preliminary analysis -----------------------------------------------------    
-
   
+  # Reading sheet names in Excel file
+  sheets_in_the_dataTS <-  eventReactive(eventExpr = {input$dataTS},
+                                       valueExpr ={
+                                         excel_sheets(input$dataTS$datapath)
+                                       })
+  
+  # Following the user's choice for sheets to process
+  observe({
+    
+    if (input$cRatio == F) {
+          shinyjs::disable("sheetRatio")
+        } else if (input$cRatio == T) {
+          shinyjs::enable("sheetRatio")
+        }
+    if (input$cNum == F) {
+          shinyjs::disable("sheetNum")
+        } else if (input$cNum == T) {
+          shinyjs::enable("sheetNum")
+        }
+    if (input$cDen == F) {
+          shinyjs::disable("sheetDen")
+        } else if (input$cDen == T) {
+          shinyjs::enable("sheetDen")
+        }
+  })
+  
+  
+  # Suggesting sheets and updating input information 
+  observeEvent(input$dataTS,{
+    
+    updateSelectInput(inputId = 'sheetRatio',
+                      choices = sheets_in_the_dataTS(),
+                      selected = str_extract(sheets_in_the_dataTS(), '^[Rr]atio$')
+                      )
+    
+    updateSelectInput(inputId = 'sheetNum',
+                      choices = sheets_in_the_dataTS(),
+                      selected = str_extract(sheets_in_the_dataTS(), '^340$')
+                      )
+    
+    updateSelectInput(inputId = 'sheetDen',
+                      choices = sheets_in_the_dataTS(),
+                      selected = str_extract(sheets_in_the_dataTS(), '^380$')
+                      )
+    
+  })
   
 # Preliminary analysis/ 1st box -------------------------------------------
 
   # All 4 tables rendering
-  df_340_ready <- eventReactive(eventExpr = {input$fluorescence 
-                                             input$disp
-                                             input$correct_time
-                                             input$change_names
-                                             input$change_names_button
-                                             input$c340},
-                                valueExpr = {
-                                  req(input$fluorescence)
-                                  req(input$c340)
-                                  reading_xls(input$fluorescence, disp_opt=input$disp, input$correct_time, input$change_names, input$cellName, sheet_n = '340')
-                                }) #level 1 - df_340_ready
   
-  output$df_340 <- DT::renderDataTable({
-    req(input$fluorescence)
-    req(input$c340)
-    df_340_ready()
-                                  }) # level 1 - output$df_340
-    
-    
-  
-  df_380_ready <- eventReactive(eventExpr = {input$fluorescence 
-                                             input$disp
-                                             input$correct_time
-                                             input$change_names
-                                             input$change_names_button
-                                             input$c380},
-                                valueExpr = {
-                                  req(input$fluorescence)
-                                  req(input$c380)
-                                  reading_xls(input$fluorescence, disp_opt=input$disp, input$correct_time, input$change_names, input$cellName, sheet_n = '380')
-                                            }) # level 1 - df_380_ready
-  
-  output$df_380 <- DT::renderDataTable({    
-    req(input$fluorescence)
-    req(input$c380)
-    df_380_ready()
- }) # level 1 - output$df_380
+  #  RATIO
+  df_ratio_ready <- eventReactive(eventExpr = {input$dataTS 
+    input$disp
+    input$correct_time
+    input$change_names
+    input$change_names_button
+    input$cRatio
+    input$sheetRatio},
+    valueExpr = {
+      req(input$dataTS)
+      req(input$cRatio)
+      reading_xls(input$dataTS, 
+                  disp_opt=input$disp, 
+                  input$correct_time,
+                  input$step,
+                  input$change_names, 
+                  input$cellName, 
+                  sheet_n = input$sheetRatio)
+    })
   
   
-  
-  df_ratio_ready <- eventReactive(eventExpr = {input$fluorescence 
-                                               input$disp
-                                               input$correct_time
-                                               input$change_names
-                                               input$change_names_button
-                                               input$cRatio},
-                                valueExpr = {
-                                  req(input$fluorescence)
-                                  req(input$cRatio)
-                                  reading_xls(input$fluorescence, disp_opt=input$disp, input$correct_time, input$change_names, input$cellName, sheet_n = 'Ratio')
-    }) # level 1 - df_ratio_ready
   
   output$df_ratio <- DT::renderDataTable({
-    req(input$fluorescence)
+    req(input$dataTS)
     req(input$cRatio)
-    df_ratio_ready()}) # level 1 - output$df_ratio
-
+    customDT(df_ratio_ready())
+  })
   
-  df_custom_ratio_ready <- eventReactive(eventExpr = {input$fluorescence 
+  
+  # NUMERATOR
+  df_Num_ready <- eventReactive(eventExpr = {input$dataTS 
+                                             input$disp
+                                             input$correct_time
+                                             input$change_names
+                                             input$change_names_button
+                                             input$cNum
+                                             input$sheetNum},
+                                valueExpr = {
+                                  req(input$dataTS)
+                                  req(input$cNum)
+                                  reading_xls(input$dataTS, 
+                                              disp_opt=input$disp, 
+                                              input$correct_time,
+                                              input$step, 
+                                              input$change_names, 
+                                              input$cellName, 
+                                              sheet_n = input$sheetNum)
+                                }) 
+  
+  output$df_Num <- DT::renderDataTable({
+    req(input$dataTS)
+    req(input$cNum)
+    customDT(df_Num_ready())
+                                  }) 
+    
+    
+  # DENOMINATOR
+  df_Den_ready <- eventReactive(eventExpr = {input$dataTS 
+                                             input$disp
+                                             input$correct_time
+                                             input$change_names
+                                             input$change_names_button
+                                             input$cDen
+                                             input$sheetDen},
+                                valueExpr = {
+                                  req(input$dataTS)
+                                  req(input$cDen)
+                                  reading_xls(input$dataTS, 
+                                              disp_opt=input$disp, 
+                                              input$correct_time,
+                                              input$step, 
+                                              input$change_names, 
+                                              input$cellName, 
+                                              sheet_n = input$sheetDen)
+                                            })
+  
+  output$df_Den <- DT::renderDataTable({    
+    req(input$dataTS)
+    req(input$cDen)
+    customDT(df_Den_ready())
+ })
+  
+  
+  
+
+
+  # NUMERATOR/DENOMINATOR
+  df_custom_ratio_ready <- eventReactive(eventExpr = {input$dataTS 
                                                       input$disp
                                                       input$correct_time
                                                       input$change_names
                                                       input$change_names_button
-                                                      input$c340
-                                                      input$c380},
+                                                      input$cNum
+                                                      input$cDen},
                                           valueExpr = {
-                                            req(input$fluorescence)
-                                            req(input$c340)
-                                            req(input$c380)
-                                            custom_ratio(df_340_ready(), df_380_ready())}) # level 1 - df_custom_ratio_ready
+                                            req(input$dataTS)
+                                            req(input$cNum)
+                                            req(input$cDen)
+                                            custom_ratio(df_Num_ready(), df_Den_ready())}) 
 
   output$df_custom_ratio <- DT::renderDataTable({  
-    req(input$fluorescence)
-    req(df_340_ready)
-    req(df_380_ready)
-    df_custom_ratio_ready()
-    }) # level 1 - output$df_custom_ratio
+    req(input$dataTS)
+    req(df_Num_ready)
+    req(df_Den_ready)
+    customDT(df_custom_ratio_ready())
+    }) 
   
   
-  # Save as excel file
+  
+    
+
+    
+    # Save as excel file
   output$SaveXlsBox1 <- downloadHandler(
-    filename = function() { filename(input$fluorescence, "ProcessedTable.xlsx")},
-    content = function(file) {write_xlsx(list('340'=df_340_ready(), '380'=df_380_ready(), 'ratio' = df_ratio_ready(), 'custom_ratio' = df_custom_ratio_ready()), path = file)}
-    # content = function(file) {write_xlsx('ratio' = df_ratio_ready(), path = file)}
-    )
+    filename = function() { filename(input$dataTS, "ProcessedTable.xlsx")},
+    content = function(file) {
+      
+      
+      wb <- createWorkbook()
+      
+      if (input$cRatio) {
+        sheet1 <- addWorksheet(wb, sheetName = "Ratio")
+        writeDataTable(wb, sheet1, df_ratio_ready())
+      }
+      
+      if (input$cNum) {
+        sheet2 <- addWorksheet(wb, sheetName = "Numerator")
+        writeDataTable(wb, sheet2, df_Num_ready())
+      }
+      
+      if (input$cDen) {
+        sheet3 <- addWorksheet(wb, sheetName = "Denominator")
+        writeDataTable(wb, sheet3, df_Den_ready())
+      }
+      
+      if (input$cNum & input$cDen) {
+        sheet4 <- addWorksheet(wb, sheetName = "Custom_ratio")
+        writeDataTable(wb, sheet4, df_custom_ratio_ready())
+      }
+      
+      saveWorkbook(wb, file)
+      
+    })
   
-  
+
   
   
 # Preliminary analysis/ 2d box - STATISTICS -------------------------------------------  
   
-  df_340_basic_stat <- eventReactive(eventExpr = {input$basicStat}, 
-                                     
-                                     valueExpr = {
-                                       req(input$fluorescence)
-                                       req(input$c340)
-                                       reading_xls(input$fluorescence, disp_opt="all", input$correct_time, input$change_names, input$cellName, sheet_n = '340') 
-                                       
-                                       }) # # eventReactive / df_340_basic_stat
-  
-  df_340_basic_stat_table <- eventReactive(eventExpr = {input$basicStat},
-                                           
-                                           valueExpr = {
-                                             req(input$fluorescence)
-                                             req(input$c340)
-                                             return(basic_statistics(df_340_basic_stat()))
-                                             
-                                           }) # # eventReactive / df_340_basic_stat_table
-  
-  output$df_340_basic_stat_out <- DT::renderDataTable({
-    df_340_basic_stat_table()
-
-  }) # output$df_340_basic_stat
-  
-  
-  
-  df_380_basic_stat <- eventReactive(eventExpr = {input$basicStat}, 
-                                     
-                                     valueExpr = {
-                                       req(input$fluorescence)
-                                       req(input$c380)
-                                       reading_xls(input$fluorescence, disp_opt="all", input$correct_time, input$change_names, input$cellName, sheet_n = '380') 
-                                       
-                                     }) # # eventReactive / df_380_basic_stat
-  
-  
-  df_380_basic_stat_table <- eventReactive(eventExpr = {input$basicStat},
-                                           
-                                           valueExpr = {
-                                             req(input$fluorescence)
-                                             req(input$c380)
-                                             return(basic_statistics(df_380_basic_stat()))
-                                             
-                                           }) # # eventReactive / df_380_basic_stat_table
-  
-  output$df_380_basic_stat_out <- DT::renderDataTable({
-    df_380_basic_stat_table()
-
-    
-  }) # output$df_380_basic_stat  
-  
-  
-  
+  # RATIO statistics
   df_ratio_basic_stat <- eventReactive(eventExpr = {input$basicStat}, 
-                                     
-                                     valueExpr = {
-                                       req(input$fluorescence)
-                                       req(input$cRatio)
-                                       reading_xls(input$fluorescence, disp_opt="all", input$correct_time, input$change_names, input$cellName, sheet_n = 'Ratio') 
                                        
-                                     }) # # eventReactive / df_ratio_basic_stat
-  
+                                       valueExpr = {
+                                         req(input$dataTS)
+                                         req(input$cRatio)
+                                         reading_xls(input$dataTS, 
+                                                     disp_opt="all", 
+                                                     input$correct_time,
+                                                     input$step, 
+                                                     input$change_names, 
+                                                     input$cellName, 
+                                                     sheet_n = input$sheetRatio)
+                                       })
+
   df_ratio_basic_stat_table <- eventReactive(eventExpr = {input$basicStat},
-                                           
-                                           valueExpr = {
-                                             req(input$fluorescence)
-                                             req(input$cRatio)
-                                             return(basic_statistics(df_ratio_basic_stat()))
                                              
-                                           }) # # eventReactive / df_ratio_basic_stat_table
+                                             valueExpr = {
+                                               req(input$dataTS)
+                                               req(input$cRatio)
+                                               return(basic_statistics(df_ratio_basic_stat()))
+                                               
+                                             }) 
   
   output$df_ratio_basic_stat_out <- DT::renderDataTable({
-    df_ratio_basic_stat_table()
+    css_styles_DT(df_ratio_basic_stat_table())
+    
+  }) 
+  
+  
+  
+  #  NUMERATOR statistics
+  
+  df_Num_basic_stat <- eventReactive(eventExpr = {input$basicStat}, 
+                                     
+                                     valueExpr = {
+                                       req(input$dataTS)
+                                       req(input$cNum)
+                                       reading_xls(input$dataTS, 
+                                                   disp_opt="all", 
+                                                   input$correct_time,
+                                                   input$step, 
+                                                   input$change_names, 
+                                                   input$cellName, 
+                                                   sheet_n = input$sheetNum) 
+                                       
+                                       }) 
+  
+  df_Num_basic_stat_table <- eventReactive(eventExpr = {input$basicStat},
+                                           
+                                           valueExpr = {
+                                             req(input$dataTS)
+                                             req(input$cNum)
+                                             return(basic_statistics(df_Num_basic_stat()))
+                                             
+                                           })
+  
+  output$df_Num_basic_stat_out <- DT::renderDataTable({
+    css_styles_DT(df_Num_basic_stat_table())
 
-  }) # output$df_ratio_basic_stat_out  
+  }) 
   
   
+  # DENOMINATOR statistics
   
+  df_Den_basic_stat <- eventReactive(eventExpr = {input$basicStat}, 
+                                     
+                                     valueExpr = {
+                                       req(input$dataTS)
+                                       req(input$cDen)
+                                       reading_xls(input$dataTS, 
+                                                   disp_opt="all", 
+                                                   input$correct_time,
+                                                   input$step, 
+                                                   input$change_names, 
+                                                   input$cellName, 
+                                                   sheet_n = input$sheetDen) 
+                                       
+                                     })
+  
+  
+  df_Den_basic_stat_table <- eventReactive(eventExpr = {input$basicStat},
+                                           
+                                           valueExpr = {
+                                             req(input$dataTS)
+                                             req(input$cDen)
+                                             return(basic_statistics(df_Den_basic_stat()))
+                                             
+                                           })
+  
+  output$df_Den_basic_stat_out <- DT::renderDataTable({
+    css_styles_DT(df_Den_basic_stat_table())
+
+    
+  }) 
+  
+  
+  # CUSTOM RATIO statistics 
+
   df_custom_ratio_basic_stat <- eventReactive(eventExpr = {input$basicStat}, 
                                       valueExpr = {
-                                        req(input$fluorescence)
-                                        req(input$c340)
-                                        req(input$c380)
-                                        custom_ratio(df_340_basic_stat(), df_380_basic_stat())
-                                      }) # # eventReactive / df_ratio_basic_stat  
+                                        req(input$dataTS)
+                                        req(input$cNum)
+                                        req(input$cDen)
+                                        custom_ratio(df_Num_basic_stat(), df_Den_basic_stat())
+                                      }) 
   
   df_custom_ratio_basic_stat_table <- eventReactive(eventExpr = {input$basicStat},
                                              
                                              valueExpr = {
-                                               req(input$fluorescence)
-                                               req(input$c340)
-                                               req(input$c380)
+                                               req(input$dataTS)
+                                               req(input$cNum)
+                                               req(input$cDen)
                                                return(basic_statistics(df_custom_ratio_basic_stat()))
                                                
-                                             }) # # eventReactive / df_ratio_basic_stat_table
+                                             }) 
   
   output$df_custom_ratio_basic_stat_out <- DT::renderDataTable({
-    df_custom_ratio_basic_stat_table()
+    css_styles_DT(df_custom_ratio_basic_stat_table())
 
-  }) # output$df_ratio_basic_stat_out  
+  }) 
   
   # Save BASIC STATISTICS as excel file
   output$SaveXlsBoxStat <- downloadHandler(
-    filename = function() {filename(input$fluorescence, "BasicStatisticsTable.xlsx")},
-    content = function(file) {write_xlsx(list('340'=cell_number_row(df_340_basic_stat_table()), '380'=cell_number_row(df_380_basic_stat_table()), 'ratio' = cell_number_row(df_ratio_basic_stat_table()), 'custom_ratio' = cell_number_row(df_custom_ratio_basic_stat_table())), path = file)}
+    filename = function() {filename(input$dataTS, "BasicStatisticsTable.xlsx")},
+    content = function(file) {write_xlsx(list('Numerator'=cell_number_row(df_Num_basic_stat_table()), 'Denominator'=cell_number_row(df_Den_basic_stat_table()), 'ratio' = cell_number_row(df_ratio_basic_stat_table()), 'custom_ratio' = cell_number_row(df_custom_ratio_basic_stat_table())), path = file)}
     )
 
 # Preliminary analysis/ 3d box, plots------------------------------------------------
 
+  
+    observeEvent(input$basicStat, {
+      
+      
+      updateSelectInput(inputId = 'trace_to_plot1',
+                        choices = colnames(df_ratio_basic_stat())[-1],
+                        selected = 1)
+      
+      updateSelectInput(inputId = 'trace_to_plot2',
+                        choices = colnames(df_Num_basic_stat())[-1],
+                        selected = 1)
+      
+    })
+  
     observeEvent(input$plot_all, {
-      output$plot340 <- renderPlotly({
-        req(input$plot_all, df_340_basic_stat())
-        ggplotly_render(df_340_basic_stat())})
+      output$plotNum <- renderPlotly({
+        req(input$plot_all, df_Num_basic_stat())
+        ggplotly_render(df_Num_basic_stat())})
       
       
-      output$plot380 <- renderPlotly({
-        req(input$plot_all, df_380_basic_stat())
-        ggplotly_render(df_380_basic_stat())})
+      output$plotDen <- renderPlotly({
+        req(input$plot_all, df_Den_basic_stat())
+        ggplotly_render(df_Den_basic_stat())})
       
       
       output$plot_ratio <- renderPlotly({
@@ -241,15 +381,17 @@ server <- function(input, output) {
   
     observeEvent(input$plot_single, {
       
-      output$plot340 <- renderPlotly({
-        req(input$cell_to_plot, df_340_basic_stat())
-        ggplotly_render(get_col_names(df_340_basic_stat(), input$cellName, input$cell_to_plot, format = input$change_names))})
+      
+
+      output$plotNum <- renderPlotly({
+        req(input$cell_to_plot, df_Num_basic_stat())
+        ggplotly_render(get_col_names(df_Num_basic_stat(), input$cellName, input$cell_to_plot, format = input$change_names))})
       
       
       
-      output$plot380 <- renderPlotly({
-        req(input$cell_to_plot, df_380_basic_stat())
-        ggplotly_render(get_col_names(df_380_basic_stat(), input$cellName, input$cell_to_plot, format = input$change_names))})
+      output$plotDen <- renderPlotly({
+        req(input$cell_to_plot, df_Den_basic_stat())
+        ggplotly_render(get_col_names(df_Den_basic_stat(), input$cellName, input$cell_to_plot, format = input$change_names))})
 
       
       
@@ -330,35 +472,35 @@ server <- function(input, output) {
 
     
       
-      df_340_excluded <- eventReactive(eventExpr = {input$new_dataframes}, 
+      df_Num_excluded <- eventReactive(eventExpr = {input$new_dataframes}, 
 
                                                     valueExpr = {
                                                       
-                                                    req(input$fluorescence)
-                                                    req(input$c340)                  
-                                                    subset(df_340_basic_stat(), select = !(colnames(df_340_basic_stat()) %in% rmcellValues$cList))
+                                                    req(input$dataTS)
+                                                    req(input$cNum)                  
+                                                    subset(df_Num_basic_stat(), select = !(colnames(df_Num_basic_stat()) %in% rmcellValues$cList))
                                                     
                                                     }
-                                       ) # # eventReactive / df_340_excluded
+                                       ) # # eventReactive / df_Num_excluded
     
     
-      df_380_excluded <- eventReactive(eventExpr = {input$new_dataframes}, 
+      df_Den_excluded <- eventReactive(eventExpr = {input$new_dataframes}, 
                                        
                                        valueExpr = {
                                          
-                                         req(input$fluorescence)
-                                         req(input$c380)                  
-                                         subset(df_380_basic_stat(), select = !(colnames(df_380_basic_stat()) %in% rmcellValues$cList))
+                                         req(input$dataTS)
+                                         req(input$cDen)                  
+                                         subset(df_Den_basic_stat(), select = !(colnames(df_Den_basic_stat()) %in% rmcellValues$cList))
                                        
                                                     }
-                                      ) # # eventReactive / df_380_excluded
+                                      ) # # eventReactive / df_Den_excluded
       
       
       df_ratio_excluded <- eventReactive(eventExpr = {input$new_dataframes}, 
                                        
                                        valueExpr = {
                                          
-                                         req(input$fluorescence)
+                                         req(input$dataTS)
                                          req(input$cRatio)                  
                                          subset(df_ratio_basic_stat(), select = !(colnames(df_ratio_basic_stat()) %in% rmcellValues$cList))
                                          
@@ -370,9 +512,9 @@ server <- function(input, output) {
                                          
                                          valueExpr = {
                                            
-                                           req(input$fluorescence)
-                                           req(input$c340)   
-                                           req(input$c380)
+                                           req(input$dataTS)
+                                           req(input$cNum)   
+                                           req(input$cDen)
                                            subset(df_custom_ratio_basic_stat(), select = !(colnames(df_custom_ratio_basic_stat()) %in% rmcellValues$cList))
                                            
                                          }
@@ -382,13 +524,13 @@ server <- function(input, output) {
     
     observeEvent(input$plot_new_all, {
       
-      output$plot340 <- renderPlotly({
-        req(input$plot_new_all, df_340_excluded())
-        ggplotly_render(df_340_excluded())})
+      output$plotNum <- renderPlotly({
+        req(input$plot_new_all, df_Num_excluded())
+        ggplotly_render(df_Num_excluded())})
     
-      output$plot380 <- renderPlotly({
-        req(input$plot_new_all, df_380_excluded())
-        ggplotly_render(df_380_excluded())})
+      output$plotDen <- renderPlotly({
+        req(input$plot_new_all, df_Den_excluded())
+        ggplotly_render(df_Den_excluded())})
       
       output$plot_ratio <- renderPlotly({
         req(input$plot_new_all, df_ratio_excluded())
@@ -405,26 +547,26 @@ server <- function(input, output) {
       # Save DATA WITHOUT BAD CELLS as excel file
     
       output$SaveXlsBoxNoBadCells <- downloadHandler(
-        filename = function() {filename(input$fluorescence, "CleanTable.xlsx")},
-        content = function(file) {write_xlsx(list('340'=df_340_excluded(), '380'=df_380_excluded(), 'ratio' = df_ratio_excluded(), 'custom_ratio' = df_custom_ratio_excluded(), 'excluded_cells' = data.frame(Excluded_cells=gtools::mixedsort(rmcellValues$cList, decreasing = T))), path = file)}
+        filename = function() {filename(input$dataTS, "CleanTable.xlsx")},
+        content = function(file) {write_xlsx(list('Numerator'=df_Num_excluded(), 'Denominator'=df_Den_excluded(), 'ratio' = df_ratio_excluded(), 'custom_ratio' = df_custom_ratio_excluded(), 'excluded_cells' = data.frame(Excluded_cells=gtools::mixedsort(rmcellValues$cList, decreasing = T))), path = file)}
       )
     
 
 # Debugging section -------------------------------------------------------
 
-    output$df_340_ready_db <- DT::renderDataTable({
-      req(input$fluorescence)
-      req(input$c340)
+    output$df_Num_ready_db <- DT::renderDataTable({
+      req(input$dataTS)
+      req(input$cNum)
       req(input$new_dataframes)
-      df_340_ready()
+      df_Num_ready()
       }) 
     
     
-    output$df_340_excluded_db <- DT::renderDataTable({
-      req(input$fluorescence)
-      req(input$c340)
+    output$df_Num_excluded_db <- DT::renderDataTable({
+      req(input$dataTS)
+      req(input$cNum)
       req(input$new_dataframes)
-      df_340_excluded()
+      df_Num_excluded()
     })
     
     
@@ -440,46 +582,46 @@ server <- function(input, output) {
     # All 4 tables of CLEAN DATA rendering
     
 
-# 340
+# Num
 
-    df_340_clean <- eventReactive(eventExpr = {input$clean_file
-      input$cl340},
+    df_Num_clean <- eventReactive(eventExpr = {input$clean_file
+      input$clNum},
       valueExpr = {
         req(input$clean_file)
-        req(input$cl340)
+        req(input$clNum)
         read_excel(input$clean_file$datapath,
-                   sheet='340')
+                   sheet='Numerator')
         
                   }
-                                  ) #level 1 - df_340_clean
+                                  ) #level 1 - df_Num_clean
     
-    output$cl_340 <- DT::renderDataTable({
+    output$cl_Num <- DT::renderDataTable({
       req(input$clean_file)
-      req(input$cl340)
-      df_340_clean()
-                                            }) # level 1 - output$cl_340
+      req(input$clNum)
+      df_Num_clean()
+                                            }) # level 1 - output$cl_Num
     
 
-# 380 
+# Den
 
    
-    df_380_clean <- eventReactive(eventExpr = {input$clean_file
-      input$cl380},
+    df_Den_clean <- eventReactive(eventExpr = {input$clean_file
+      input$clDen},
       valueExpr = {
         req(input$clean_file)
-        req(input$cl380)
+        req(input$clDen)
         read_excel(input$clean_file$datapath,
-                   sheet='380')
+                   sheet='Denominator')
         
       }
-    ) #level 1 - df_380_clean
+    ) #level 1 - df_Den_clean
     
     
-    output$cl_380 <- DT::renderDataTable({
+    output$cl_Den <- DT::renderDataTable({
       req(input$clean_file)
-      req(input$cl380)
-      df_380_clean()
-    }) # level 1 - output$cl_380
+      req(input$clDen)
+      df_Den_clean()
+    }) # level 1 - output$cl_Den
     
     
 
@@ -521,8 +663,8 @@ server <- function(input, output) {
     
     output$cl_custom_ratio <- DT::renderDataTable({
       req(input$clean_file)
-      req(input$cl340)
-      req(input$cl380)
+      req(input$clNum)
+      req(input$clDen)
       df_custom_ratio_clean()
     }) # level 1 - output$cl_custom_ratio    
    
@@ -537,23 +679,23 @@ server <- function(input, output) {
     
     # Calculating amplitudes
     
-# 340
+# Num
     
-    df_340_amplitude <- eventReactive(eventExpr = {input$amplitudeStat
-      input$cl340},
+    df_Num_amplitude <- eventReactive(eventExpr = {input$amplitudeStat
+      input$clNum},
       valueExpr = {
         req(input$clean_file)
-        req(input$cl340)
-        find_amplitude(df_340_clean(), input$min_time, input$max_time, input$start_time, input$end_time)
+        req(input$clNum)
+        find_amplitude(df_Num_clean(), input$min_time, input$max_time, input$start_time, input$end_time)
         
       }
     )
     
-    output$df_340_amplitude_out <- DT::renderDataTable({
+    output$df_Num_amplitude_out <- DT::renderDataTable({
       req(input$clean_file)
       req(input$amplitudeStat)
-      req(input$cl340)
-      df_340_amplitude()
+      req(input$clNum)
+      df_Num_amplitude()
     })
     
     
@@ -590,48 +732,48 @@ server <- function(input, output) {
     output$df_custom_ratio_amplitude_out <- DT::renderDataTable({
       req(input$clean_file)
       req(input$amplitudeStat)
-      req(input$cl340)
-      req(input$cl380)
+      req(input$clNum)
+      req(input$clDen)
       df_custom_ratio_amplitude()
     })
     
     
     
     # IN THIS CASE WE NEED TO FIND MINIMUM INSTEAD! 
-# 380
+# Den
     
-    df_380_amplitude <- eventReactive(eventExpr = {input$amplitudeStat
-      input$cl380},
+    df_Den_amplitude <- eventReactive(eventExpr = {input$amplitudeStat
+      input$clDen},
       valueExpr = {
         req(input$clean_file)
-        req(input$cl380)
-        find_amplitude_380(df_380_clean(), input$min_time, input$max_time, input$start_time, input$end_time)
+        req(input$clDen)
+        find_amplitude_Den(df_Den_clean(), input$min_time, input$max_time, input$start_time, input$end_time)
         
       }
     )
     
-    output$df_380_amplitude_out <- DT::renderDataTable({
+    output$df_Den_amplitude_out <- DT::renderDataTable({
       req(input$clean_file)
       req(input$amplitudeStat)
-      req(input$cl380)
-      df_380_amplitude()
+      req(input$clDen)
+      df_Den_amplitude()
     })    
     
     
 # Summary for amplitudes
     
-    # 340
-    df_340_summary <- eventReactive(eventExpr = {input$amplitudeStat},
+    # Num
+    df_Num_summary <- eventReactive(eventExpr = {input$amplitudeStat},
                                     valueExpr = {
                                       req(input$clean_file)
-                                      summarize_amplitudes(df_340_amplitude(), df_excluded_cells_list())
+                                      summarize_amplitudes(df_Num_amplitude(), df_excluded_cells_list())
                                     })
     
-    # 380
-    df_380_summary <- eventReactive(eventExpr = {input$amplitudeStat},
+    # Den
+    df_Den_summary <- eventReactive(eventExpr = {input$amplitudeStat},
                                     valueExpr = {
                                       req(input$clean_file)
-                                      summarize_amplitudes(df_380_amplitude(), df_excluded_cells_list())
+                                      summarize_amplitudes(df_Den_amplitude(), df_excluded_cells_list())
                                     })
     
     # Ratio
@@ -652,15 +794,15 @@ server <- function(input, output) {
 # Save DATA ANALIZING AMPLITUDES as excel file
     
     output$SaveXlsAmpl <- downloadHandler(
-      filename = function() {filename(input$fluorescence, "Amplitudes.xlsx")},
-      content = function(file) {write_xlsx(list('340'=df_340_amplitude(), 
-                                                '380'=df_380_amplitude(), 
-                                                'ratio' = df_ratio_amplitude(), 
+      filename = function() {filename(input$dataTS, "Amplitudes.xlsx")},
+      content = function(file) {write_xlsx(list('Numerator'=df_Num_amplitude(), 
+                                                'Denominator'=df_Den_amplitude(), 
+                                                'Ratio' = df_ratio_amplitude(), 
                                                 'custom_ratio' = df_custom_ratio_amplitude(),
-                                                '340_summary' = df_340_summary(),
-                                                '380_summary' = df_380_summary(),
-                                                'ratio_summary' = df_ratio_summary(),
-                                                'custom_ratio_summary' = df_custom_ratio_summary()
+                                                'Num_summary' = df_Num_summary(),
+                                                'Den_summary' = df_Den_summary(),
+                                                'Ratio_summary' = df_ratio_summary(),
+                                                'Custom_ratio_summary' = df_custom_ratio_summary()
                                                 ), path = file)}
     )
     
