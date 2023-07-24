@@ -9,7 +9,7 @@ source('engine.R')
 # Define server logic to read selected file ----
 server <- function(input, output) {
 
-  
+  colors2000 <- randomColor(count = 2000, hue = 'random', luminosity = 'bright')
 
 # Preliminary analysis -----------------------------------------------------    
   
@@ -343,73 +343,129 @@ server <- function(input, output) {
 
 # Preliminary analysis/ 3d box, plots------------------------------------------------
 
+  # # Debugging------------------------------------------------
+  # output$inputValues <- renderPrint({
+  #   inputList <- reactiveValuesToList(input)
+  #   inputList
+  # })
   
+  
+  
+  
+  
+  # Rendering SelectInput for columns choosing process
     observeEvent(input$basicStat, {
-      
-      
-      updateSelectInput(inputId = 'trace_to_plot1',
-                        choices = colnames(df_ratio_basic_stat())[-1],
-                        selected = 1)
-      
-      updateSelectInput(inputId = 'trace_to_plot2',
-                        choices = colnames(df_Num_basic_stat())[-1],
-                        selected = 1)
+
+      output$tabUI <- renderUI({
+        if (input$tab == "R") {
+          selectInput("ratioInput", "Ratio cells names", 
+                      choices = colnames(df_ratio_basic_stat())[-1], 
+                      selectize = FALSE, 
+                      selected = shiny::isolate(input$ratioInput))
+          
+        } else if (input$tab == "N") {
+          selectInput("numInput", "Numerator cells names", 
+                      choices = colnames(df_Num_basic_stat())[-1], 
+                      selectize = FALSE, 
+                      selected = shiny::isolate(input$numInput))
+          
+        } else if (input$tab == "D") {
+          selectInput("denInput", "Denominator cells names", 
+                      choices = colnames(df_Den_basic_stat())[-1], 
+                      selectize = FALSE, 
+                      selected = shiny::isolate(input$denInput))
+          
+        } else if (input$tab == "ND") {
+          selectInput("customRatioInput", "Num/Den cells names", 
+                      choices = colnames(df_custom_ratio_basic_stat())[-1], 
+                      selectize = FALSE, 
+                      selected = shiny::isolate(input$customRatioInput)
+                      )
+        }
+      })
       
     })
   
+  
+  
+  
+  # Rendering ALL plots
+
+  
     observeEvent(input$plot_all, {
+      
+
+      
+      output$plot_ratio <- renderPlotly({
+        req(input$plot_all, df_ratio_basic_stat())
+        ggplotly_render(df_ratio_basic_stat(), 
+                        rcolor = color_palette(df_ratio_basic_stat()))})
+      
+      
       output$plotNum <- renderPlotly({
         req(input$plot_all, df_Num_basic_stat())
-        ggplotly_render(df_Num_basic_stat())})
+        ggplotly_render(df_Num_basic_stat(), 
+                        rcolor = color_palette(df_Num_basic_stat()))})
       
       
       output$plotDen <- renderPlotly({
         req(input$plot_all, df_Den_basic_stat())
-        ggplotly_render(df_Den_basic_stat())})
-      
-      
-      output$plot_ratio <- renderPlotly({
-        req(input$plot_all, df_ratio_basic_stat())
-        ggplotly_render(df_ratio_basic_stat())})
+        ggplotly_render(df_Den_basic_stat(), 
+                        rcolor = color_palette(df_Den_basic_stat()))})
       
       
       output$plot_custom_ratio <- renderPlotly({
         req(input$plot_all, df_custom_ratio_basic_stat())
-        ggplotly_render(df_custom_ratio_basic_stat())
-      })
-    }) # /level 1, observeEvent input$plot_all
-  
+        ggplotly_render(df_custom_ratio_basic_stat(), 
+                        rcolor = color_palette(df_custom_ratio_basic_stat()))})
+    
+      
+    }) 
+    
+    
+    
+    
+    
+  # Rendering SINGLE plot
     observeEvent(input$plot_single, {
-      
-      
-
-      output$plotNum <- renderPlotly({
-        req(input$cell_to_plot, df_Num_basic_stat())
-        ggplotly_render(get_col_names(df_Num_basic_stat(), input$cellName, input$cell_to_plot, format = input$change_names))})
-      
-      
-      
-      output$plotDen <- renderPlotly({
-        req(input$cell_to_plot, df_Den_basic_stat())
-        ggplotly_render(get_col_names(df_Den_basic_stat(), input$cellName, input$cell_to_plot, format = input$change_names))})
-
       
       
       
       output$plot_ratio <- renderPlotly({
         req(input$cell_to_plot, df_ratio_basic_stat())
-        ggplotly_render(get_col_names(df_ratio_basic_stat(), input$cellName, input$cell_to_plot, format = input$change_names))
-      })
+        
+        display_single_plot(df_ratio_basic_stat(), input$ratioInput)
+
+      })     
+      
+
+      output$plotNum <- renderPlotly({
+        req(input$cell_to_plot, df_Num_basic_stat())
+        
+        display_single_plot(df_Num_basic_stat(), input$numInput)
+        
+      }) 
+      
+      
+      output$plotDen <- renderPlotly({
+        req(input$cell_to_plot, df_Den_basic_stat())
+        
+        display_single_plot(df_Den_basic_stat(), input$denInput)
+        
+      }) 
       
       
       
+
       output$plot_custom_ratio <- renderPlotly({
-      req(input$cell_to_plot, df_custom_ratio_basic_stat())
-      ggplotly_render(get_col_names(df_custom_ratio_basic_stat(), input$cellName, input$cell_to_plot, format = input$change_names))
-    })
+        req(input$cell_to_plot, df_custom_ratio_basic_stat())
+        
+        display_single_plot(df_custom_ratio_basic_stat(), input$customRatioInput)
+        
+      })
   
   
-    }) # /level 1, observeEvent input$plot_single
+    }) 
 
 
     

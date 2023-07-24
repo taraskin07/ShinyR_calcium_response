@@ -152,8 +152,17 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
       
       tags$hr(),
       numericInput("cell_to_plot", "Enter number of cell", 1),
-      tabPanel('Ratio', selectInput('trace_to_plot1', 'Choose a trace to plot', choices = '', selectize = FALSE)),
-      tabPanel('Num', selectInput('trace_to_plot2', 'Choose a trace to plot', choices = '', selectize = FALSE)),
+      
+      
+      # Debugging ------------------------------------------------
+      # verbatimTextOutput("inputValues"),
+      
+      
+
+      uiOutput("tabUI"),
+      
+
+      
       
       actionButton("exclude_cell", "Exclude cell"),
       actionButton("exclude_undo", "Undo"),
@@ -179,20 +188,20 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
   # Main panel for displaying outputs from tabsetPanel /level 2 /box 3
   mainPanel(
     # Tabs
-    tabsetPanel(type = "tabs",
+    tabsetPanel(type = "tabs", id = "tab",
                 
-                tabPanel("Ratio", plotlyOutput("plot_ratio") # /level 5, /box 3, plotlyOutput
+                tabPanel("Ratio", value = 'R', plotlyOutput("plot_ratio") # /level 5, /box 3, plotlyOutput
                 ), # /level 4, /box 3, tabPanel Ratio
                 
                 
-                tabPanel("Num", plotlyOutput("plotNum") # /level 5, /box 3, plotlyOutput
+                tabPanel("Num", value = 'N', plotlyOutput("plotNum") # /level 5, /box 3, plotlyOutput
                         ), # /level 4, /box 3, tabPanel Num
 
-                tabPanel("Den", plotlyOutput("plotDen") # /level 5, /box 3, plotlyOutput
+                tabPanel("Den", value = 'D', plotlyOutput("plotDen") # /level 5, /box 3, plotlyOutput
                         ), # /level 4, /box 3, tabPanel Den
                 
                 
-                tabPanel("Num/Den", plotlyOutput("plot_custom_ratio") # /level 5, /box 3, plotlyOutput
+                tabPanel("Num/Den", value = 'ND', plotlyOutput("plot_custom_ratio") # /level 5, /box 3, plotlyOutput
                         ), # /level 4, /box 3, tabPanel Num/Den
                 
                 ) # /level 3, /box 3, tabsetPanel for plots

@@ -166,7 +166,7 @@ time_col_name <- function(datafr, step = 5, name_only = FALSE) {
   
   if (name_only == FALSE) {
     
-    datafr$Time <- seq(from = 0, by=step, length.out = length(df_time$Time))
+    datafr$Time <- seq(from = 0, by=step, length.out = length(datafr$Time))
   
   }
   
@@ -178,18 +178,21 @@ time_col_name <- function(datafr, step = 5, name_only = FALSE) {
 # Correcting names columns ------------------------------------------------
 rename_columns <- function(df, cnames) {
   
-  df_output <- df %>% 
-    rename_with(.cols = contains("#"), # selects only the data columns
-                ~ paste0(cnames, str_remove(stringr::str_split_i(.x, " ", 1), "#") 
-                )
+  df <- time_col_name(df, name_only = T)
+  
+  df_output <- df %>%
+    rename_with(.cols = -matches("Time"), # selects all columns except "Time"
+                ~ paste0(cnames, stringr::str_extract(.x, "\\b\\D*?0*([1-9][0-9]*)", 
+                                                      group = 1))
     )
   return(df_output)
 }
 
 adding_zeroes <- function(vctr) {
   
-  if (stringr::str_length(vctr)==1) {strnum <- paste0('00', vctr)
-  } else if (stringr::str_length(vctr)==2) {strnum <- paste0('0', vctr)
+  if (stringr::str_length(vctr)==1) {strnum <- paste0('000', vctr)
+  } else if (stringr::str_length(vctr)==2) {strnum <- paste0('00', vctr)
+  } else if (stringr::str_length(vctr)==3) {strnum <- paste0('0', vctr)
   } else {strnum <- toString(vctr)}
   
   return(strnum)
@@ -197,9 +200,14 @@ adding_zeroes <- function(vctr) {
 
 rename_columns_zeros <- function(df, cnames) {
   
+  df <- time_col_name(df, name_only = T)
+  
   df_output <- df %>% 
-    rename_with(.cols = contains("#"), # selects only the data columns
-                ~ paste0(cnames, unname(sapply(str_remove(stringr::str_split_i(.x, " ", 1), "#"), adding_zeroes)) 
+    rename_with(.cols = -matches("Time"), # selects all columns except "Time"
+                ~ paste0(cnames, 
+                         unname(sapply(stringr::str_extract(.x, "\\b\\D*?0*([1-9][0-9]*)", 
+                                                            group = 1), 
+                                       adding_zeroes)) 
                 )
     )
   return(df_output)
@@ -208,7 +216,17 @@ rename_columns_zeros <- function(df, cnames) {
 
 # Dividing values of 340 & 380 dataframes -> custom_ratio -----------------
 custom_ratio <- function(df1, df2) {
-  df_custom_ratio <- df1/df2
+  
+  tryCatch(
+    {
+      df_custom_ratio <- df1/df2
+    },
+    error = function(e) {
+      # return a safeError if a parsing error occurs
+      stop(safeError('Numerator and Denominator tables are not equal!'))
+    }
+  )
+  
   df_custom_ratio[1] <- df1[1]
   return(df_custom_ratio)
 }
@@ -243,7 +261,7 @@ basic_statistics <- function(df) {
 
 # Plotting ggploly graph --------------------------------------------------
 
-ggplotly_render <- function(df_n, baseline = FALSE, b_min = 0, b_max = 120, region = FALSE, r_min = 130, r_max = 330, ready = TRUE) {
+ggplotly_render <- function(df_n, baseline = FALSE, b_min = 0, b_max = 120, region = FALSE, r_min = 130, r_max = 330, ready = TRUE, rcolor = 'black') {
   
   df_n <- time_col_name(df_n, name_only = T)
 
@@ -255,8 +273,9 @@ ggplotly_render <- function(df_n, baseline = FALSE, b_min = 0, b_max = 120, regi
   
     p <- ggplot(df, aes(Time, Signal, group = cells, color = cells)) + 
       geom_line(linewidth=0.5) +
-      scale_color_manual(values=randomColor(count = unique_vals, hue = 'random', luminosity = 'bright'))
-    
+      scale_color_manual(values=rcolor)
+
+
     if (baseline == T) {
       p <- p + 
         geom_vline(xintercept = b_max, colour="black", linetype = "longdash") +
@@ -274,6 +293,56 @@ ggplotly_render <- function(df_n, baseline = FALSE, b_min = 0, b_max = 120, regi
   
 }
 
+
+random_color_generator <- function(df_n) {
+  
+  df_n <- time_col_name(df_n, name_only = T)
+  
+  
+  df <- df_n %>% 
+    pivot_longer(!Time, names_to = "cells", values_to = "Signal") 
+  
+  unique_vals <- length(unique(df$cells))
+  
+  color_values = randomColor(count = unique_vals, hue = 'random', luminosity = 'bright')
+  
+  return(color_values)
+  
+}
+
+
+color_palette <- function(df) {
+  
+  pattern <- '\\b\\D*?0*([1-9][0-9]*)'
+  
+  current_palette <- character()
+  
+  for (idx in 2:ncol(df)) {
+    
+    color_id <- str_extract(colnames(df)[idx], pattern, group = 1)
+    
+    if (idx > 2000) {
+      color_id <- sample.int(1999, 1)
+    }
+    
+    current_palette <-c(current_palette, colors2000[[as.integer(color_id)]])
+    
+  }
+  
+  return(current_palette)
+}
+
+# Creating a subset for a single plot to display --------------------------------------------------
+
+display_single_plot <- function(df, cell_name) {
+
+  df <- time_col_name(df, name_only = T)
+  
+  plot <- ggplotly_render(df[c('Time', cell_name)], ready = T)
+  
+  return(ggplotly(plot))
+  
+}
 
 
 # Constructing cell's names --------------------------------------------------
