@@ -7,19 +7,22 @@ source('engine.R')
 
 
 # Define server logic to read selected file ----
+
 server <- function(input, output) {
 
-  colors2000 <- randomColor(count = 2000, hue = 'random', luminosity = 'bright')
+  
 
 # Preliminary analysis -----------------------------------------------------    
   
-  # Reading sheet names in Excel file
+# Reading sheet names in Excel file
+  
   sheets_in_the_dataTS <-  eventReactive(eventExpr = {input$dataTS},
                                        valueExpr ={
                                          excel_sheets(input$dataTS$datapath)
                                        })
   
-  # Following the user's choice for sheets to process
+# Following the user's choice for sheets to process
+  
   observe({
     
     if (input$cRatio == F) {
@@ -40,7 +43,8 @@ server <- function(input, output) {
   })
   
   
-  # Suggesting sheets and updating input information 
+# Suggesting sheets and updating input information 
+
   observeEvent(input$dataTS,{
     
     updateSelectInput(inputId = 'sheetRatio',
@@ -62,7 +66,7 @@ server <- function(input, output) {
   
 # Preliminary analysis/ 1st box -------------------------------------------
 
-  # All 4 tables rendering
+# All 4 tables rendering
   
   #  RATIO
   df_ratio_ready <- eventReactive(eventExpr = {input$dataTS 
@@ -176,7 +180,8 @@ server <- function(input, output) {
     
 
     
-    # Save as excel file
+# Save as excel file
+  
   output$SaveXlsBox1 <- downloadHandler(
     filename = function() { filename(input$dataTS, "ProcessedTable.xlsx")},
     content = function(file) {
@@ -213,7 +218,8 @@ server <- function(input, output) {
   
 # Preliminary analysis/ 2d box - STATISTICS -------------------------------------------  
   
-  # RATIO statistics
+# RATIO statistics
+  
   df_ratio_basic_stat <- eventReactive(eventExpr = {input$basicStat}, 
                                        
                                        valueExpr = {
@@ -244,7 +250,7 @@ server <- function(input, output) {
   
   
   
-  #  NUMERATOR statistics
+# NUMERATOR statistics
   
   df_Num_basic_stat <- eventReactive(eventExpr = {input$basicStat}, 
                                      
@@ -276,7 +282,7 @@ server <- function(input, output) {
   }) 
   
   
-  # DENOMINATOR statistics
+# DENOMINATOR statistics
   
   df_Den_basic_stat <- eventReactive(eventExpr = {input$basicStat}, 
                                      
@@ -310,7 +316,7 @@ server <- function(input, output) {
   }) 
   
   
-  # CUSTOM RATIO statistics 
+# CUSTOM RATIO statistics 
 
   df_custom_ratio_basic_stat <- eventReactive(eventExpr = {input$basicStat}, 
                                       valueExpr = {
@@ -335,11 +341,39 @@ server <- function(input, output) {
 
   }) 
   
-  # Save BASIC STATISTICS as excel file
+# Save BASIC STATISTICS as excel file
+  
   output$SaveXlsBoxStat <- downloadHandler(
     filename = function() {filename(input$dataTS, "BasicStatisticsTable.xlsx")},
-    content = function(file) {write_xlsx(list('Numerator'=cell_number_row(df_Num_basic_stat_table()), 'Denominator'=cell_number_row(df_Den_basic_stat_table()), 'ratio' = cell_number_row(df_ratio_basic_stat_table()), 'custom_ratio' = cell_number_row(df_custom_ratio_basic_stat_table())), path = file)}
-    )
+    content = function(file) {
+      
+      wb <- createWorkbook()
+      
+      if (input$cRatio) {
+        sheet1 <- addWorksheet(wb, sheetName = "Ratio")
+        writeDataTable(wb, sheet1, df_ratio_basic_stat_table())
+      }
+      
+      if (input$cNum) {
+        sheet2 <- addWorksheet(wb, sheetName = "Numerator")
+        writeDataTable(wb, sheet2, df_Num_basic_stat_table())
+      }
+      
+      if (input$cDen) {
+        sheet3 <- addWorksheet(wb, sheetName = "Denominator")
+        writeDataTable(wb, sheet3, df_Den_basic_stat_table())
+      }
+      
+      if (input$cNum & input$cDen) {
+        sheet4 <- addWorksheet(wb, sheetName = "Custom_ratio")
+        writeDataTable(wb, sheet4, df_custom_ratio_basic_stat_table())
+      }
+      
+      saveWorkbook(wb, file)
+      
+      
+
+      })
 
 # Preliminary analysis/ 3d box, plots------------------------------------------------
 
@@ -353,7 +387,8 @@ server <- function(input, output) {
   
   
   
-  # Rendering SelectInput for columns choosing process
+# Rendering SelectInput for columns choosing process
+  
     observeEvent(input$basicStat, {
 
       output$tabUI <- renderUI({
@@ -389,9 +424,8 @@ server <- function(input, output) {
   
   
   
-  # Rendering ALL plots
+# Rendering ALL plots
 
-  
     observeEvent(input$plot_all, {
       
 
@@ -399,25 +433,29 @@ server <- function(input, output) {
       output$plot_ratio <- renderPlotly({
         req(input$plot_all, df_ratio_basic_stat())
         ggplotly_render(df_ratio_basic_stat(), 
-                        rcolor = color_palette(df_ratio_basic_stat()))})
+                        rcolor = color_palette(df_ratio_basic_stat(), rmcellValues$colors2000),
+                        sorting = input$legend_order)})
       
       
       output$plotNum <- renderPlotly({
         req(input$plot_all, df_Num_basic_stat())
         ggplotly_render(df_Num_basic_stat(), 
-                        rcolor = color_palette(df_Num_basic_stat()))})
+                        rcolor = color_palette(df_Num_basic_stat(), rmcellValues$colors2000),
+                        sorting = input$legend_order)})
       
       
       output$plotDen <- renderPlotly({
         req(input$plot_all, df_Den_basic_stat())
         ggplotly_render(df_Den_basic_stat(), 
-                        rcolor = color_palette(df_Den_basic_stat()))})
+                        rcolor = color_palette(df_Den_basic_stat(), rmcellValues$colors2000),
+                        sorting = input$legend_order)})
       
       
       output$plot_custom_ratio <- renderPlotly({
         req(input$plot_all, df_custom_ratio_basic_stat())
         ggplotly_render(df_custom_ratio_basic_stat(), 
-                        rcolor = color_palette(df_custom_ratio_basic_stat()))})
+                        rcolor = color_palette(df_custom_ratio_basic_stat(), rmcellValues$colors2000),
+                        sorting = input$legend_order)})
     
       
     }) 
@@ -426,7 +464,8 @@ server <- function(input, output) {
     
     
     
-  # Rendering SINGLE plot
+# Rendering SINGLE plot
+    
     observeEvent(input$plot_single, {
       
       
@@ -476,32 +515,70 @@ server <- function(input, output) {
     
     
     # Now creating reactive values list of cells to exclude
-    
     rmcellValues <- reactiveValues()
+    
+    #  This value represents a color palette, that is used for multiple plots rendering
+    rmcellValues$colors2000 <- randomColor(count = 2000, hue = 'random', luminosity = 'bright')
       
     
-    # Buttons to Exclude/Undo/Include/Reset cells 
+# Buttons to Exclude/Undo/Include/Reset cells 
     
     observeEvent(input$exclude_cell, {
       
-      
-      rmcellValues$cList <- unique(c(shiny::isolate(rmcellValues$cList), shiny::isolate(constructing_names(input$cellName, input$cell_to_plot, format = input$change_names))))
-      
-      
+      # List of column names to exclude from dataframe
+      if (input$tab == "R") {
+        
+        rmcellValues$cList <- unique(c(shiny::isolate(rmcellValues$cList), 
+                                       shiny::isolate(input$ratioInput)
+                                       )
+                                     )
+        
+      } else if (input$tab == "N") {
+        
+        rmcellValues$cList <- unique(c(shiny::isolate(rmcellValues$cList), 
+                                       shiny::isolate(input$numInput)
+                                       )
+                                     )
+
+        
+      } else if (input$tab == "D") {
+        
+        rmcellValues$cList <- unique(c(shiny::isolate(rmcellValues$cList), 
+                                       shiny::isolate(input$denInput)
+                                       )
+                                     )
+
+        
+      } else if (input$tab == "ND") {
+        
+        rmcellValues$cList <- unique(c(shiny::isolate(rmcellValues$cList), 
+                                       shiny::isolate(input$customRatioInput)
+                                       )
+                                     )
+        
+      }
+
+
+      # Printing the list of excluded column names
       output$list_of_cells<-renderPrint({
         gtools::mixedsort(rmcellValues$cList, decreasing = T)
+                                         })
       })
-      }) # /level 1, observeEvent input$exclude_cell
     
+    
+    # Reset (empty) the list of excluded column names
     observeEvent(input$exclude_reset, {
       rmcellValues$cList <- c()
       
       
       output$list_of_cells<-renderPrint({
         rmcellValues$cList
-      })
-    }) # /level 1, observeEvent input$exclude_reset
+                                        })
+      
+    })
     
+    
+    # Undo the last action
     observeEvent(input$exclude_undo, {
       req(rmcellValues$cList)
       rmcellValues$cList <- rmcellValues$cList[-length(rmcellValues$cList)]
@@ -510,146 +587,197 @@ server <- function(input, output) {
       output$list_of_cells<-renderPrint({
         gtools::mixedsort(rmcellValues$cList, decreasing = T)
       })
-    }) # /level 1, observeEvent input$exclude_undo
+    }) 
     
+    
+    # Return a specific column name back to the initial dataframe (leave this column name, do not exclude it)
     observeEvent(input$include_cell, {
       req(rmcellValues$cList)
-      rmcellValues$cList <- rmcellValues$cList[!rmcellValues$cList == shiny::isolate(constructing_names(input$cellName, input$cell_to_plot, format = input$change_names))]
       
+      if (input$tab == "R") {
+        
+        rmcellValues$cList <- 
+          rmcellValues$cList[!rmcellValues$cList == shiny::isolate(input$ratioInput)]
+
+        
+      } else if (input$tab == "N") {
+        
+        rmcellValues$cList <- 
+          rmcellValues$cList[!rmcellValues$cList == shiny::isolate(input$numInput)]
+
+        
+      } else if (input$tab == "D") {
+        
+        rmcellValues$cList <- 
+          rmcellValues$cList[!rmcellValues$cList == shiny::isolate(input$denInput)]
+
+        
+      } else if (input$tab == "ND") {
+        
+        rmcellValues$cList <- 
+          rmcellValues$cList[!rmcellValues$cList == shiny::isolate(input$customRatioInput)]
+
+        
+      }
       
       output$list_of_cells<-renderPrint({
         gtools::mixedsort(rmcellValues$cList, decreasing = T)
       })
-    }) # /level 1, observeEvent input$include_cell
+    }) 
     
     
     
 
-
+# New dataframes without excluded column names
+    
+      df_ratio_excluded <- eventReactive(eventExpr = {input$new_dataframes}, 
+                                       
+                           valueExpr = {
+                             
+                             req(input$dataTS)
+                             req(input$cRatio)                  
+                             subset(df_ratio_basic_stat(), 
+                                    select = !(colnames(df_ratio_basic_stat()) %in% rmcellValues$cList))
+                             
+                           }) 
     
       
       df_Num_excluded <- eventReactive(eventExpr = {input$new_dataframes}, 
 
-                                                    valueExpr = {
-                                                      
-                                                    req(input$dataTS)
-                                                    req(input$cNum)                  
-                                                    subset(df_Num_basic_stat(), select = !(colnames(df_Num_basic_stat()) %in% rmcellValues$cList))
-                                                    
-                                                    }
-                                       ) # # eventReactive / df_Num_excluded
+                          valueExpr = {
+                            
+                            req(input$dataTS)
+                            req(input$cNum)                  
+                            subset(df_Num_basic_stat(), 
+                                 select = !(colnames(df_Num_basic_stat()) %in% rmcellValues$cList))
+                          
+                          }) 
     
     
       df_Den_excluded <- eventReactive(eventExpr = {input$new_dataframes}, 
                                        
-                                       valueExpr = {
-                                         
-                                         req(input$dataTS)
-                                         req(input$cDen)                  
-                                         subset(df_Den_basic_stat(), select = !(colnames(df_Den_basic_stat()) %in% rmcellValues$cList))
-                                       
-                                                    }
-                                      ) # # eventReactive / df_Den_excluded
+                         valueExpr = {
+                           
+                           req(input$dataTS)
+                           req(input$cDen)                  
+                           subset(df_Den_basic_stat(), 
+                                  select = !(colnames(df_Den_basic_stat()) %in% rmcellValues$cList))
+                         
+                         }) 
       
-      
-      df_ratio_excluded <- eventReactive(eventExpr = {input$new_dataframes}, 
-                                       
-                                       valueExpr = {
-                                         
-                                         req(input$dataTS)
-                                         req(input$cRatio)                  
-                                         subset(df_ratio_basic_stat(), select = !(colnames(df_ratio_basic_stat()) %in% rmcellValues$cList))
-                                         
-                                       }
-      ) # # eventReactive / df_ratio_excluded
-      
+
       
       df_custom_ratio_excluded <- eventReactive(eventExpr = {input$new_dataframes}, 
                                          
-                                         valueExpr = {
-                                           
-                                           req(input$dataTS)
-                                           req(input$cNum)   
-                                           req(input$cDen)
-                                           subset(df_custom_ratio_basic_stat(), select = !(colnames(df_custom_ratio_basic_stat()) %in% rmcellValues$cList))
-                                           
-                                         }
-      ) # # eventReactive / df_custom_ratio_excluded
+                                  valueExpr = {
+                                     
+                                     req(input$dataTS)
+                                     req(input$cNum)   
+                                     req(input$cDen)
+                                     subset(df_custom_ratio_basic_stat(), 
+                                            select = !(colnames(df_custom_ratio_basic_stat()) %in% rmcellValues$cList))
+                                     
+                                  })
+
+    
+# Rendering new plots without excluded column names 
+      
+      observeEvent(input$plot_new_all, {
+        
+        output$plotNum <- renderPlotly({
+          req(input$plot_new_all, df_Num_excluded())
+          ggplotly_render(df_Num_excluded(), rcolor = rmcellValues$colors2000)})
+      
+        output$plotDen <- renderPlotly({
+          req(input$plot_new_all, df_Den_excluded())
+          ggplotly_render(df_Den_excluded(), rcolor = rmcellValues$colors2000)})
+        
+        output$plot_ratio <- renderPlotly({
+          req(input$plot_new_all, df_ratio_excluded())
+          ggplotly_render(df_ratio_excluded(), rcolor = rmcellValues$colors2000)})
+        
+        output$plot_custom_ratio <- renderPlotly({
+          req(input$plot_new_all, df_custom_ratio_excluded())
+          ggplotly_render(df_custom_ratio_excluded(), rcolor = rmcellValues$colors2000)})
+        
+        })
 
     
     
-    observeEvent(input$plot_new_all, {
-      
-      output$plotNum <- renderPlotly({
-        req(input$plot_new_all, df_Num_excluded())
-        ggplotly_render(df_Num_excluded())})
-    
-      output$plotDen <- renderPlotly({
-        req(input$plot_new_all, df_Den_excluded())
-        ggplotly_render(df_Den_excluded())})
-      
-      output$plot_ratio <- renderPlotly({
-        req(input$plot_new_all, df_ratio_excluded())
-        ggplotly_render(df_ratio_excluded())})
-      
-      output$plot_custom_ratio <- renderPlotly({
-        req(input$plot_new_all, df_custom_ratio_excluded())
-        ggplotly_render(df_custom_ratio_excluded())})
-      
-      }) # observeEvent / input$plot_new_all
-
-    
-    
-      # Save DATA WITHOUT BAD CELLS as excel file
+# Save DATA WITHOUT BAD CELLS as excel file
     
       output$SaveXlsBoxNoBadCells <- downloadHandler(
         filename = function() {filename(input$dataTS, "CleanTable.xlsx")},
-        content = function(file) {write_xlsx(list('Numerator'=df_Num_excluded(), 'Denominator'=df_Den_excluded(), 'ratio' = df_ratio_excluded(), 'custom_ratio' = df_custom_ratio_excluded(), 'excluded_cells' = data.frame(Excluded_cells=gtools::mixedsort(rmcellValues$cList, decreasing = T))), path = file)}
-      )
+        content = function(file) {
+          
+          
+          wb <- createWorkbook()
+          
+          if (input$cRatio) {
+            sheet1 <- addWorksheet(wb, sheetName = "Ratio")
+            writeDataTable(wb, sheet1, df_ratio_excluded())
+          }
+          
+          if (input$cNum) {
+            sheet2 <- addWorksheet(wb, sheetName = "Numerator")
+            writeDataTable(wb, sheet2, df_Num_excluded())
+          }
+          
+          if (input$cDen) {
+            sheet3 <- addWorksheet(wb, sheetName = "Denominator")
+            writeDataTable(wb, sheet3, df_Den_excluded())
+          }
+          
+          if (input$cNum & input$cDen) {
+            sheet4 <- addWorksheet(wb, sheetName = "Custom_ratio")
+            writeDataTable(wb, sheet4, df_custom_ratio_excluded())
+          }
+          
+          saveWorkbook(wb, file)
+          
+      })
     
 
 # Debugging section -------------------------------------------------------
 
-    output$df_Num_ready_db <- DT::renderDataTable({
-      req(input$dataTS)
-      req(input$cNum)
-      req(input$new_dataframes)
-      df_Num_ready()
-      }) 
-    
-    
-    output$df_Num_excluded_db <- DT::renderDataTable({
-      req(input$dataTS)
-      req(input$cNum)
-      req(input$new_dataframes)
-      df_Num_excluded()
-    })
-    
-    
-    output$rmcellValues_cList <- renderPrint({
-      rmcellValues$cList
-    })
+      output$df_Num_ready_db <- DT::renderDataTable({
+        req(input$dataTS)
+        req(input$cNum)
+        req(input$new_dataframes)
+        df_Num_ready()
+        }) 
+      
+      
+      output$df_Num_excluded_db <- DT::renderDataTable({
+        req(input$dataTS)
+        req(input$cNum)
+        req(input$new_dataframes)
+        df_Num_excluded()
+      })
+      
+      
+      output$rmcellValues_cList <- renderPrint({
+        rmcellValues$cList
+      })
     
     
 
 # Analyzing amplitude -----------------------------------------------------    
     
     
-    # All 4 tables of CLEAN DATA rendering
+# All 4 tables of CLEAN DATA rendering
     
 
-# Num
+    # Num
 
     df_Num_clean <- eventReactive(eventExpr = {input$clean_file
       input$clNum},
-      valueExpr = {
-        req(input$clean_file)
-        req(input$clNum)
-        read_excel(input$clean_file$datapath,
-                   sheet='Numerator')
-        
-                  }
-                                  ) #level 1 - df_Num_clean
+                    valueExpr = {
+                      req(input$clean_file)
+                      req(input$clNum)
+                      read_excel(input$clean_file$datapath,
+                                 sheet='Numerator')
+                      })
     
     output$cl_Num <- DT::renderDataTable({
       req(input$clean_file)
@@ -658,9 +786,8 @@ server <- function(input, output) {
                                             }) # level 1 - output$cl_Num
     
 
-# Den
+    # Den
 
-   
     df_Den_clean <- eventReactive(eventExpr = {input$clean_file
       input$clDen},
       valueExpr = {
@@ -670,20 +797,19 @@ server <- function(input, output) {
                    sheet='Denominator')
         
       }
-    ) #level 1 - df_Den_clean
+    ) 
     
     
     output$cl_Den <- DT::renderDataTable({
       req(input$clean_file)
       req(input$clDen)
       df_Den_clean()
-    }) # level 1 - output$cl_Den
+    }) 
     
     
 
-# Ratio 
-    
-    
+    # Ratio 
+
     df_ratio_clean <- eventReactive(eventExpr = {input$clean_file
       input$clRatio},
       valueExpr = {
@@ -693,19 +819,18 @@ server <- function(input, output) {
                    sheet='ratio')
         
       }
-    ) #level 1 - df_ratio_clean
+    ) 
     
     
     output$cl_ratio <- DT::renderDataTable({
       req(input$clean_file)
       req(input$clRatio)
       df_ratio_clean()
-    }) # level 1 - output$cl_ratio
+    }) 
 
 
     
-# Custom Ratio 
-    
+    # Custom Ratio 
     
     df_custom_ratio_clean <- eventReactive(eventExpr = {input$clean_file},
       valueExpr = {
@@ -714,7 +839,7 @@ server <- function(input, output) {
                    sheet='custom_ratio')
         
       }
-    ) #level 1 - df_custom_ratio_clean
+    ) 
     
     
     output$cl_custom_ratio <- DT::renderDataTable({
@@ -722,7 +847,7 @@ server <- function(input, output) {
       req(input$clNum)
       req(input$clDen)
       df_custom_ratio_clean()
-    }) # level 1 - output$cl_custom_ratio    
+    })    
    
     
 # Excluded cells    

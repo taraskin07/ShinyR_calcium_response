@@ -40,13 +40,13 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
                   '', selected = '', multiple = FALSE),
 
       
-      checkboxInput("cNum", "sheet Numerator", TRUE),
+      checkboxInput("cNum", "sheet Numerator", FALSE),
       selectInput('sheetNum', 
                   'Select sheet for Numerator',
                   '', selected = '', multiple = FALSE),
       
       
-      checkboxInput("cDen", "sheet Denominator", TRUE),
+      checkboxInput("cDen", "sheet Denominator", FALSE),
       selectInput('sheetDen', 
                   'Select sheet for Denominator',
                   '', selected = '', multiple = FALSE),
@@ -147,6 +147,11 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
   tabsetPanel(
     # Sidebar panel for inputs: file input and preferences
     sidebarPanel(
+      selectizeInput(
+        'legend_order', 'Choose how to order the plot legend:',
+        choices = c('Native', 'Regex', 'Mixed', 'Mixed_revered'),
+        selected = 'Native'
+      ),
       actionButton("plot_all", "Plot all graphs"),
       actionButton("plot_single", "Plot single graph"),
       

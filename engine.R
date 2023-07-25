@@ -188,12 +188,10 @@ rename_columns <- function(df, cnames) {
   return(df_output)
 }
 
-adding_zeroes <- function(vctr) {
+adding_zeroes <- function(vctr, cols = 3) {
   
-  if (stringr::str_length(vctr)==1) {strnum <- paste0('000', vctr)
-  } else if (stringr::str_length(vctr)==2) {strnum <- paste0('00', vctr)
-  } else if (stringr::str_length(vctr)==3) {strnum <- paste0('0', vctr)
-  } else {strnum <- toString(vctr)}
+  if (cols-stringr::str_length(vctr) < 0) {strnum <- toString(vctr)
+  } else {strnum <- paste0(strrep('0', cols-stringr::str_length(vctr)), vctr)} 
   
   return(strnum)
 }
@@ -202,12 +200,16 @@ rename_columns_zeros <- function(df, cnames) {
   
   df <- time_col_name(df, name_only = T)
   
+  cols = nchar(as.character(max(as.integer(stringr::str_extract(colnames(df),
+                                                                "\\b\\D*?0*([1-9][0-9]*)")), 
+                                na.rm = T)))
+  
   df_output <- df %>% 
     rename_with(.cols = -matches("Time"), # selects all columns except "Time"
                 ~ paste0(cnames, 
                          unname(sapply(stringr::str_extract(.x, "\\b\\D*?0*([1-9][0-9]*)", 
                                                             group = 1), 
-                                       adding_zeroes)) 
+                                       adding_zeroes, cols = cols)) 
                 )
     )
   return(df_output)
@@ -261,7 +263,16 @@ basic_statistics <- function(df) {
 
 # Plotting ggploly graph --------------------------------------------------
 
-ggplotly_render <- function(df_n, baseline = FALSE, b_min = 0, b_max = 120, region = FALSE, r_min = 130, r_max = 330, ready = TRUE, rcolor = 'black') {
+ggplotly_render <- function(df_n, 
+                            baseline = FALSE, 
+                            b_min = 0, 
+                            b_max = 120, 
+                            region = FALSE, 
+                            r_min = 130, 
+                            r_max = 330, 
+                            ready = TRUE, 
+                            rcolor = 'black',
+                            sorting = 'Native') {
   
   df_n <- time_col_name(df_n, name_only = T)
 
@@ -269,11 +280,57 @@ ggplotly_render <- function(df_n, baseline = FALSE, b_min = 0, b_max = 120, regi
   df <- df_n %>% 
     pivot_longer(!Time, names_to = "cells", values_to = "Signal") 
   
-  unique_vals <- length(unique(df$cells))
+  # unique_vals <- length(unique(df$cells))
   
-    p <- ggplot(df, aes(Time, Signal, group = cells, color = cells)) + 
+  
+  
+  
+  # color = reorder(cells, as.numeric(gsub("cell-", "", cells))))
+  
+  # color = reorder(cells, mixedorder(cells))
+  
+    if (sorting == 'Native') {
+      p <- ggplot(df, aes(Time,
+                          Signal, 
+                          group = cells, 
+                          color = factor(cells, 
+                                         colnames(df_n)[-1])
+                          )
+                  )
+    } else if (sorting == 'Regex') {
+      p <- ggplot(df, aes(Time,
+                          Signal, 
+                          group = cells, 
+                          color = reorder(cells, 
+                                          as.numeric(stringr::str_extract(cells, 
+                                                                          '\\b\\D*?0*([1-9][0-9]*)', 
+                                                                          group = 1)))
+                          )
+                  )
+    } else if (sorting == 'Mixed') {
+      p <- ggplot(df, aes(Time,
+                          Signal, 
+                          group = cells, 
+                          color = reorder(cells, 
+                                          mixedorder(cells))
+                          )
+                  )
+    } else if (sorting == 'Mixed_revered') {
+      p <- ggplot(df, aes(Time,
+                          Signal, 
+                          group = cells, 
+                          color = reorder(cells, 
+                                          mixedorder(cells, decreasing = TRUE))
+                          )
+                  )
+      
+    }
+  
+      p <- p + 
+      labs(color = "Traces") + 
       geom_line(linewidth=0.5) +
-      scale_color_manual(values=rcolor)
+      scale_color_manual(values=rcolor) +
+      theme_minimal()
 
 
     if (baseline == T) {
@@ -311,7 +368,7 @@ random_color_generator <- function(df_n) {
 }
 
 
-color_palette <- function(df) {
+color_palette <- function(df, colors2000) {
   
   pattern <- '\\b\\D*?0*([1-9][0-9]*)'
   
@@ -344,6 +401,7 @@ display_single_plot <- function(df, cell_name) {
   
 }
 
+# REMOVE LATER -----------------------------------------------------------
 
 # Constructing cell's names --------------------------------------------------
 
