@@ -64,6 +64,29 @@ server <- function(input, output) {
     
   })
   
+  
+  
+
+# Change the background color of the button when pressed ------------------
+
+
+  observeEvent(input$correct_time,{
+    
+    if((input$correct_time%%2) == 1) {
+    runjs('document.getElementById("correct_time").style.backgroundColor = "green";')
+    } else {
+    runjs('document.getElementById("correct_time").style.backgroundColor = "grey";')
+    }
+  })
+  
+  observeEvent(input$change_names_button,{
+
+      runjs('document.getElementById("change_names_button").style.backgroundColor = "green";')
+
+  })
+  
+  
+  
 # Preliminary analysis/ 1st box -------------------------------------------
 
 # All 4 tables rendering
@@ -390,6 +413,8 @@ server <- function(input, output) {
 # Rendering SelectInput for columns choosing process
   
     observeEvent(input$basicStat, {
+      
+      runjs('document.getElementById("basicStat").style.backgroundColor = "green";')
 
       output$tabUI <- renderUI({
         if (input$tab == "R") {
@@ -417,7 +442,18 @@ server <- function(input, output) {
                       selected = shiny::isolate(input$customRatioInput)
                       )
         }
+        
+        
       })
+      
+      
+      req(df_ratio_basic_stat())
+      
+      shinyalert(type = 'success', 
+                 text = "The statistics have been calculated!",
+                 closeOnClickOutside = T,
+                 timer = 2000,
+                 showConfirmButton = F)
       
     })
   
@@ -471,7 +507,7 @@ server <- function(input, output) {
       
       
       output$plot_ratio <- renderPlotly({
-        req(input$cell_to_plot, df_ratio_basic_stat())
+        req(df_ratio_basic_stat())
         
         display_single_plot(df_ratio_basic_stat(), input$ratioInput)
 
@@ -479,7 +515,7 @@ server <- function(input, output) {
       
 
       output$plotNum <- renderPlotly({
-        req(input$cell_to_plot, df_Num_basic_stat())
+        req(df_Num_basic_stat())
         
         display_single_plot(df_Num_basic_stat(), input$numInput)
         
@@ -487,7 +523,7 @@ server <- function(input, output) {
       
       
       output$plotDen <- renderPlotly({
-        req(input$cell_to_plot, df_Den_basic_stat())
+        req(df_Den_basic_stat())
         
         display_single_plot(df_Den_basic_stat(), input$denInput)
         
@@ -497,7 +533,7 @@ server <- function(input, output) {
       
 
       output$plot_custom_ratio <- renderPlotly({
-        req(input$cell_to_plot, df_custom_ratio_basic_stat())
+        req(df_custom_ratio_basic_stat())
         
         display_single_plot(df_custom_ratio_basic_stat(), input$customRatioInput)
         
@@ -572,7 +608,7 @@ server <- function(input, output) {
       
       
       output$list_of_cells<-renderPrint({
-        rmcellValues$cList
+        print("'Reset' button have been pressed! Nothing to exclude!")
                                         })
       
     })
@@ -585,8 +621,18 @@ server <- function(input, output) {
       
       
       output$list_of_cells<-renderPrint({
+        
+        if (identical(rmcellValues$cList, character(0))) {
+          
+          print('Nothing to exclude!')
+          
+        } else {
+        
         gtools::mixedsort(rmcellValues$cList, decreasing = T)
+          
+               }
       })
+      
     }) 
     
     
@@ -621,7 +667,16 @@ server <- function(input, output) {
       }
       
       output$list_of_cells<-renderPrint({
-        gtools::mixedsort(rmcellValues$cList, decreasing = T)
+        
+        if (identical(rmcellValues$cList, character(0))) {
+          
+          print('Nothing to exclude!')
+          
+        } else {
+          
+          gtools::mixedsort(rmcellValues$cList, decreasing = T)
+          
+        }
       })
     }) 
     
@@ -629,6 +684,28 @@ server <- function(input, output) {
     
 
 # New dataframes without excluded column names
+    
+    
+    
+    
+    observeEvent(input$new_dataframes,{
+      
+      req(df_ratio_excluded())
+      
+      shinyalert(type = 'success', 
+                 text = "New tables without excluded traces are obtained!",
+                 closeOnClickOutside = T,
+                 timer = 2000,
+                 showConfirmButton = F)
+      
+      if((input$correct_time%%2) == 1) {
+        runjs('document.getElementById("new_dataframes").style.backgroundColor = "green";')
+      } else {
+        runjs('document.getElementById("new_dataframes").style.backgroundColor = "grey";')
+      }
+    })
+    
+    
     
       df_ratio_excluded <- eventReactive(eventExpr = {input$new_dataframes}, 
                                        
@@ -1018,7 +1095,7 @@ server <- function(input, output) {
     output$dt_to_shift_out <- DT::renderDataTable({
       req(input$read_sheets)
       req(input$sheets)
-      dt_to_shift()
+      customDT(dt_to_shift(), scrollY = '200px')
     }) 
  
  
@@ -1162,7 +1239,7 @@ server <- function(input, output) {
     )
     
 
-# Average line / Box 3 ----------------------------------------------------
+# Shifting curves / Box 3 ----------------------------------------------------
 
     # Shifted Average
 

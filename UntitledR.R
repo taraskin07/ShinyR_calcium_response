@@ -135,3 +135,41 @@ reorder(df$cells, mywt)['scores']
 reorder(df$cells, mixed)
 
 factor(colnames(renamed_table)[-1], colnames(renamed_table)[-1])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+CleanTable <- read_excel("~/Rprojects/Test_files/2023-04-29-mpkCCD007-CleanTable.xlsx", 
+                         sheet = "ratio")
+
+
+
+
+testTable <- read_excel("~/Rprojects/Alena/all_cells2.xlsx", 
+                        sheet = "ratio")
+
+
+
+nchar(as.character(max(as.numeric(na.omit(stringr::str_extract(colnames(testTable),
+                     "\\b\\D*?0*([1-9][0-9]*)", group = 1))))))
+
+
+
+
+
+
+
+
+

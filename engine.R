@@ -16,13 +16,14 @@ library(DescTools)
 library(randomcoloR)
 library(shinyWidgets)
 library(shinyShortcut)
+library(shinyalert)
 library(shinyjs)})
 
 # source('modules.R')
 
 # Customization functions -------------------------------------------------
 
-customDT <- function(datatbl) {
+customDT <- function(datatbl, scrollY = '850px') {
   
   
   return(datatable(datatbl, 
@@ -30,7 +31,7 @@ customDT <- function(datatbl) {
                                   paging = F,
                                   scrollCollapse=T,
                                   scrollX = T, 
-                                  scrollY = '850px',
+                                  scrollY = scrollY,
                                   selection = list(target = 'column'),
                                   search = list(smart = F)
   
@@ -200,16 +201,28 @@ rename_columns_zeros <- function(df, cnames) {
   
   df <- time_col_name(df, name_only = T)
   
-  cols = nchar(as.character(max(as.integer(stringr::str_extract(colnames(df),
-                                                                "\\b\\D*?0*([1-9][0-9]*)")), 
-                                na.rm = T)))
   
   df_output <- df %>% 
     rename_with(.cols = -matches("Time"), # selects all columns except "Time"
                 ~ paste0(cnames, 
                          unname(sapply(stringr::str_extract(.x, "\\b\\D*?0*([1-9][0-9]*)", 
                                                             group = 1), 
-                                       adding_zeroes, cols = cols)) 
+                                       adding_zeroes, 
+                                       cols = nchar(
+                                         as.character(
+                                           max(
+                                             as.numeric(
+                                               na.omit(
+                                                 stringr::str_extract(.x,
+                                                                      "\\b\\D*?0*([1-9][0-9]*)", 
+                                                                      group = 1)
+                                                 )
+                                               )
+                                             )
+                                           )
+                                         )
+                                       )
+                                ) 
                 )
     )
   return(df_output)
@@ -224,8 +237,16 @@ custom_ratio <- function(df1, df2) {
       df_custom_ratio <- df1/df2
     },
     error = function(e) {
+      
+      
+      shinyalert(type = 'error', 
+                 text = "Numerator and Denominator tables are not equal!\n
+                 You won't be able to save excel files!\n 
+                 Consider to load only 'Ratio' data or fix your file.",
+                 showConfirmButton = T)
+      
       # return a safeError if a parsing error occurs
-      stop(safeError('Numerator and Denominator tables are not equal!'))
+      stop(safeError(e))
     }
   )
   
@@ -329,8 +350,7 @@ ggplotly_render <- function(df_n,
       p <- p + 
       labs(color = "Traces") + 
       geom_line(linewidth=0.5) +
-      scale_color_manual(values=rcolor) +
-      theme_minimal()
+      scale_color_manual(values=rcolor)
 
 
     if (baseline == T) {

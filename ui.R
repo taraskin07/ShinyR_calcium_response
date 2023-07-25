@@ -2,7 +2,10 @@ source('engine.R')
 
 
 # Define UI for data upload app ----
-ui <- navbarPage("Calcium response plots adjustment", theme = shinytheme("cosmo"), fluid = TRUE, position = "static-top", shinyjs::useShinyjs(), # 0 level
+ui <- navbarPage("Calcium response plots adjustment", 
+                 theme = shinytheme("cosmo"), 
+                 fluid = TRUE, position = "static-top", 
+                 shinyjs::useShinyjs(),# 0 level
 
 
                  
@@ -111,7 +114,7 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
     
     # Sidebar panel for inputs: file input and preferences
     sidebarPanel(
-                    actionButton("basicStat", "Calculate basic Stat for TS"),
+                    actionButton("basicStat", "Calculate basic Stat for TS", style="color: white; background-color: blue; border-color: black"),
                     tags$hr(),
 
                     # Save BASIC STATISTICS as excel file
@@ -156,9 +159,7 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
       actionButton("plot_single", "Plot single graph"),
       
       tags$hr(),
-      numericInput("cell_to_plot", "Enter number of cell", 1),
-      
-      
+
       # Debugging ------------------------------------------------
       # verbatimTextOutput("inputValues"),
       
@@ -178,7 +179,13 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
       verbatimTextOutput("list_of_cells", placeholder = TRUE),
       
       tags$br(),
-      actionButton("new_dataframes", "Obtain new tables"),
+      actionButton("new_dataframes", 
+                   "Obtain new tables", 
+                   style="color: white; 
+                   background-color: blue; 
+                   border-color: black"),
+      
+      
       actionButton("plot_new_all", "Plot all new graphs"),
       
       
@@ -220,25 +227,28 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
 
 
 
+# Debugging ---------------------------------------------------------------
+
+
 # Main panel for displaying outputs from tabsetPanel /level 2 /box 3
-mainPanel(
+# mainPanel(
   # Tabs
-  tabsetPanel(type = "tabs",
-              tabPanel("df_Num_ready_db", DT::dataTableOutput("df_Num_ready_db") # 
-              ), # 
-              
-              tabPanel("df_Num_excluded_db", DT::dataTableOutput("df_Num_excluded_db") # 
-              ), # 0
-              # 
-              tabPanel("rmcellValues_cList", verbatimTextOutput("rmcellValues_cList") # 
-              ), # 
-              # 
-              # 
-              # tabPanel("Num/Den", plotlyOutput("") # /level 5, /box 3, plotlyOutput
-              # ), # /level 4, /box 3, tabPanel Num/Den
-              
-  ) # /level 3, /box 3, tabsetPanel for plots
-), # /level 2, /box 3, mainPanel for plots
+#   tabsetPanel(type = "tabs",
+#               tabPanel("df_Num_ready_db", DT::dataTableOutput("df_Num_ready_db") # 
+#               ), # 
+#               
+#               tabPanel("df_Num_excluded_db", DT::dataTableOutput("df_Num_excluded_db") # 
+#               ), # 0
+#               # 
+#               tabPanel("rmcellValues_cList", verbatimTextOutput("rmcellValues_cList") # 
+#               ), # 
+#               # 
+#               # 
+#               # tabPanel("Num/Den", plotlyOutput("") # /level 5, /box 3, plotlyOutput
+#               # ), # /level 4, /box 3, tabPanel Num/Den
+#               
+#   ) # /level 3, /box 3, tabsetPanel for plots
+# ), # /level 2, /box 3, mainPanel for plots
 
 
 
@@ -781,6 +791,7 @@ tags$head(tags$style(HTML('.bootstrap-switch.bootstrap-switch-focused {
                                   box-shadow: none;
                                   outline: none;
                                   }'))),
+
 
 
 
