@@ -1133,7 +1133,8 @@ server <- function(input, output) {
                         b_max = input$max_t_shift, 
                         region = T, 
                         r_min = input$start_t_shift, 
-                        r_max = input$end_t_shift)})
+                        r_max = input$end_t_shift,
+                        rcolor = color_palette(dt_to_shift(), rmcellValues$colors2000))})
     }) # /level 1, observeEvent input$plots_init_all
     
     
@@ -1208,7 +1209,8 @@ server <- function(input, output) {
                         b_max = input$max_t_shift, 
                         region = T, 
                         r_min = input$start_t_shift, 
-                        r_max = input$end_t_shift)
+                        r_max = input$end_t_shift,
+                        rcolor = color_palette(shifted_df(), rmcellValues$colors2000))
         }) # output$plot_shift_lower
 
     
