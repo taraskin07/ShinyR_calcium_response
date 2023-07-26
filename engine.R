@@ -411,13 +411,21 @@ color_palette <- function(df, colors2000) {
 
 # Creating a subset for a single plot to display --------------------------------------------------
 
-display_single_plot <- function(df, cell_name) {
+display_single_plot <- function(df, cell_name, ready = T) {
 
   df <- time_col_name(df, name_only = T)
   
-  plot <- ggplotly_render(df[c('Time', cell_name)], ready = T)
+  if (ready == T) {
+    
+    plot <- ggplotly_render(df[c('Time', cell_name)], ready = ready)
   
-  return(ggplotly(plot))
+    return(ggplotly(plot))
+  
+  } else {
+    
+    return(df[c('Time', cell_name)])
+    
+    }
   
 }
 
@@ -464,6 +472,8 @@ finding_cell_name <- function(data, number){
   if (length(cell_name)>1) {stop("More than one column with similar name!")}
   return(cell_name)}
 
+
+# ERASE LATER -------------------------------------------------------------
 
 # get_col_names alternative
 

@@ -1069,28 +1069,34 @@ server <- function(input, output) {
 
 # Shifting curves / box 1 ---------------------------------------------------------
 
+    
     # Getting the list of sheets in excel file
     sheets_in_the_file = eventReactive(eventExpr = {input$read_sheets},
-                                       valueExpr ={
+                                       valueExpr = {
         excel_sheets(input$read_sheets$datapath)
     })
     
+    
     # Creating SelectInput list with values = sheets
     observeEvent(input$read_sheets,{
+      
       updateSelectInput(inputId = "sheets",
                         choices = sheets_in_the_file(),
                         selected = str_extract(sheets_in_the_file(), '^[Rr]atio$')
                         )
-            })
+      })
+      
     
 
-
-    
     # Rendering datatable related to selected sheet
     dt_to_shift <- eventReactive(eventExpr = {input$read_sheets
                                               input$sheets},
-                  valueExpr = {read_excel(input$read_sheets$datapath, sheet = input$sheets)})
-    
+      
+      valueExpr = {
+        req(input$read_sheets, input$sheets)
+        
+        
+        read_excel(input$read_sheets$datapath, sheet = input$sheets)})
     
     output$dt_to_shift_out <- DT::renderDataTable({
       req(input$read_sheets)
@@ -1098,21 +1104,27 @@ server <- function(input, output) {
       customDT(dt_to_shift(), scrollY = '200px')
     }) 
  
- 
-# Shifting curves / box 2 -------------------------------------------------
+    observeEvent(dt_to_shift(), {
+
+      updateSelectInput(inputId = "cellShiftInput",
+                        choices = colnames(time_col_name(dt_to_shift(), name_only = T))[-1],
+                        selected = colnames(time_col_name(dt_to_shift(), name_only = T))[2])
+    }) 
     
+    
+# Shifting curves / box 2 -------------------------------------------------
     
     # Rendering initial plot single
     observeEvent(input$plots_init_single, {
       output$plot_shift_upper <- renderPlotly({
         req(input$sheets,
-            input$cell_to_plot_shift,
+            input$cellShiftInput,
             input$min_t_shift,
             input$max_t_shift,
             input$start_t_shift,
             input$end_t_shift)
-        ggplotly_render(single_plot(dt_to_shift(), 
-                                    input$cell_to_plot_shift), 
+        ggplotly_render(display_single_plot(dt_to_shift(), 
+                                    input$cellShiftInput, ready = F), 
                                     baseline = T, 
                                     b_min = input$min_t_shift, 
                                     b_max = input$max_t_shift, 
@@ -1120,8 +1132,7 @@ server <- function(input, output) {
                                     r_min = input$start_t_shift, 
                                     r_max = input$end_t_shift)
         })
-    }) # /level 1, observeEvent input$plots_init_single
-    
+    })
     
     # Rendering initial plot all
     observeEvent(input$plots_init_all, {
@@ -1135,25 +1146,39 @@ server <- function(input, output) {
                         r_min = input$start_t_shift, 
                         r_max = input$end_t_shift,
                         rcolor = color_palette(dt_to_shift(), rmcellValues$colors2000))})
-    }) # /level 1, observeEvent input$plots_init_all
+    }) 
     
     
-    # Shifting curves
+# Shifting curves
     
     # Lag values datatable
-    
     lag_values_df <- eventReactive(eventExpr = {input$shift_curves}, valueExpr = {
       
       req(input$read_sheets)
       req(input$sheets)
-      shifted_main_cell_values <- finding_shifted_curve(dt_to_shift(), main_cell_number = input$cell_to_plot_shift, lower = input$start_t_shift, upper = input$end_t_shift, max_lag = input$max_lag)
+      
+      
+      shifted_main_cell_values <- finding_shifted_curve(dt_to_shift(), 
+                                                        main_cell_number = input$cell_to_plot_shift, 
+                                                        lower = input$start_t_shift, 
+                                                        upper = input$end_t_shift, 
+                                                        max_lag = input$max_lag)
       
       #Resulting dataframe
-      lag_data <- data.frame(A = character(), B = numeric())
-      colnames(lag_data) <- c('Cell_name', colnames(shifted_main_cell_values)[1])
+      lag_data <- data.frame(A = character(), 
+                             B = numeric())
       
-      shifted_info <- shifting_curves_info(lag_data, dt_to_shift(), shifted_main_cell_values, lower = input$start_t_shift, upper = input$end_t_shift, max_lag = input$max_lag)
-      return(shifted_info)
+      colnames(lag_data) <- c('Cell_name', 
+                              colnames(shifted_main_cell_values)[1])
+      
+      shifted_info <- shifting_curves_info(lag_data, 
+                                           dt_to_shift(), 
+                                           shifted_main_cell_values, 
+                                           lower = input$start_t_shift, 
+                                           upper = input$end_t_shift, 
+                                           max_lag = input$max_lag)
+        return(shifted_info)
+      
       })
     
     output$lag_values_df_out <- DT::renderDataTable({
