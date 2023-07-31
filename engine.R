@@ -713,7 +713,7 @@ return(as.data.frame(ampl_calculating))
 
 
 # Basic function to determine lag and its sign between two series of values
-shift <- function(maximum_after, maximum_before, max_lag) {
+lag_and_sign <- function(maximum_after, maximum_before, max_lag) {
   
   # Cross-correlation function, omits any NA values and skip plot rendering
   mtrx <- ccf(maximum_after, maximum_before, lag.max = max_lag, na.action=na.omit, plot=FALSE)
@@ -741,7 +741,7 @@ cbind.fill <- function(...){
 
 
 
-# Function to find curve with maximum that is closer to the left (earlier time) and shift the reference to it
+# Function to find curve with maximum that is closer to the left (earlier time) and lag_and_sign the reference to it
 finding_shifted_curve <- function(df, main_cell_number, lower, upper, max_lag) {
   
   # Fixing the 'Time' column if necessary
@@ -774,7 +774,7 @@ finding_shifted_curve <- function(df, main_cell_number, lower, upper, max_lag) {
   # Finding the cell with the earliest maximum, skipping the Time column (coln_df instead of list_of_names)
   for (cell in coln_df) {
     
-    if (shift(subset_timerange[, cell], subset_timerange[, reference], max_lag) < 0) {
+    if (lag_and_sign(subset_timerange[, cell], subset_timerange[, reference], max_lag) < 0) {
       # print(paste0('7    ',cell))
       reference <- cell
       
@@ -785,7 +785,7 @@ finding_shifted_curve <- function(df, main_cell_number, lower, upper, max_lag) {
   
   # Shifting main series to the left in order to correlate with the reference (with the earliest maximum)
   # Position of the maximum CCF (ACF) value = lag to choose
-  lag_for_max_acf <- shift(subset_timerange[, main_cell], subset_timerange[, reference], max_lag)
+  lag_for_max_acf <- lag_and_sign(subset_timerange[, main_cell], subset_timerange[, reference], max_lag)
   # print(lag_for_max_acf)
   # print(length(subset_timerange[, main_cell]))
   
@@ -829,7 +829,7 @@ shifting_curves <- function(df, shifted_main_cell_values, lower, upper, max_lag,
   
   for (cell in coln_df) {
     
-    lag_for_max_acf <- shift(subset_timerange[, cell], shifted_main_cell_values, max_lag)
+    lag_for_max_acf <- lag_and_sign(subset_timerange[, cell], shifted_main_cell_values, max_lag)
     
 
     
@@ -883,7 +883,7 @@ shifting_curves_info <- function(lag_data, df, shifted_main_cell_values, lower, 
   
   for (cell in coln_df) {
     
-    lag_for_max_acf <- shift(subset_timerange[, cell], shifted_main_cell_values, max_lag)
+    lag_for_max_acf <- lag_and_sign(subset_timerange[, cell], shifted_main_cell_values, max_lag)
     # print(paste0('Lag for ', cell, ': ', lag_for_max_acf))
     df_to_merge <- data.frame(A = cell, B = lag_for_max_acf)
 
@@ -1092,6 +1092,8 @@ replace_columns_in_dfs <- function(df_full, df_part) {
 }
 
 
+# Miscellaneous -----------------------------------------------------------
+
 
 # Opposite to intersect() function
 
@@ -1101,6 +1103,19 @@ outersect <- function(x, y, ...) {
   setdiff(big.vec, unique(duplicates))
 }
 
+# Compose function for lapply
+
+Compose <- function(x, ...)
+{
+  lst <- list(...)
+  for(i in rev(seq_along(lst)))
+    x <- lst[[i]](x)
+  x
+}
+
+
+
+# Rotation ----------------------------------------------------------------
 
 
 # Rotating every single plot one by one
