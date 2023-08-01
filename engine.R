@@ -14,6 +14,8 @@ library(gtools)
 library(tidyverse)
 library(DescTools)
 library(randomcoloR)
+library(zoo)
+library(data.table)
 library(shinyWidgets)
 library(shinyShortcut)
 library(shinyalert)
@@ -712,6 +714,97 @@ return(as.data.frame(ampl_calculating))
 # Shifting curves ---------------------------------------------------------
 
 
+# Function finds the response-specific maximum for each trace 
+# and creates resulting list of indexes = response-specific maximums
+finding_local_maximum <- function(ts_table, k = 30) {
+  
+  # Correcting Time column if not Time and not first in the dataframe
+  dfts <- time_col_name(ts_table, name_only = T)
+  
+  # Values from the dataframe without Time column
+  values <- as_tibble(dfts[-1])
+  
+  # Moving average for each trace, k stands for window based on index value
+  means <- as_tibble(rollmean(dfts[-1], k=k))
+  
+  # Moving maximum with the same window value
+  max_values <- as_tibble(rollmax(dfts[-1], k=k))
+  
+  # Second derivative to find local maximum regions
+  derivative2 <- lapply(means, Compose, diff, sign, diff)
+  
+  # Local maximum regions (starting point)
+  indexes <- lapply(derivative2, function(x) which(x==-2))
+  
+  # Output list of traces with time values, representing maximum - response
+  maxValues <- list()
+  
+  # Creating output list, for each trace name in moving maximum dataframe
+  for (name in names(max_values)) {
+    
+    # sequence of maximum values for the current trace
+    value <- max_values[[name]]
+    
+    # sequence of indexes, representing the starting points of local maximum regions (current trace)
+    index <- indexes[[name]]
+    
+    # finding which index gives the maximum value, so local maximum is the response
+    index_for_max <- which.max(value[index])
+    
+    
+    # Slice for region of interest
+    row_indexes_for_max <- index[index_for_max]:(index[index_for_max]+k)
+    
+    # Obtaining values for the current trace
+    current_column <- values[[name]]
+    
+    # Index, that represents maximum value for the response
+    maximum_index <- index[index_for_max] + 
+      which.max(current_column[row_indexes_for_max]) - 1
+    
+    # Saving in the resulting dataframe
+    maxValues[[name]] <- maximum_index
+  }
+  
+  return(maxValues)
+  
+}
+
+# Shifting curves (matching maximums)
+shift_to_match_maximum <- function(df_to_shift) {
+  
+  
+  # Generating list of indexes = response-specific maximums by custom function
+  list_of_ids <- finding_local_maximum(df_to_shift)
+  
+  # Establishing the earliest maximum among all the traces
+  lowest_value <- min(unlist(list_of_ids))
+  
+  # And its name
+  trace_name <- names(which.min(unlist(list_of_ids)))
+  
+  # Creating list of lag values as compared to the one with the earliest maximum
+  difference <- sapply(list_of_ids, function(x) x-lowest_value)
+  
+  for (element in names(difference)) {
+    
+    df_to_shift[[element]] <- shift(df_to_shift[[element]], 
+                                    n=difference[[element]], 
+                                    type = 'lead')
+    
+  }
+  
+  return(df_to_shift)
+}
+
+
+
+
+
+
+
+
+
 # Basic function to determine lag and its sign between two series of values
 lag_and_sign <- function(maximum_after, maximum_before, max_lag) {
   
@@ -730,14 +823,7 @@ lag_and_sign <- function(maximum_after, maximum_before, max_lag) {
 }
 
 
-# Borrowed function to add columns with different length to dataframe (empty values are NA) 
-cbind.fill <- function(...){
-  nm <- list(...) 
-  nm <- lapply(nm, as.matrix)
-  n <- max(sapply(nm, nrow)) 
-  do.call(cbind, lapply(nm, function (x) 
-    rbind(x, matrix(, n-nrow(x), ncol(x))))) 
-}
+
 
 
 
@@ -1114,6 +1200,16 @@ Compose <- function(x, ...)
 }
 
 
+# Borrowed function to add columns with different length to dataframe (empty values are NA) 
+cbind.fill <- function(...){
+  nm <- list(...) 
+  nm <- lapply(nm, as.matrix)
+  n <- max(sapply(nm, nrow)) 
+  do.call(cbind, lapply(nm, function (x) 
+    rbind(x, matrix(, n-nrow(x), ncol(x))))) 
+}
+
+
 
 # Rotation ----------------------------------------------------------------
 
@@ -1288,40 +1384,3 @@ polygon_function <- function(df_rotated, r_min, r_max, averb) {
 
 
 
-
-# polygon_function <- function(df_rotated, r_min, r_max, region, averb) {
-#   
-#   df_rotated <- time_col_name(df_rotated)
-#   init_name <- colnames(df_rotated)[2]
-#   colnames(df_rotated)[2] <- 'Current'
-#   
-#   area <- subset(df_rotated, (Time < (r_min + region) & Time > (r_min - region)))
-#   
-#   y <- averb
-#   y2 <-  min(area[area$Current > averb, ]['Current'])
-#   y1 <-  max(area[area$Current <= averb, ]['Current'])
-#   
-#   x1 <- area[area$Current == y1, ][["Time"]]
-#   x2 <- area[area$Current == y2, ][["Time"]]
-#   
-#   x <- x1+(y-y1)*(x2-x1)/(y2-y1)
-#   
-#   subset_poly <- subset(df_rotated, (Time <= r_max & Time >= r_min))
-#   
-#   polygonX <- subset_poly$Time
-#   polygonY <- subset_poly$Current
-#   
-#   
-#   polygonX <- c(polygonX, r_max, r_min)
-#   polygonY <- c(polygonY, y, y)
-#   
-#   
-#   polygonX <- c(polygonX, rep(x, length.out=(nrow(df_rotated)-length(polygonX))))
-#   polygonY <- c(polygonY, rep(y, length.out=(nrow(df_rotated)-length(polygonY))))
-#   
-#   data_poly <- data.frame(X=polygonX, Y=polygonY)
-#   polyX <- rep(polygonX, length.out=nrow(df_rotated))
-#   
-#   return(geom_polygon(mapping=aes(polygonX, polygonY), fill = 'green'))
-# }
-# 

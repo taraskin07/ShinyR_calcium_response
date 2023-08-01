@@ -14,17 +14,6 @@ all
 
 cell042 <- display_single_plot(all_cells2_CleanTable, 'cell-042')
 cell042
-df_to_shift[['cell-042']]
-df_to_shift['cell-042'] <- shift(df_to_shift[['cell-042']], -20)
-gggg <- df_to_shift['cell-042']
-
-
-
-cell042_2 <- display_single_plot(df_to_shift, 'cell-042')
-cell042_2
-
-
-
 
 cell049 <- display_single_plot(all_cells2_CleanTable, 'cell-049')
 cell049
@@ -41,9 +30,7 @@ cell039 <- display_single_plot(all_cells2_CleanTable, 'cell-039')
 cell039
 
 
-lower <- 0
-upper <- 890
-max_lag <- 40
+
 
 dt_to_shift <- all_cells2_CleanTable
 # PART
@@ -55,37 +42,162 @@ df_to_shift <- all_cells2_CleanTable[, c('Time',
                                         'cell-117', 
                                         'cell-195', 
                                         'cell-228')]
+shift_to_match_maximum(df_to_shift)
+
 
 ggplotly_render(df_to_shift, 
                 rcolor = color_palette(df_to_shift, colorPalette),
                 sorting = 'Native')
-library('zoo')
-library('data.table')
+
+lower <- 170
+upper <- 785
+max_lag <- 100
+
+df_time <- time_col_name(df_to_shift, name_only = T)
+
+subset_timerange <- as.data.frame(subset(df_time, (Time >= lower & Time <= upper)))[-1]
 
 
-ka <- 30
 
-diff(rollmeandf[, 'Y'])
-second_dif <- diff(sign(diff(rollmeandf[, 'Y'])))
-second_dif
 
-Compose <- function(x, ...)
-{
-  lst <- list(...)
-  for(i in rev(seq_along(lst)))
-    x <- lst[[i]](x)
-  x
+
+CCF_matrix = matrix(numeric(), 
+                     nrow = ncol(subset_timerange), 
+                     ncol = ncol(subset_timerange))
+
+rownames(CCF_matrix) = colnames(subset_timerange)
+colnames(CCF_matrix) = colnames(subset_timerange)
+View(CCF_matrix)
+
+
+for (columnName in colnames(subset_timerange)) {
+
+  for (rowName in colnames(subset_timerange)) {
+  mtrx <- ccf(subset_timerange[columnName], 
+              subset_timerange[rowName], 
+              lag.max = max_lag, 
+              na.action=na.omit, 
+              plot=FALSE)
+  data_table <- data.frame(ACF=mtrx$acf, Lag=mtrx$lag)
+  lag_for_max_acf <- data_table$Lag[which.max(data_table$ACF)]
+  CCF_matrix[rowName, columnName] = lag_for_max_acf
+  }
 }
 
+View(CCF_matrix)
 
-# time_for_maximum <- function(listElement, dfts, k) {
+# Columns contain information about a trace that should be the reference (CCF < 0)
+# So maximum in CCF_matrix == reference
+# Rows for the case when CCF > 0
+# So minimum in CCF_matrix == reference
+
+which(CCF_matrix == min(CCF_matrix), arr.ind = TRUE)
+
+if (max(CCF_matrix) == max_lag) {
+
+
+print('Lag value for some trace is the same as the maximum lag value entered!
+      You should consider to increase the maximum lag value or use another algorithm at first!')
+  }
+
+
+
+column_sums <- colSums(CCF_matrix)
+column_sums
+# row_sums <- rowSums(CCF_matrix)
+# row_sums
+
+left_trace_column <- names(which(column_sums == min(column_sums)))
+# 
+# left_trace_row <- names(which(row_sums == min(row_sums)))
+
+left_trace_column
+# left_trace_row
+
+min_column_sums <- min(column_sums)
+
+# min_row_sum <- min(row_sums)
+
+min_column_sums
+# min_row_sum
+
+
+for (nm in colnames(df_time)[-1]) {
+  
+  df_time[[nm]] <- shift(df_time[[nm]], 
+                         n = CCF_matrix[nm, left_trace_column])
+  }
+
+
+# if (min(column_sums) <= min(row_sums)) {
 #   
-#     for (id in 1:length(listElement)) {
+#   for (nm in colnames(df_time)[-1]) {
+#     
+#     df_time[[nm]] <- shift(df_time[[nm]], 
+#                            n = CCF_matrix[nm, left_trace_column])}
+#   
+#   } else {
+#     
+#   for (nm in colnames(df_time)[-1]) {
 #       
-#       subset(dfts[listElement[id]:listElement[id]+k]
-#     }
+#     df_time[[nm]] <- shift(df_time[[nm]], 
+#                            n = CCF_matrix[left_trace_row, nm])}
 #   
 # }
+
+
+ggplotly_render(df_time, 
+                rcolor = color_palette(df_to_shift, colorPalette),
+                sorting = 'Native')
+
+
+
+
+
+
+
+
+ggplotly_render(df_to_shift, 
+                rcolor = color_palette(df_to_shift, colorPalette),
+                sorting = 'Native')
+
+View(CCF_matrix)
+
+
+ggplotly_render(df_to_shift, 
+                rcolor = color_palette(df_to_shift, colorPalette),
+                sorting = 'Native')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # Function finds the response-specific maximum for each trace 
 # and creates resulting list of indexes = response-specific maximums
@@ -142,255 +254,75 @@ finding_local_maximum <- function(ts_table, k = 30) {
   
 }
 
-list_of_ids <- finding_local_maximum(df_to_shift)
-
-lowest_value <- min(unlist(list_of_ids))
-trace_name <- names(which.min(unlist(list_of_ids)))
-
-lowest_value_index <- which.min(unlist(list_of_ids))[[1]]
-
-unlist(list_of_ids)
-
-difference <- -1*sapply(list_of_ids, function(x) x-lowest_value)
-difference
 
 
-df_shifted <- df_to_shift[-1]
-
-for (element in names(difference)) {
+shift_to_match_maximum <- function(df_to_shift) {
   
   
+  # Generating list of indexes = response-specific maximums by custom function
+  list_of_ids <- finding_local_maximum(df_to_shift)
+
+  # Establishing the earliest maximum among all the traces
+  lowest_value <- min(unlist(list_of_ids))
+
+  # And its name
+  trace_name <- names(which.min(unlist(list_of_ids)))
+
+  # Creating list of lag values as compared to the one with the earliest maximum
+  difference <- sapply(list_of_ids, function(x) x-lowest_value)
+  print(difference)
+
+  for (element in names(difference)) {
+    
+    df_to_shift[[element]] <- shift(df_to_shift[[element]], 
+                                    n=difference[[element]], 
+                                    type = 'lead')
   
-  print(difference[[element]])
+  }
+
+  return(df_to_shift)
 }
 
 
 
-difference['cell-042']
-
-names(difference)
 
 
+ggplotly_render(all_cells2_CleanTable, 
+                rcolor = color_palette(all_cells2_CleanTable, colorPalette),
+                sorting = 'Native')
 
-view(df_shifted)
+df_shifted2 <- shift_to_match_maximum(all_cells2_CleanTable)
 
-df_shifted2 <- lapply(df_shifted, shift, difference)
-View(df_shifted2)
-df_shifted <- cbind(df_to_shift[1], df_shifted)
+ggplotly_render(df_shifted2, 
+                rcolor = color_palette(all_cells2_CleanTable, colorPalette),
+                sorting = 'Native')
+aver2 <- average_curve(df_shifted2)
 
-resultpl <- ggplotly_render(df_shifted, 
-                       rcolor = color_palette(df_shifted, colorPalette),
-                       sorting = 'Native')
-resultpl
-
-
-
-
-
-dfts <- df_to_shift[5]
-k=30
-means <- as_tibble(rollmean(dfts, k=k))
-means
-
-max_values <- as_tibble(rollmax(dfts, k=k))
-
-derivative2 <- lapply(means, Compose, diff, sign, diff)
-
-indexes <- lapply(derivative2, function(x) which(x==-2))
-indexes
-maxValues <- indexes
-names(max_values)
-
-
-for (name in names(max_values)) {
-  value <- max_values[[name]]
-  index <- indexes[[name]]
-  index_for_max <- which.max(value[index])
-  maxValues[[name]] <- index[index_for_max]
-}
-
-index
-
-max_values[["cell-088"]]
-indexes[["cell-088"]]
-maxValues[indexes[["cell-088"]]]
-value[index]
-max(value[index])
-index_for_max <- which.max(value[index])
-index_for_max
-which.max(value[index])
-maxValues
-
-values <- as_tibble(rollmean(dfts[-1], k=k))
-
-indexes <- as_tibble(rollmax(dfts[-1], k=k))
-
-
-
-mn <- df_to_shift[5]
-mn
-rlmn <- as_tibble(rollmean(mn, k = ka))
-rlmn
-
-rlmax <- as_tibble(rollmax(mn, k = ka))
-rlmax[75,]
-View(rlmax)
-
-nrow(rlmn)
-pl <- data.frame(Time = seq.int(from = 0, by = 5, length.out = nrow(rlmn)), Cell = rlmn)
-ggplotly_render(pl)
-pl_init <- data.frame(Time = seq.int(from = 0, by = 5, length.out = nrow(mn)), Cell = mn)
-ggplotly_render(pl_init)
-
-
-
-mtrx <- ccf(mn, rlmn, lag.max = max_lag, na.action=na.omit, plot=FALSE)
-data_table <- data.frame(ACF=mtrx$acf, Lag=mtrx$lag, N=mtrx$n.used)
-lag_for_max_acf <- data_table$Lag[which.max(data_table$ACF)]
-lag_for_max_acf
-
-pl$Time[which.max(pl$cell.039)]
-pl_init$Time[which.max(pl_init$cell.039)]
+ggplotly_render(aver2)
 
 
 
 
 
 
+ggplotly_render(df_to_shift, 
+                rcolor = color_palette(df_to_shift, colorPalette),
+                sorting = 'Native')
 
+df_shifted <- shift_to_match_maximum(df_to_shift)
 
-nrow(dt_to_shif)
-
-
-
-
-
-cell39col <- dt_to_shif[['cell-039']]
-x2 <- dt_to_shif['cell-039']
-x2
-x
-x_6 <- x2[1:6,]
-
-
-nrow(x_6)
-
-
-length(rollmax(x_6, k = 10))
-
-rollmax(x_6, k = 3)
-rollmean(x_6, k = 3)
-rollmedian(x_6, k = 3)
-
-
-x <- dt_to_shif['Time']
-x <- x[1:176,]
-y <- rollmean(cell39col, k=5)
-length(y)
-nrow(x)
-rollmeandf <- data.frame(X = x, Y = y)
-ggplotly_render(rollmeandf, 
-                rcolor = randomColor(count = 2, hue = 'random', luminosity = 'bright'),
+ggplotly_render(df_shifted, 
+                rcolor = color_palette(df_to_shift, colorPalette),
                 sorting = 'Native')
 
 
-diff(rollmeandf[, 'Y'])
-second_dif <- diff(sign(diff(rollmeandf[, 'Y'])))
-second_dif
-second_dif[78]
-
-dt_to_shif[84, ]
-
-local_max <- which(second_dif==-2)
-
-c39 <- diff(dt_to_shif[['cell-039']])
-print(c39)
-
-local_max
 
 
-mx <- 0
-for (id in 1:length(local_max)) {
-  cmx <- max(mn[(local_max[id] - ka):(local_max[id] + ka),])
-  if (is.na(cmx)) {
-    mx <- mx} else {
-      if (cmx > mx) {
-        mx <- cmx
-      }
-      
-    }
-}
- 
-print(mx) 
+aver <- average_curve(df_shifted)
 
-
-dt_to_shif[84, ]
+ggplotly_render(aver)
 
 
 
-
-
-
-
-
-finding_reference_curve_for_shifting_others
-
-
-
-
-
-
-shifted_main_cell_values <- finding_shifted_curve(dt_to_shift, 
-                      main_cell_number = 195, 
-                      lower = start_t_shift, 
-                      upper = end_t_shift, 
-                      max_lag = max_lag)
-
-
-lag_data <- data.frame(A = character(), B = numeric())
-
-
-colnames(lag_data) <- c('Cell_name', colnames(shifted_main_cell_values)[1])
-
-lag_data
-
-shifted_info <- shifting_curves_info(lag_data, dt_to_shift, 
-                                     shifted_main_cell_values, 
-                                     lower = start_t_shift, 
-                                     upper = end_t_shift, 
-                                     max_lag = max_lag)
-
-
-
-cell <- colnames(dt_to_shift)[31]
-
-main_cell_number <- str_extract(cell, '\\D0*(\\d+)($|\\s)', group = 1)
-main_cell_number
-
-
-
-shifted_main_cell_values <- finding_shifted_curve(dt_to_shift, main_cell_number, start_t_shift, end_t_shift, max_lag)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-lag_values_df <- shifted_info
 
 
