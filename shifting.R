@@ -30,9 +30,62 @@ cell039 <- display_single_plot(all_cells2_CleanTable, 'cell-039')
 cell039
 
 
+lower <- 170
+upper <- 785
+max_lag <- 50
+
+df_to_shift_alt <- all_cells2_CleanTable[, c('Time',
+                                         'cell-228',
+                                         'cell-042',
+                                         'cell-049', 
+                                         'cell-088', 
+                                         'cell-117', 
+                                         'cell-195', 
+                                         'cell-039')]
+
+dt_CCF <- CCF_matrix(df_to_shift_alt, lower, upper, max_lag)
+View(dt_CCF)
 
 
-dt_to_shift <- all_cells2_CleanTable
+
+
+
+dt_to_shift <- shift_with_CCF(all_cells2_CleanTable, dt_CCF, max_lag)
+
+dt_CCF <- CCF_matrix(all_cells2_CleanTable, lower, upper, max_lag)
+View(dt_CCF)
+dt_to_shift <- shift_with_CCF(all_cells2_CleanTable, dt_CCF, max_lag)
+
+
+df_to_shift <- shift_to_match_maximum(all_cells2_CleanTable)
+# CCF
+ggplotly_render(dt_to_shift, 
+                rcolor = color_palette(dt_to_shift, colorPalette),
+                sorting = 'Native')
+
+averCCF <- average_curve(dt_to_shift)
+
+ggplotly_render(averCCF)
+# MAXIMUMS
+ggplotly_render(df_to_shift, 
+                rcolor = color_palette(df_to_shift, colorPalette),
+                sorting = 'Native')
+
+averMax <- average_curve(df_to_shift)
+
+ggplotly_render(averMax)
+
+df_to_shift2 <- shift_with_CCF(df_to_shift, lower, upper, max_lag = 50)
+ggplotly_render(df_to_shift2, 
+                rcolor = color_palette(df_to_shift2, colorPalette),
+                sorting = 'Native')
+
+averCCF2 <- average_curve(df_to_shift2)
+
+ggplotly_render(averCCF2)
+
+
+
 # PART
 df_to_shift <- all_cells2_CleanTable[, c('Time',
                                         'cell-042',
@@ -49,9 +102,7 @@ ggplotly_render(df_to_shift,
                 rcolor = color_palette(df_to_shift, colorPalette),
                 sorting = 'Native')
 
-lower <- 170
-upper <- 785
-max_lag <- 100
+
 
 df_time <- time_col_name(df_to_shift, name_only = T)
 
@@ -91,7 +142,6 @@ View(CCF_matrix)
 # Rows for the case when CCF > 0
 # So minimum in CCF_matrix == reference
 
-which(CCF_matrix == min(CCF_matrix), arr.ind = TRUE)
 
 if (max(CCF_matrix) == max_lag) {
 
@@ -150,6 +200,10 @@ ggplotly_render(df_time,
                 rcolor = color_palette(df_to_shift, colorPalette),
                 sorting = 'Native')
 
+
+aver3 <- average_curve(df_time)
+
+ggplotly_render(aver3)
 
 
 

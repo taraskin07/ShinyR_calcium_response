@@ -799,7 +799,72 @@ shift_to_match_maximum <- function(df_to_shift) {
 
 
 
+# Shifting curves (CCF)
+CCF_matrix <- function(df_to_shift, lower, upper, max_lag) {
+  
+  # Correcting Time column if not Time and not first in the dataframe
+  df_time <- time_col_name(df_to_shift, name_only = T)
+  
+  # Subsetting according the range (lower-upper)
+  subset_timerange <- as.data.frame(subset(df_time, (Time >= lower & Time <= upper)))[-1]
+  
+  # Creating CCF matrix
+  CCF_matrix = matrix(numeric(), 
+                      nrow = ncol(subset_timerange), 
+                      ncol = ncol(subset_timerange))
+  rownames(CCF_matrix) = colnames(subset_timerange)
+  colnames(CCF_matrix) = colnames(subset_timerange)
+  
+  
+  for (columnName in colnames(subset_timerange)) {
+    
+    for (rowName in colnames(subset_timerange)) {
+      mtrx <- ccf(subset_timerange[columnName], 
+                  subset_timerange[rowName], 
+                  lag.max = max_lag, 
+                  na.action=na.omit, 
+                  plot=FALSE)
+      data_table <- data.frame(ACF=mtrx$acf, Lag=mtrx$lag)
+      lag_for_max_acf <- data_table$Lag[which.max(data_table$ACF)]
+      CCF_matrix[rowName, columnName] = lag_for_max_acf
+    }
+  }
+  
+  return(CCF_matrix)
+} 
 
+
+shift_with_CCF <- function(df_to_shift, CCF_matrix, max_lag) {
+  
+  # Correcting Time column if not Time and not first in the dataframe
+  df_time <- time_col_name(df_to_shift, name_only = T)
+  
+  if (max(CCF_matrix) == max_lag) {
+    
+    
+    stop('Lag value for some trace is the same as the maximum lag value entered!
+\nYou should consider to increase the maximum lag value or use another algorithm at first!')
+  }
+  
+  # Columns contain information about a trace that should be the reference (CCF < 0)
+  # So minimum in CCF_matrix == reference
+  # Rows for the case when CCF > 0
+  # So maximum in CCF_matrix == reference
+  
+  column_sums <- colSums(CCF_matrix)
+  left_trace_column <- names(which(column_sums == min(column_sums)))
+  min_column_sums <- min(column_sums)
+  
+  for (nm in colnames(df_time)[-1]) {
+    
+    df_time[[nm]] <- shift(df_time[[nm]], 
+                           n = CCF_matrix[nm, left_trace_column])
+  }
+  
+  
+  return(df_time)
+  
+}
 
 
 
