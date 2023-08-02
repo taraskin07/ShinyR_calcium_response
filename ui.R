@@ -426,14 +426,13 @@ sidebarLayout(
           sidebarPanel(style = "height: 100%",
   
                       tags$br("Enter timeframe for the baseline and region to analyze"),
-                      tags$hr(),
-                      numericInput("min_t_shift", "Baseline START: (sec)", 0),
-                      numericInput("max_t_shift", "Baseline END: (sec)", 120),
+                      # tags$hr(),
+                      # numericInput("min_t_shift", "Baseline START: (sec)", 0),
+                      # numericInput("max_t_shift", "Baseline END: (sec)", 120),
                       tags$hr(),
                       numericInput("start_t_shift", "Region to analyze START: (sec)", 0),
                       numericInput("end_t_shift", "Region to analyze END: (sec)", 500),
                       tags$hr(),
-                      numericInput("cell_to_plot_shift", "Enter number of cell", 1),
                       selectInput("cellShiftInput",
                                   'Choose a trace',
                                   choices = '',
@@ -446,20 +445,33 @@ sidebarLayout(
                       tags$br(),
                       actionButton("plots_init_all", "Render all plots", width = "100%"),
                       tags$hr(),
-                      numericInput("max_lag", "Enter maximum lag", 40),
-                      tags$hr(),
+                      numericInput("max_lag", "Enter maximum lag for CCF", 40),
                       actionButton("shift_curves", "Shift the curves using CCF", width = "100%"),
+                      numericInput("response_window", "Enter response time: (sec)", 150),
+                      actionButton("shift_maximum", "Shift Maximum", width = "100%"),
+                      tags$hr(),
+                      actionButton("shift_reset", "Reset all shifting", width = "100%"),
                       tags$hr(style= 'border-style: inset;'),
                       actionButton("plots_shift_single", "Render single shifted plot", width = "100%"),
                       tags$br(),
                       tags$br(),
                       actionButton("plots_shift_all", "Render all shifted plots", width = "100%"),
                       tags$hr(style= 'border-style: inset;'),
-                      actionButton("plots_shift_omit", "Omit NA values in columns", width = "100%"),
+                      tags$div(
+                        style = "text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;",
+                        switchInput(inputId = "plots_shift_omit",
+                                    label = "Omit NA values in columns",
+                                    value = FALSE, size = "normal", onStatus = "statusON",
+                                    offStatus = "statusOFF", onLabel = "omitted",
+                                    offLabel = "with NA", labelWidth = "auto",
+                                    width = "100%")
+                      ),
+                      # actionButton("plots_shift_omit", "Omit NA values in columns (You can't undo this action)", width = "100%"),
                       
                       # Save SHIFTED curves as excel file
                       tags$br(),
                       tags$br('Save shifted curves as excel file'),
+                      # DEBUGGING
                       verbatimTextOutput("read_sheets_value_out", placeholder = TRUE),
                       downloadButton("SavePltsShift", "Save as excel file"),
   
@@ -595,31 +607,50 @@ sidebarLayout(
                
                tags$br(),
                tags$br(),
+               
+               tags$div(
+               style= 'display: flex; 
+                       justify-content: space-between;
+                       text-align: center; 
+                       white-space: nowrap; 
+                       overflow: hidden; 
+                       text-overflow: ellipsis;',
+               
                switchInput(inputId = "rotate_average",
                            label = "Rotate the whole plot",
                            value = FALSE, size = "normal", onStatus = "statusON",
                            offStatus = "statusOFF", onLabel = "Rotate",
-                           offLabel = "OFF", labelWidth = "100000px"),
+                           offLabel = "OFF", labelWidth = "auto"),
                switchInput(inputId = "rotate_part",
                            label = "Rotate the chosen part of the plot",
                            value = FALSE, size = "normal", onStatus = "statusON",
                            offStatus = "statusOFF", onLabel = "Rotate",
-                           offLabel = "OFF", labelWidth = "100000px"),
+                           offLabel = "OFF", labelWidth = "auto")
+               ),
+               
+               tags$div(
+                 style= 'display: flex; 
+                       justify-content: space-between;
+                       text-align: center; 
+                 white-space: nowrap; 
+                 overflow: hidden; 
+                 text-overflow: ellipsis;',
                switchInput(inputId = "rotate_down",
                            label = "Shift rotated part downwards",
                            value = TRUE, size = "normal", onStatus = "statusON",
                            offStatus = "statusOFF", onLabel = "Rotate",
-                           offLabel = "OFF", labelWidth = "100000px"),
+                           offLabel = "OFF", labelWidth = "auto"), 
+               switchInput(inputId = "mark_line_to_rotate",
+                           label = "Mark lines",
+                           value = TRUE, size = "normal", onStatus = "statusON",
+                           offStatus = "statusOFF", labelWidth = "auto")
+               ),
+               
                actionButton("reset_plot", "Reset plot to initial", width = "100%"),
                
                
                
                tags$hr(),
-               switchInput(inputId = "mark_line_to_rotate",
-                           label = "Mark lines",
-                           value = TRUE, size = "normal", onStatus = "statusON",
-                           offStatus = "statusOFF", labelWidth = "100000px"),
-               
                numericInput("line_start", "Line to rotate START: (sec)", 0),
                numericInput("line_end", "Line to rotate END: (sec)", 120),
                tags$br(),

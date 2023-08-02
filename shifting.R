@@ -14,7 +14,6 @@ all
 
 cell042 <- display_single_plot(all_cells2_CleanTable, 'cell-042')
 cell042
-
 cell049 <- display_single_plot(all_cells2_CleanTable, 'cell-049')
 cell049
 cell088 <- display_single_plot(all_cells2_CleanTable, 'cell-088')
@@ -25,7 +24,6 @@ cell195 <- display_single_plot(all_cells2_CleanTable, 'cell-195')
 cell195
 cell228 <- display_single_plot(all_cells2_CleanTable, 'cell-228')
 cell228
-
 cell039 <- display_single_plot(all_cells2_CleanTable, 'cell-039')
 cell039
 
@@ -42,6 +40,12 @@ df_to_shift_alt <- all_cells2_CleanTable[, c('Time',
                                          'cell-117', 
                                          'cell-195', 
                                          'cell-039')]
+
+df_to_shift_alt$Time[8] <- 7
+
+timeStep <- unique(diff(df_to_shift_alt$Time))
+timeStep
+length(unique(diff(diff(df_to_shift_alt$Time)))) == 1
 
 dt_CCF <- CCF_matrix(df_to_shift_alt, lower, upper, max_lag)
 View(dt_CCF)

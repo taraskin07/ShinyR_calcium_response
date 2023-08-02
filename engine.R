@@ -716,10 +716,19 @@ return(as.data.frame(ampl_calculating))
 
 # Function finds the response-specific maximum for each trace 
 # and creates resulting list of indexes = response-specific maximums
-finding_local_maximum <- function(ts_table, k = 30) {
+finding_local_maximum <- function(ts_table, k = 150) {
   
   # Correcting Time column if not Time and not first in the dataframe
   dfts <- time_col_name(ts_table, name_only = T)
+  
+  # Creating k=step value
+  timeStep <- unique(diff(dfts$Time))
+  
+  if (length(timeStep) != 1) {
+    stop('Check the Time column step! It should be equal!')
+  }
+  
+  k <- k/timeStep
   
   # Values from the dataframe without Time column
   values <- as_tibble(dfts[-1])
@@ -766,16 +775,9 @@ finding_local_maximum <- function(ts_table, k = 30) {
     maxValues[[name]] <- maximum_index
   }
   
-  return(maxValues)
   
-}
-
-# Shifting curves (matching maximums)
-shift_to_match_maximum <- function(df_to_shift) {
+  list_of_ids <- maxValues
   
-  
-  # Generating list of indexes = response-specific maximums by custom function
-  list_of_ids <- finding_local_maximum(df_to_shift)
   
   # Establishing the earliest maximum among all the traces
   lowest_value <- min(unlist(list_of_ids))
@@ -785,6 +787,17 @@ shift_to_match_maximum <- function(df_to_shift) {
   
   # Creating list of lag values as compared to the one with the earliest maximum
   difference <- sapply(list_of_ids, function(x) x-lowest_value)
+  
+  
+  
+  return(difference)
+  
+}
+
+# Shifting curves (matching maximums)
+shift_to_match_maximum <- function(df_to_shift, difference) {
+  
+
   
   for (element in names(difference)) {
     

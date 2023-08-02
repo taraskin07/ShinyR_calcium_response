@@ -1103,34 +1103,35 @@ server <- function(input, output) {
       req(input$sheets)
       customDT(dt_to_shift(), scrollY = '200px')
     }) 
- 
+    
+    # Resulting dataframe with shifted/not shifted values
+    reactive_df_to_shift <- reactiveVal(NULL)
+    
     observeEvent(dt_to_shift(), {
 
       updateSelectInput(inputId = "cellShiftInput",
                         choices = colnames(time_col_name(dt_to_shift(), name_only = T))[-1],
                         selected = colnames(time_col_name(dt_to_shift(), name_only = T))[2])
+      
+      reactive_df_to_shift(dt_to_shift())
     }) 
     
     
 # Shifting curves / box 2 -------------------------------------------------
-    
+
     # Rendering initial plot single
     observeEvent(input$plots_init_single, {
       output$plot_shift_upper <- renderPlotly({
         req(input$sheets,
             input$cellShiftInput,
-            input$min_t_shift,
-            input$max_t_shift,
             input$start_t_shift,
             input$end_t_shift)
         ggplotly_render(display_single_plot(dt_to_shift(), 
-                                    input$cellShiftInput, ready = F), 
-                                    baseline = T, 
-                                    b_min = input$min_t_shift, 
-                                    b_max = input$max_t_shift, 
-                                    region = T, 
-                                    r_min = input$start_t_shift, 
-                                    r_max = input$end_t_shift)
+                                    input$cellShiftInput, 
+                                    ready = F), 
+                        region = T, 
+                        r_min = input$start_t_shift, 
+                        r_max = input$end_t_shift)
         })
     })
     
@@ -1139,9 +1140,6 @@ server <- function(input, output) {
       output$plot_shift_upper <- renderPlotly({
         req(input$sheets)
         ggplotly_render(dt_to_shift(), 
-                        baseline = T, 
-                        b_min = input$min_t_shift, 
-                        b_max = input$max_t_shift, 
                         region = T, 
                         r_min = input$start_t_shift, 
                         r_max = input$end_t_shift,
@@ -1151,53 +1149,133 @@ server <- function(input, output) {
     
 # Shifting curves
     
-    # Lag values datatable
-    lag_values_df <- eventReactive(eventExpr = {input$shift_curves}, valueExpr = {
-      
-      req(input$read_sheets)
-      req(input$sheets)
-      
-      
-      shifted_main_cell_values <- finding_shifted_curve(dt_to_shift(), 
-                                                        main_cell_number = input$cell_to_plot_shift, 
-                                                        lower = input$start_t_shift, 
-                                                        upper = input$end_t_shift, 
-                                                        max_lag = input$max_lag)
-      
-      #Resulting dataframe
-      lag_data <- data.frame(A = character(), 
-                             B = numeric())
-      
-      colnames(lag_data) <- c('Cell_name', 
-                              colnames(shifted_main_cell_values)[1])
-      
-      shifted_info <- shifting_curves_info(lag_data, 
-                                           dt_to_shift(), 
-                                           shifted_main_cell_values, 
-                                           lower = input$start_t_shift, 
-                                           upper = input$end_t_shift, 
-                                           max_lag = input$max_lag)
-        return(shifted_info)
-      
-      })
     
-    output$lag_values_df_out <- DT::renderDataTable({
+    
+    observeEvent(input$shift_reset, {
+      req(dt_to_shift())
+      reactive_df_to_shift(dt_to_shift())
+      lag_values_df(NULL)
+      
+    })
+    
+    
+    
+    # Lag values datatable and shifting using CCF
+    lag_values_df <- reactiveVal(NULL)
+
+    observeEvent(input$shift_curves, {
       req(input$read_sheets)
       req(input$sheets)
-      lag_values_df()
+      
+      lag_values_df(CCF_matrix(reactive_df_to_shift(), 
+                               lower = input$start_t_shift,
+                               upper = input$end_t_shift,
+                               max_lag = input$max_lag))
+      
+      shifted_df <- eventReactive(input$plots_shift_omit, {
+        shifted_result <- 
+        shift_with_CCF(dt_to_shift(), 
+                       lag_values_df(), 
+                       max_lag = input$max_lag)
+          
+          if(input$plots_shift_omit == T) {
+            shifted_result <- na.omit(shifted_result)
+            return(shifted_result)
+          } else {return(shifted_result)}
+          
+      }, ignoreNULL = FALSE)
+      
+      reactive_df_to_shift(shifted_df())
+      
+      output$lag_values_df_out <- DT::renderDataTable({
+        req(input$read_sheets)
+        req(input$sheets)
+        lag_values_df()
+      }) 
+          
     }) 
     
-    
-    # Shifted datatable
-    shifted_df <- eventReactive(eventExpr = {input$shift_curves
-                                             input$plots_shift_omit}, valueExpr = {
-      
+    observeEvent(input$shift_maximum, {
       req(input$read_sheets)
       req(input$sheets)
-      shifted_main_cell_values <- finding_shifted_curve(dt_to_shift(), main_cell_number = input$cell_to_plot_shift, lower = input$start_t_shift, upper = input$end_t_shift, max_lag = input$max_lag)
-      shifted_result <- shifting_curves(dt_to_shift(), shifted_main_cell_values, lower = input$start_t_shift, upper = input$end_t_shift, max_lag = input$max_lag)
+  
+      shifted <- shiny::isolate(reactive_df_to_shift())
       
-      if((input$plots_shift_omit[1]%%2) == 1) {
+      lag_values_df(finding_local_maximum(shifted, 
+                                          input$response_window))
+      
+      shifted_df <- eventReactive(input$plots_shift_omit, {
+        
+        shifted_result <- shift_to_match_maximum(shifted, lag_values_df())
+        
+        if(input$plots_shift_omit == T) {
+          shifted_result <- na.omit(shifted_result)
+          return(shifted_result)
+        } else {return(shifted_result)}
+        
+        
+        }, ignoreNULL = FALSE)
+      
+      reactive_df_to_shift(shifted_df())
+      
+      output$lag_values_df_out <- DT::renderDataTable({
+        req(input$read_sheets)
+        req(input$sheets)
+        as.data.frame(lag_values_df())
+      }) 
+      
+      
+    }) 
+
+    
+    
+    
+    # Rendering lower plot
+    observeEvent(input$plots_shift_single, {
+      
+      output$plot_shift_lower <- renderPlotly({
+        req(input$sheets)
+        ggplotly_render(display_single_plot(shifted_dataframe(), 
+                                            input$cellShiftInput,
+                                            ready = F), 
+                        region = T, 
+                        r_min = input$start_t_shift, 
+                        r_max = input$end_t_shift)
+        })
+      
+      
+    })
+    
+    observeEvent(input$plots_shift_all, {
+      
+      output$plot_shift_lower <- renderPlotly({
+        req(input$sheets)
+        ggplotly_render(shifted_dataframe(), 
+                        region = T, 
+                        r_min = input$start_t_shift, 
+                        r_max = input$end_t_shift,
+                        rcolor = color_palette(shifted_dataframe(), rmcellValues$colors2000))
+        }) 
+
+    
+      
+    }) 
+    
+    shifted_dataframe <- eventReactive(eventExpr = {
+      input$plots_shift_omit
+      input$plots_shift_all
+      input$plots_shift_single
+      input$shift_maximum
+      input$shift_reset
+      input$plots_init_all
+      input$plots_init_single
+      input$shift_curves}, 
+      
+      valueExpr = {
+      
+      shifted_result <- reactive_df_to_shift()
+      
+      if(input$plots_shift_omit == T) {
         shifted_result <- na.omit(shifted_result)
         return(shifted_result)
       } else {return(shifted_result)}
@@ -1205,63 +1283,27 @@ server <- function(input, output) {
       
     }, ignoreNULL = FALSE)
     
-
-    
-    # Rendering lower plot
-    observeEvent(input$plots_shift_single, {
-      
-      output$plot_shift_lower <- renderPlotly({
-        req(input$sheets)
-        ggplotly_render(single_plot(shifted_df(), input$cell_to_plot_shift), 
-                        baseline = T, 
-                        b_min = input$min_t_shift, 
-                        b_max = input$max_t_shift, 
-                        region = T, 
-                        r_min = input$start_t_shift, 
-                        r_max = input$end_t_shift)
-        }) # output$plot_shift_lower
-      
-      
-    }) # /level 1, observeEvent input$plots_shift_single
-    
-    observeEvent(input$plots_shift_all, {
-      
-      output$plot_shift_lower <- renderPlotly({
-        req(input$sheets)
-        ggplotly_render(shifted_df(), 
-                        baseline = T, 
-                        b_min = input$min_t_shift, 
-                        b_max = input$max_t_shift, 
-                        region = T, 
-                        r_min = input$start_t_shift, 
-                        r_max = input$end_t_shift,
-                        rcolor = color_palette(shifted_df(), rmcellValues$colors2000))
-        }) # output$plot_shift_lower
-
-    
-      
-    }) # /level 1, observeEvent input$plots_shift_all
-    
-    
-    
     # Save SHIFTED curves as excel file
     
-    read_sheets_value <- reactive({
-      
-      if((input$plots_shift_omit[1]%%2) == 1) {
-        return(TRUE)
-      }
-      
-      })
-    output$read_sheets_value_out <- renderPrint({read_sheets_value()})
+
+# DEBUGGING ---------------------------------------------------------------
+    output$read_sheets_value_out <- renderPrint({input$plots_shift_omit})
+    
+    
     
     output$SavePltsShift <- downloadHandler(
       filename = function() {filename(input$read_sheets$name, "Shifted.xlsx")},
       content = function(file) {
-        df_list <- list('current' = shifted_df(),
-                        'lags' = lag_values_df())
-        names(df_list) <- c(input$sheets, paste0(input$sheets, '_lags'))
-        write_xlsx(df_list, path = file)
+        
+        wb <- createWorkbook()
+        
+          sheet1 <- addWorksheet(wb, sheetName = input$sheets)
+          writeDataTable(wb, sheet1, shifted_dataframe())
+          sheet2 <- addWorksheet(wb, sheetName = paste0(input$sheets, '_lagMatrix'))
+          writeDataTable(wb, sheet2, as.data.frame(lag_values_df()))
+        
+        saveWorkbook(wb, file)
+
         }
     )
     
