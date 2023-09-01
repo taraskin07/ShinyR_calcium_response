@@ -272,36 +272,54 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
 
 tabPanel("Analyzing amplitude", # /level 1 - tabPanel Analyzing amplitude
          
-         # Analyzing amplitude sidebar title ----
-         titlePanel("Upload clean excel file"), # 2 level - titlePanel "Upload clean excel file"
+         # Analyzing amplitude sidebar title 
+         titlePanel("Upload clean excel file"), 
          
 
          
 # Analyzing amplitude / box 1 --------------------------------------------
 
-# Sidebar layout with input and output definitions /level 2 /box 1----
+# Sidebar layout with input and output definitions /level 2 /box 1
 tabsetPanel(
   
-  # Sidebar panel for inputs: file input and preferences
-  sidebarPanel(
+  
+  sidebarLayout(
+    sidebarPanel(
+      
+      # Input: Select a file ----
+      fileInput("clean_file", "Choose excel File with 'clean' data",
+                multiple = FALSE,
+                accept = c(".xls",
+                           ".xlsx")),
+      
+      # Horizontal line 
+      tags$hr(),
+      
+      checkboxInput("clRatio", "sheet Ratio", TRUE),
+      selectInput('sheetClRatio', 
+                  'Select sheet for Ratio',
+                  '', selected = '', multiple = FALSE),
+      
+      
+      checkboxInput("clNum", "sheet Numerator", FALSE),
+      selectInput('sheetClNum', 
+                  'Select sheet for Numerator',
+                  '', selected = '', multiple = FALSE),
+      
+      
+      checkboxInput("clDen", "sheet Denominator", FALSE),
+      selectInput('sheetClDen', 
+                  'Select sheet for Denominator',
+                  '', selected = '', multiple = FALSE),
+      
+
+      
+      
+      
+    ), 
     
-    # Input: Select a file ----
-    fileInput("clean_file", "Choose excel File with 'clean' data",
-              multiple = FALSE,
-              accept = c(".xls",
-                         ".xlsx")),
-    
-    # Horizontal line 
-    tags$hr(),
-    
-    
-    # Input: Checkbox if the file has a header ----
-    checkboxInput("clNum", "sheet Numerator", TRUE),
-    checkboxInput("clDen", "sheet Denominator", TRUE),
-    checkboxInput("clRatio", "sheet Ratio", TRUE),
-    
-  )
-), # Analyzing amplitude /level 2 /box 1  - main layout with sidebar and tabset inside, tabsetPanel / box 1
+
+
 
 # Main panel for displaying outputs from tabsetPanel /level 2 /box 1
 mainPanel(
@@ -314,10 +332,68 @@ mainPanel(
               
               tabPanel("Den", DT::dataTableOutput("cl_Den")),
               
-              tabPanel("Num/Den(custom ratio)", DT::dataTableOutput("cl_custom_ratio")),
-  )
-), # Analyzing amplitude /level 2 /box 1, mainPanel Num-Den-Ratio-Num/Den 
+              tabPanel("Num/Den", DT::dataTableOutput("cl_custom_ratio")),
+              )
+          ), 
 
+)), # tabsetPanel
+
+
+
+
+# Analyzing amplitude / box 2 - Plot preview ----------------
+
+
+
+tabsetPanel(
+  
+  
+  sidebarLayout(
+    sidebarPanel(      
+      selectizeInput(
+      'legend_order2', 'Choose how to order the plot legend:',
+      choices = c('Native', 'Regex', 'Mixed', 'Mixed_revered'),
+      selected = 'Native'
+    ),
+    
+    actionButton("plot_all2", "Plot all graphs"),
+    # Horizontal line
+    tags$hr(),
+    uiOutput("tabUI2"),
+    actionButton("plot_single2", "Plot single graph"),    
+    tags$hr(),
+    selectInput("peaks_amount", 'Amount of peaks', c(1,2,3,4), selectize=TRUE),
+    uiOutput("slider"),
+    
+    verbatimTextOutput("verbatim", placeholder = TRUE),
+      
+    ),
+    
+    
+    # Main panel for displaying outputs from tabsetPanel /level 2 /box 3
+    mainPanel(
+      # Tabs
+      tabsetPanel(type = "tabs", id = "tab2",
+                  
+                  tabPanel("Ratio", value = 'R', plotlyOutput("plot_ratio2") # /level 5, /box 3, plotlyOutput
+                  ), # /level 4, /box 3, tabPanel Ratio
+                  
+                  
+                  tabPanel("Num", value = 'N', plotlyOutput("plotNum2") # /level 5, /box 3, plotlyOutput
+                  ), # /level 4, /box 3, tabPanel Num
+                  
+                  tabPanel("Den", value = 'D', plotlyOutput("plotDen2") # /level 5, /box 3, plotlyOutput
+                  ), # /level 4, /box 3, tabPanel Den
+                  
+                  
+                  tabPanel("Num/Den", value = 'ND', plotlyOutput("plot_custom_ratio2") # /level 5, /box 3, plotlyOutput
+                  ), # /level 4, /box 3, tabPanel Num/Den
+                  
+      ) # /level 3, /box 3, tabsetPanel for plots
+    ), # /level 2, /box 3, mainPanel for plots
+
+    
+)),
 
 
 # Analyzing amplitude / box 2 - STATISTICS for CLEAN DATA ----------------

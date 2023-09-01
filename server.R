@@ -549,7 +549,7 @@ server <- function(input, output) {
     
 # Button to obtain new dataframes without bad cells information    
     
-    
+
     # Now creating reactive values list of cells to exclude
     rmcellValues <- reactiveValues()
     
@@ -685,9 +685,6 @@ server <- function(input, output) {
 
 # New dataframes without excluded column names
     
-    
-    
-    
     observeEvent(input$new_dataframes,{
       
       req(df_ratio_excluded())
@@ -815,84 +812,76 @@ server <- function(input, output) {
       })
     
 
-# Debugging section -------------------------------------------------------
 
-      output$df_Num_ready_db <- DT::renderDataTable({
-        req(input$dataTS)
-        req(input$cNum)
-        req(input$new_dataframes)
-        df_Num_ready()
-        }) 
-      
-      
-      output$df_Num_excluded_db <- DT::renderDataTable({
-        req(input$dataTS)
-        req(input$cNum)
-        req(input$new_dataframes)
-        df_Num_excluded()
-      })
-      
-      
-      output$rmcellValues_cList <- renderPrint({
-        rmcellValues$cList
-      })
     
     
 
 # Analyzing amplitude -----------------------------------------------------    
     
     
+# Reading sheet names in Excel file
+      
+      sheets_in_a_clean_file <-  eventReactive(eventExpr = {input$clean_file},
+                                             valueExpr ={
+                                               excel_sheets(input$clean_file$datapath)
+                                             })
+      
+# Following the user's choice for sheets to process
+      
+      observe({
+        
+        if (input$clRatio == F) {
+          shinyjs::disable("sheetClRatio")
+        } else if (input$clRatio == T) {
+          shinyjs::enable("sheetClRatio")
+        }
+        if (input$clNum == F) {
+          shinyjs::disable("sheetClNum")
+        } else if (input$clNum == T) {
+          shinyjs::enable("sheetClNum")
+        }
+        if (input$clDen == F) {
+          shinyjs::disable("sheetClDen")
+        } else if (input$clDen == T) {
+          shinyjs::enable("sheetClDen")
+        }
+      })
+      
+      
+# Suggesting sheets and updating input information 
+      
+      observeEvent(input$clean_file, {
+        
+        updateSelectInput(inputId = 'sheetClRatio',
+                          choices = sheets_in_a_clean_file(),
+                          selected = str_extract(sheets_in_a_clean_file(), '^[Rr]atio$')
+        )
+        
+        updateSelectInput(inputId = 'sheetClNum',
+                          choices = sheets_in_a_clean_file(),
+                          selected = str_extract(sheets_in_a_clean_file(), '^340$')
+        )
+        
+        updateSelectInput(inputId = 'sheetClDen',
+                          choices = sheets_in_a_clean_file(),
+                          selected = str_extract(sheets_in_a_clean_file(), '^380$')
+        )
+        
+      })
+      
+      
 # All 4 tables of CLEAN DATA rendering
-    
-
-    # Num
-
-    df_Num_clean <- eventReactive(eventExpr = {input$clean_file
-      input$clNum},
-                    valueExpr = {
-                      req(input$clean_file)
-                      req(input$clNum)
-                      read_excel(input$clean_file$datapath,
-                                 sheet='Numerator')
-                      })
-    
-    output$cl_Num <- DT::renderDataTable({
-      req(input$clean_file)
-      req(input$clNum)
-      df_Num_clean()
-                                            }) # level 1 - output$cl_Num
-    
-
-    # Den
-
-    df_Den_clean <- eventReactive(eventExpr = {input$clean_file
-                                               input$clDen},
-      valueExpr = {
-        req(input$clean_file)
-        req(input$clDen)
-        read_excel(input$clean_file$datapath,
-                   sheet='Denominator')
-      }
-    ) 
-    
-    
-    output$cl_Den <- DT::renderDataTable({
-      req(input$clean_file)
-      req(input$clDen)
-      df_Den_clean()
-    }) 
-    
-    
-
+      
+      
+      
     # Ratio 
-
-    df_ratio_clean <- eventReactive(eventExpr = {input$clean_file
-      input$clRatio},
+    df_ratio_clean <- eventReactive(eventExpr = {input$sheetClRatio
+      input$clean_file},
       valueExpr = {
         req(input$clean_file)
         req(input$clRatio)
         read_excel(input$clean_file$datapath,
-                   sheet='ratio')
+                   sheet=input$sheetClRatio)
         
       }
     ) 
@@ -902,17 +891,49 @@ server <- function(input, output) {
       req(input$clean_file)
       req(input$clRatio)
       df_ratio_clean()
-    }) 
-
+    })     
 
     
-    # Custom Ratio 
+    # Num
+    df_Num_clean <- eventReactive(eventExpr = {input$sheetClNum},
+                    valueExpr = {
+                      req(input$clean_file)
+                      read_excel(input$clean_file$datapath,
+                                 sheet=input$sheetClNum)
+                      })
     
-    df_custom_ratio_clean <- eventReactive(eventExpr = {input$clean_file},
+    output$cl_Num <- DT::renderDataTable({
+      req(input$clean_file)
+      req(input$clNum)
+      df_Num_clean()
+                                            }) 
+    
+
+    # Den
+    df_Den_clean <- eventReactive(eventExpr = {input$sheetClDen},
       valueExpr = {
         req(input$clean_file)
         read_excel(input$clean_file$datapath,
-                   sheet='custom_ratio')
+                   sheet=input$sheetClDen)
+      }
+    ) 
+    
+    
+    output$cl_Den <- DT::renderDataTable({
+      req(input$clean_file)
+      req(input$clDen)
+      df_Den_clean()
+    }) 
+
+    
+    # Custom Ratio 
+    df_custom_ratio_clean <- eventReactive(eventExpr = {input$sheetClNum
+                                                        input$sheetClDen},
+      valueExpr = {
+        req(input$clean_file)
+        req(input$clDen)
+        req(input$clNum)
+        custom_ratio(df_Num_clean(), df_Den_clean())
         
       }
     ) 
@@ -926,18 +947,225 @@ server <- function(input, output) {
     })    
    
     
-# Excluded cells    
-    df_excluded_cells_list <- eventReactive(eventExpr = {input$clean_file},
-                                            valueExpr = {
-                                              req(input$clean_file)
-                                              read_excel(input$clean_file$datapath,
-                                                         sheet='excluded_cells')
-                                              }) # level 1 - df_excluded_cells_list  
     
-    # Calculating amplitudes
+    observeEvent(input$clean_file, {
+      
+      output$tabUI2 <- renderUI({
+        
+        if (input$tab2 == "R") {
+          selectInput("ratioInput2", "Ratio cells names", 
+                      choices = colnames(df_ratio_clean())[!grepl("^[Tt]ime", colnames(df_ratio_clean()))], 
+                      selectize = FALSE, 
+                      selected = shiny::isolate(input$ratioInput2))
+          
+        } else if (input$tab2 == "N") {
+          selectInput("numInput2", "Numerator cells names", 
+                      choices = colnames(df_Num_clean())[!grepl("^[Tt]ime", colnames(df_Num_clean()))], 
+                      selectize = FALSE, 
+                      selected = shiny::isolate(input$numInput2))
+          
+        } else if (input$tab2 == "D") {
+          selectInput("denInput2", "Denominator cells names", 
+                      choices = colnames(df_Den_clean())[!grepl("^[Tt]ime", colnames(df_Den_clean()))], 
+                      selectize = FALSE, 
+                      selected = shiny::isolate(input$denInput2))
+          
+        } else if (input$tab2 == "ND") {
+          selectInput("customRatioInput2", "Num/Den cells names", 
+                      choices = colnames(df_custom_ratio_clean())[!grepl("^[Tt]ime", colnames(df_custom_ratio_clean()))], 
+                      selectize = FALSE, 
+                      selected = shiny::isolate(input$customRatioInput2)
+          )
+        }
+        
+        
+      })
+      
+      time_column_name <- reactive({
+        df_ratio_clean()[grepl("^[Tt]ime", colnames(df_ratio_clean()))]
+        })
+      
+      
+      
+      output$slider <- renderUI({
+        
+        min_time <- min(time_column_name())
+        
+        max_time <- max(time_column_name())
+        
+        quater <- round((max_time - min_time)/4, digits =0)
+        
+        
+        if (input$peaks_amount == 1) {
+          
+          sliderInput("slider_output1", "Range 1:",
+                      min = min_time, max = max_time,
+                      value = c(0,quater))
+          
+        } else if (input$peaks_amount == 2) {
+          
+          tagList(
+            
+            sliderInput("slider_output1", "Range 1:",
+                        min = min_time, max = max_time,
+                        value = c(0,quater)),
+            sliderInput("slider_output2", "Range 2:",
+                        min = min(time_column_name()), max = max(time_column_name()),
+                        value = c(quater,2*quater))
+          )
+          
+        } else if (input$peaks_amount == 3) {
+          
+          tagList(
+            
+          sliderInput("slider_output1", "Range 1:",
+                      min = min_time, max = max_time,
+                      value = c(0,quater)),
+          
+          sliderInput("slider_output2", "Range 2:",
+                      min = min(time_column_name()), max = max(time_column_name()),
+                      value = c(quater,2*quater)),
+          
+          sliderInput("slider_output3", "Range 3:",
+                      min = min(time_column_name()), max = max(time_column_name()),
+                      value = c(2*quater,3*quater))
+          )
+          
+        } else if (input$peaks_amount == 4) {
+          
+          tagList(
+          
+          sliderInput("slider_output1", "Range 1:",
+                      min = min_time, max = max_time,
+                      value = c(0,quater)),
+          
+          sliderInput("slider_output2", "Range 2:",
+                      min = min(time_column_name()), max = max(time_column_name()),
+                      value = c(quater,2*quater)),
+          
+          sliderInput("slider_output3", "Range 3:",
+                      min = min(time_column_name()), max = max(time_column_name()),
+                      value = c(2*quater,3*quater)),
+          
+          sliderInput("slider_output4", "Range 4:",
+                      min = min(time_column_name()), max = max(time_column_name()),
+                      value = c(3*quater,max_time))
+          )
+          
+        }
+        
+
+        
+      })
+      
+      
+      
+      output$verbatim <- renderText({
+        
+        input$slider_output4[1]
+        
+        })
+      
+
+      
+    })
     
-# Num
+# Rendering ALL plots
+
+    observeEvent(input$plot_all2, {
+      
+      
+      
+      output$plot_ratio2 <- renderPlotly({
+        req(input$plot_all2, df_ratio_clean())
+        ggplotly_render(df_ratio_clean(), 
+                        rcolor = color_palette(df_ratio_clean(), rmcellValues$colors2000),
+                        sorting = input$legend_order2)})
+      
+      
+      output$plotNum2 <- renderPlotly({
+        req(input$plot_all2, df_Num_clean())
+        ggplotly_render(df_Num_clean(), 
+                        rcolor = color_palette(df_Num_clean(), rmcellValues$colors2000),
+                        sorting = input$legend_order2)})
+      
+      
+      output$plotDen2 <- renderPlotly({
+        req(input$plot_all2, df_Den_clean())
+        ggplotly_render(df_Den_clean(), 
+                        rcolor = color_palette(df_Den_clean(), rmcellValues$colors2000),
+                        sorting = input$legend_order2)})
+      
+      
+      output$plot_custom_ratio2 <- renderPlotly({
+        req(input$plot_all2, df_custom_ratio_clean())
+        ggplotly_render(df_custom_ratio_clean(), 
+                        rcolor = color_palette(df_custom_ratio_clean(), rmcellValues$colors2000),
+                        sorting = input$legend_order2)})
+      
+      
+    }) 
     
+    
+    
+    
+    
+# Rendering SINGLE plot
+    
+    observeEvent(input$plot_single2, {
+      
+      
+      output$plot_ratio2 <- renderPlotly({
+        req(df_ratio_clean())
+        
+        display_single_plot(df_ratio_clean(), input$ratioInput2)
+        
+      })     
+      
+      
+      output$plotNum2 <- renderPlotly({
+        req(df_Num_clean())
+        
+        display_single_plot(df_Num_clean(), input$numInput2)
+        
+      }) 
+      
+      
+      output$plotDen2 <- renderPlotly({
+        req(df_Den_clean())
+        
+        display_single_plot(df_Den_clean(), input$denInput2)
+        
+      }) 
+      
+      
+      output$plot_custom_ratio2 <- renderPlotly({
+        req(df_custom_ratio_clean())
+        
+        display_single_plot(df_custom_ratio_clean(), input$customRatioInput2)
+        
+      })
+      
+      
+    }) 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+# Calculating amplitudes --------------------------------------------------
+
+    
+    # Num
     df_Num_amplitude <- eventReactive(eventExpr = {input$amplitudeStat
       input$clNum},
       valueExpr = {
@@ -956,8 +1184,7 @@ server <- function(input, output) {
     })
     
     
-# Ratio
-    
+    # Ratio
     df_ratio_amplitude <- eventReactive(eventExpr = {input$amplitudeStat
       input$clRatio},
       valueExpr = {
@@ -975,9 +1202,8 @@ server <- function(input, output) {
       df_ratio_amplitude()
     })
     
-    
-# Custom Ratio
-    
+
+    # Custom Ratio
     df_custom_ratio_amplitude <- eventReactive(eventExpr = {input$amplitudeStat},
       valueExpr = {
         req(input$clean_file)
@@ -996,9 +1222,9 @@ server <- function(input, output) {
     
     
     
-    # IN THIS CASE WE NEED TO FIND MINIMUM INSTEAD! 
-# Den
+# IN THIS CASE WE NEED TO FIND MINIMUM INSTEAD! 
     
+    # Den
     df_Den_amplitude <- eventReactive(eventExpr = {input$amplitudeStat
       input$clDen},
       valueExpr = {
