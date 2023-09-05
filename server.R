@@ -1062,7 +1062,7 @@ server <- function(input, output) {
       
       output$verbatim <- renderText({
         
-        input$slider_output4[1]
+        typeof(input$slider_output4)
         
         })
       
@@ -1078,30 +1078,74 @@ server <- function(input, output) {
       
       output$plot_ratio2 <- renderPlotly({
         req(input$plot_all2, df_ratio_clean())
-        ggplotly_render(df_ratio_clean(), 
+        plot_object <- ggplotly_render(df_ratio_clean(), 
                         rcolor = color_palette(df_ratio_clean(), rmcellValues$colors2000),
-                        sorting = input$legend_order2)})
+                        sorting = input$legend_order2,
+                        baseline = T, 
+                        b_min = 0, 
+                        b_max = 120, 
+                        ready = FALSE
+                        )
+        
+        pl <- plot_wrapper(plot_object, input$slider_output1, input$slider_output2, input$slider_output3, input$slider_output4)
+        
+        return(ggplotly(pl))
+        
+        })
       
       
       output$plotNum2 <- renderPlotly({
         req(input$plot_all2, df_Num_clean())
-        ggplotly_render(df_Num_clean(), 
+        plot_object <- ggplotly_render(df_Num_clean(), 
                         rcolor = color_palette(df_Num_clean(), rmcellValues$colors2000),
-                        sorting = input$legend_order2)})
+                        sorting = input$legend_order2,
+                        baseline = T, 
+                        b_min = 0, 
+                        b_max = 120, 
+                        ready = FALSE
+        )
+        
+        pl <- plot_wrapper(plot_object, input$slider_output1, input$slider_output2, input$slider_output3, input$slider_output4)
+        
+        return(ggplotly(pl))
+        
+      })
       
       
       output$plotDen2 <- renderPlotly({
         req(input$plot_all2, df_Den_clean())
-        ggplotly_render(df_Den_clean(), 
+        plot_object <- ggplotly_render(df_Den_clean(), 
                         rcolor = color_palette(df_Den_clean(), rmcellValues$colors2000),
-                        sorting = input$legend_order2)})
+                        sorting = input$legend_order2,
+                        baseline = T, 
+                        b_min = 0, 
+                        b_max = 120, 
+                        ready = FALSE
+        )
+        
+        pl <- plot_wrapper(plot_object, input$slider_output1, input$slider_output2, input$slider_output3, input$slider_output4)
+        
+        return(ggplotly(pl))
+        
+      })
       
       
       output$plot_custom_ratio2 <- renderPlotly({
         req(input$plot_all2, df_custom_ratio_clean())
-        ggplotly_render(df_custom_ratio_clean(), 
+        plot_object <- ggplotly_render(df_custom_ratio_clean(), 
                         rcolor = color_palette(df_custom_ratio_clean(), rmcellValues$colors2000),
-                        sorting = input$legend_order2)})
+                        sorting = input$legend_order2,
+                        baseline = T, 
+                        b_min = 0, 
+                        b_max = 120, 
+                        ready = FALSE
+        )
+        
+        pl <- plot_wrapper(plot_object, input$slider_output1, input$slider_output2, input$slider_output3, input$slider_output4)
+        
+        return(ggplotly(pl))
+        
+      })
       
       
     }) 
@@ -1118,7 +1162,10 @@ server <- function(input, output) {
       output$plot_ratio2 <- renderPlotly({
         req(df_ratio_clean())
         
-        display_single_plot(df_ratio_clean(), input$ratioInput2)
+        plot_object <- display_single_plot(df_ratio_clean(), input$ratioInput2, ready = F, lines = T)
+        pl <- plot_wrapper(plot_object, input$slider_output1, input$slider_output2, input$slider_output3, input$slider_output4)
+        
+        return(ggplotly(pl))
         
       })     
       
@@ -1126,7 +1173,10 @@ server <- function(input, output) {
       output$plotNum2 <- renderPlotly({
         req(df_Num_clean())
         
-        display_single_plot(df_Num_clean(), input$numInput2)
+        plot_object <- display_single_plot(df_Num_clean(), input$numInput2)
+        pl <- plot_wrapper(plot_object, input$slider_output1, input$slider_output2, input$slider_output3, input$slider_output4)
+        
+        return(ggplotly(pl))
         
       }) 
       
@@ -1134,7 +1184,10 @@ server <- function(input, output) {
       output$plotDen2 <- renderPlotly({
         req(df_Den_clean())
         
-        display_single_plot(df_Den_clean(), input$denInput2)
+        plot_object <- display_single_plot(df_Den_clean(), input$denInput2)
+        pl <- plot_wrapper(plot_object, input$slider_output1, input$slider_output2, input$slider_output3, input$slider_output4)
+        
+        return(ggplotly(pl))
         
       }) 
       
@@ -1142,24 +1195,15 @@ server <- function(input, output) {
       output$plot_custom_ratio2 <- renderPlotly({
         req(df_custom_ratio_clean())
         
-        display_single_plot(df_custom_ratio_clean(), input$customRatioInput2)
+        plot_object <- display_single_plot(df_custom_ratio_clean(), input$customRatioInput2)
+        pl <- plot_wrapper(plot_object, input$slider_output1, input$slider_output2, input$slider_output3, input$slider_output4)
+        
+        return(ggplotly(pl))
         
       })
       
       
     }) 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     
 
 # Calculating amplitudes --------------------------------------------------
@@ -1372,7 +1416,7 @@ server <- function(input, output) {
     }) 
     
     
-# Shifting curves
+# Shifting curves-----------------------------------------------------------------------
     
     
     
@@ -1380,6 +1424,29 @@ server <- function(input, output) {
       req(dt_to_shift())
       reactive_df_to_shift(dt_to_shift())
       lag_values_df(NULL)
+      
+      runjs('
+            document.getElementById("shift_reset").style.backgroundColor = "green";
+            document.getElementById("shift_maximum").style.backgroundColor = "";
+            document.getElementById("shift_curves").style.backgroundColor = "";
+            ')
+
+      
+      # runjs('
+      #       var otherButtonColor1 = document.getElementById("shift_maximum").style.backgroundColor;
+      #       
+      #       if (otherButtonColor1 === "red") {
+      #           document.getElementById("shift_maximum").style.backgroundColor = "";
+      #           }
+      #       ')
+      # 
+      # runjs('
+      #       var otherButtonColor2 = document.getElementById("shift_curves").style.backgroundColor;
+      # 
+      #       if (otherButtonColor2 === "red" ) {
+      #           document.getElementById("shift_curves").style.backgroundColor = "";
+      #           }
+      #       ')
       
     })
     
@@ -1391,6 +1458,24 @@ server <- function(input, output) {
     observeEvent(input$shift_curves, {
       req(input$read_sheets)
       req(input$sheets)
+      
+      runjs('
+            var otherButtonColor = document.getElementById("shift_maximum").style.backgroundColor;
+            if (otherButtonColor === "green") {
+            
+                document.getElementById("shift_maximum").style.backgroundColor = "red";
+                document.getElementById("shift_curves").style.backgroundColor = "red";
+                
+            } else {
+            
+                document.getElementById("shift_curves").style.backgroundColor = "green";
+            }
+            
+            document.getElementById("shift_reset").style.backgroundColor = "";
+                
+            ')
+      
+
       
       lag_values_df(CCF_matrix(reactive_df_to_shift(), 
                                lower = input$start_t_shift,
@@ -1423,6 +1508,23 @@ server <- function(input, output) {
     observeEvent(input$shift_maximum, {
       req(input$read_sheets)
       req(input$sheets)
+      
+      runjs('
+              var otherButtonColor = document.getElementById("shift_curves").style.backgroundColor;
+              if (otherButtonColor === "green") {
+              
+                  document.getElementById("shift_maximum").style.backgroundColor = "red";
+                  document.getElementById("shift_curves").style.backgroundColor = "red";
+                
+              } else {
+              
+                  document.getElementById("shift_maximum").style.backgroundColor = "green";
+                
+              }
+              
+              document.getElementById("shift_reset").style.backgroundColor = "";
+              
+            ')
   
       shifted <- shiny::isolate(reactive_df_to_shift())
       

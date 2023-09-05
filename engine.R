@@ -372,6 +372,36 @@ ggplotly_render <- function(df_n,
   
 }
 
+plot_wrapper <- function(plot_object, slider1, slider2, slider3, slider4) {
+  
+  if (!is.null(slider1)) {
+    plot_object <- plot_object +
+      geom_vline(xintercept = slider1[2], colour="blue", linetype = "dotted", size=1) +
+      geom_vline(xintercept = slider1[1], colour="blue", linetype = "dotted", size=1) 
+  }
+  
+  if (!is.null(slider2)) {
+    plot_object <- plot_object +
+      geom_vline(xintercept = slider2[2], colour="darkgreen", linetype = "dotted", size=1) +
+      geom_vline(xintercept = slider2[1], colour="darkgreen", linetype = "dotted", size=1) 
+  }
+  
+  if (!is.null(slider3)) {
+    plot_object <- plot_object +
+      geom_vline(xintercept = slider3[2], colour="red", linetype = "dotted", size=1) +
+      geom_vline(xintercept = slider3[1], colour="red", linetype = "dotted", size=1) 
+  }
+  
+  if (!is.null(slider4)) {
+    plot_object <- plot_object +
+      geom_vline(xintercept = slider4[2], colour="#00BBBB", linetype = "dotted", size=1) +
+      geom_vline(xintercept = slider4[1], colour="#00BBBB", linetype = "dotted", size=1) 
+  }
+  
+  return(plot_object)
+  
+}
+
 
 random_color_generator <- function(df_n) {
   
@@ -413,7 +443,7 @@ color_palette <- function(df, colors2000) {
 
 # Creating a subset for a single plot to display --------------------------------------------------
 
-display_single_plot <- function(df, cell_name, ready = T) {
+display_single_plot <- function(df, cell_name, ready = T, lines = F) {
 
   df <- time_col_name(df, name_only = T)
   
@@ -423,6 +453,12 @@ display_single_plot <- function(df, cell_name, ready = T) {
   
     return(ggplotly(plot))
   
+  } else if (lines == T) {
+    
+    plot <- ggplotly_render(df[c('Time', cell_name)], ready = FALSE)
+    
+    return(plot)
+    
   } else {
     
     return(df[c('Time', cell_name)])
@@ -716,6 +752,7 @@ return(as.data.frame(ampl_calculating))
 
 # Function finds the response-specific maximum for each trace 
 # and creates resulting list of indexes = response-specific maximums
+# "k" parameter stands for time in seconds for a moving window
 finding_local_maximum <- function(ts_table, k = 150) {
   
   # Correcting Time column if not Time and not first in the dataframe
@@ -749,6 +786,9 @@ finding_local_maximum <- function(ts_table, k = 150) {
   maxValues <- list()
   
   # Creating output list, for each trace name in moving maximum dataframe
+  # For Shiny R only
+  withProgress(message = "Calculating...", value = 0, {
+    count <- 0
   for (name in names(max_values)) {
     
     # sequence of maximum values for the current trace
@@ -773,8 +813,12 @@ finding_local_maximum <- function(ts_table, k = 150) {
     
     # Saving in the resulting dataframe
     maxValues[[name]] <- maximum_index
+    
+    # For Shiny R only
+    count <- count + 1
+    incProgress(1/length(names(max_values)), detail = paste("Processing trace", count))
   }
-  
+  })
   
   list_of_ids <- maxValues
   
@@ -797,15 +841,20 @@ finding_local_maximum <- function(ts_table, k = 150) {
 # Shifting curves (matching maximums)
 shift_to_match_maximum <- function(df_to_shift, difference) {
   
-
-  
+  # For Shiny R only
+  withProgress(message = "Shifting...", value = 0, {
+    count <- 0
   for (element in names(difference)) {
     
     df_to_shift[[element]] <- shift(df_to_shift[[element]], 
                                     n=difference[[element]], 
                                     type = 'lead')
-    
+    # For Shiny R only
+    count <- count + 1
+    incProgress(1/length(names(difference)), detail = paste("Shifting trace", count))
   }
+    
+  })
   
   return(df_to_shift)
 }
@@ -828,9 +877,14 @@ CCF_matrix <- function(df_to_shift, lower, upper, max_lag) {
   rownames(CCF_matrix) = colnames(subset_timerange)
   colnames(CCF_matrix) = colnames(subset_timerange)
   
-  
-  for (columnName in colnames(subset_timerange)) {
+  # For shiny R only
+  withProgress(message = "Calculating...", value = 0, {
     
+  count <- 0
+  len <- length(colnames(subset_timerange))
+    
+  for (columnName in colnames(subset_timerange)) {
+    count <- count + 1
     for (rowName in colnames(subset_timerange)) {
       mtrx <- ccf(subset_timerange[columnName], 
                   subset_timerange[rowName], 
@@ -841,8 +895,12 @@ CCF_matrix <- function(df_to_shift, lower, upper, max_lag) {
       lag_for_max_acf <- data_table$Lag[which.max(data_table$ACF)]
       CCF_matrix[rowName, columnName] = lag_for_max_acf
     }
+    
+    # For shiny R only
+    incProgress(1/len, detail = paste("Processing trace", count))
   }
   
+  })  
   return(CCF_matrix)
 } 
 
@@ -867,6 +925,8 @@ shift_with_CCF <- function(df_to_shift, CCF_matrix, max_lag) {
   column_sums <- colSums(CCF_matrix)
   left_trace_column <- names(which(column_sums == min(column_sums)))
   min_column_sums <- min(column_sums)
+  
+  
   
   for (nm in colnames(df_time)[-1]) {
     

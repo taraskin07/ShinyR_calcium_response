@@ -151,7 +151,7 @@ tabPanel("Preliminary analysis", # /level 1 - tabPanel Preliminary analysis
     # Sidebar panel for inputs: file input and preferences
     sidebarPanel(
       selectizeInput(
-        'legend_order', 'Choose how to order the plot legend:',
+        'legend_order', "Choose how to order the plot's legend:",
         choices = c('Native', 'Regex', 'Mixed', 'Mixed_revered'),
         selected = 'Native'
       ),
@@ -351,10 +351,15 @@ tabsetPanel(
   sidebarLayout(
     sidebarPanel(      
       selectizeInput(
-      'legend_order2', 'Choose how to order the plot legend:',
+      'legend_order2', "Choose how to order the plot's legend:",
       choices = c('Native', 'Regex', 'Mixed', 'Mixed_revered'),
       selected = 'Native'
     ),
+    
+
+    selectInput("peaks_amount", 'Amount of peaks', c(1,2,3,4), selectize=TRUE),
+    uiOutput("slider"),
+    
     
     actionButton("plot_all2", "Plot all graphs"),
     # Horizontal line
@@ -362,8 +367,7 @@ tabsetPanel(
     uiOutput("tabUI2"),
     actionButton("plot_single2", "Plot single graph"),    
     tags$hr(),
-    selectInput("peaks_amount", 'Amount of peaks', c(1,2,3,4), selectize=TRUE),
-    uiOutput("slider"),
+    
     
     verbatimTextOutput("verbatim", placeholder = TRUE),
       
@@ -515,33 +519,39 @@ sidebarLayout(
                                   selected = '',
                                   selectize = FALSE,
                                   multiple = FALSE),
+
+                      actionButton("plots_init_single", "Render single plot"),
+                      actionButton("plots_init_all", "Render all plots"),
                       tags$hr(),
-                      actionButton("plots_init_single", "Render single plot", width = "100%"),
-                      tags$br(),
-                      tags$br(),
-                      actionButton("plots_init_all", "Render all plots", width = "100%"),
-                      tags$hr(),
-                      numericInput("max_lag", "Enter maximum lag for CCF", 40),
-                      actionButton("shift_curves", "Shift the curves using CCF", width = "100%"),
-                      numericInput("response_window", "Enter response time: (sec)", 150),
-                      actionButton("shift_maximum", "Shift Maximum", width = "100%"),
-                      tags$hr(),
-                      actionButton("shift_reset", "Reset all shifting", width = "100%"),
-                      tags$hr(style= 'border-style: inset;'),
-                      actionButton("plots_shift_single", "Render single shifted plot", width = "100%"),
-                      tags$br(),
-                      tags$br(),
-                      actionButton("plots_shift_all", "Render all shifted plots", width = "100%"),
-                      tags$hr(style= 'border-style: inset;'),
                       tags$div(
-                        style = "text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;",
-                        switchInput(inputId = "plots_shift_omit",
-                                    label = "Omit NA values in columns",
-                                    value = FALSE, size = "normal", onStatus = "statusON",
-                                    offStatus = "statusOFF", onLabel = "omitted",
-                                    offLabel = "with NA", labelWidth = "auto",
-                                    width = "100%")
+                        div(style="display: inline-block; width: 59%;", numericInput("max_lag", "Enter maximum lag for CCF", 40)),
+                        div(style="display: inline-block; width: 40%;", actionButton("shift_curves", "Shift the curves using CCF", width = "100%"))
+                               ),
+                      tags$br('OR'),
+                      tags$br(),
+                      tags$div(
+                        
+
+                        div(style="display: inline-block; width: 59%;", numericInput("response_window", "Enter response time: (sec)", 150)),
+                        div(style="display: inline-block; width: 40%;", actionButton("shift_maximum", "Shift Maximum", width = "100%"))
+                        
                       ),
+
+                      tags$hr(),
+                      actionButton("shift_reset", "Reset all shifting"),
+                      tags$hr(style= 'border-style: inset;'),
+                      actionButton("plots_shift_single", "Render single shifted plot"),
+                      actionButton("plots_shift_all", "Render all shifted plots"),
+                      # tags$hr(style= 'border-style: inset;'),
+                      # tags$div(
+                      #   style = "text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;",
+                      #   switchInput(inputId = "plots_shift_omit",
+                      #               label = "Omit NA values in columns",
+                      #               value = FALSE, size = "normal", onStatus = "statusON",
+                      #               offStatus = "statusOFF", onLabel = "omitted",
+                      #               offLabel = "with NA", labelWidth = "auto",
+                      #               width = "100%")
+                      # ),
                       # actionButton("plots_shift_omit", "Omit NA values in columns (You can't undo this action)", width = "100%"),
                       
                       # Save SHIFTED curves as excel file
@@ -549,9 +559,23 @@ sidebarLayout(
                       tags$br('Save shifted curves as excel file'),
                       # DEBUGGING
                       verbatimTextOutput("read_sheets_value_out", placeholder = TRUE),
-                      downloadButton("SavePltsShift", "Save as excel file"),
+                      # downloadButton("SavePltsShift", "Save as excel file"),
   
-  
+                      tags$div(
+                        style = "display: flex; align-items: center;text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; height: 100%;",
+                        downloadButton("SavePltsShift", "Save as excel file", style = "height: 100%;"),
+                        div(
+                          style = "margin-top: 15px;margin-left: 30px;",
+                          switchInput(
+                            inputId = "plots_shift_omit",
+                            label = "Omit NA values in columns",
+                            value = FALSE, size = "normal", onStatus = "statusON",
+                            offStatus = "statusOFF", onLabel = "omitted",
+                            offLabel = "with NA", labelWidth = "auto",
+                            width = "100%"
+                          )
+                        )
+                      )
   
   
                       ), # 3 level - main layout with sidebar, sidebarPanel - Shifting curves / box 2
