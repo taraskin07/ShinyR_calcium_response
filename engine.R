@@ -36,7 +36,6 @@ customDT <- function(datatbl, scrollY = '850px') {
                                   scrollY = scrollY,
                                   selection = list(target = 'column'),
                                   search = list(smart = F)
-  
                                   )
                    )
          )
@@ -904,7 +903,7 @@ CCF_matrix <- function(df_to_shift, lower, upper, max_lag) {
   return(CCF_matrix)
 } 
 
-
+# For Shiny R interactive only
 shift_with_CCF <- function(df_to_shift, CCF_matrix, max_lag) {
   
   # Correcting Time column if not Time and not first in the dataframe
@@ -912,9 +911,11 @@ shift_with_CCF <- function(df_to_shift, CCF_matrix, max_lag) {
   
   if (max(CCF_matrix) == max_lag) {
     
-    
-    stop('Lag value for some trace is the same as the maximum lag value entered!
-\nYou should consider to increase the maximum lag value or use another algorithm at first!')
+    shinyalert(type = 'error', 
+               text = "Lag value for some trace is the same as the maximum lag value entered!\nYou should consider to increase the maximum lag value or use another algorithm!",
+               closeOnClickOutside = T,
+               showConfirmButton = T)
+
   }
   
   # Columns contain information about a trace that should be the reference (CCF < 0)

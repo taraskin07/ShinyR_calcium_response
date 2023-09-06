@@ -400,16 +400,6 @@ server <- function(input, output) {
 
 # Preliminary analysis/ 3d box, plots------------------------------------------------
 
-  # # Debugging------------------------------------------------
-  # output$inputValues <- renderPrint({
-  #   inputList <- reactiveValuesToList(input)
-  #   inputList
-  # })
-  
-  
-  
-  
-  
 # Rendering SelectInput for columns choosing process
   
     observeEvent(input$basicStat, {
@@ -1432,22 +1422,6 @@ server <- function(input, output) {
             ')
 
       
-      # runjs('
-      #       var otherButtonColor1 = document.getElementById("shift_maximum").style.backgroundColor;
-      #       
-      #       if (otherButtonColor1 === "red") {
-      #           document.getElementById("shift_maximum").style.backgroundColor = "";
-      #           }
-      #       ')
-      # 
-      # runjs('
-      #       var otherButtonColor2 = document.getElementById("shift_curves").style.backgroundColor;
-      # 
-      #       if (otherButtonColor2 === "red" ) {
-      #           document.getElementById("shift_curves").style.backgroundColor = "";
-      #           }
-      #       ')
-      
     })
     
     
@@ -1500,9 +1474,26 @@ server <- function(input, output) {
       output$lag_values_df_out <- DT::renderDataTable({
         req(input$read_sheets)
         req(input$sheets)
-        lag_values_df()
+        
+        datatable(
+          lag_values_df(),
+          options = list(
+            sDom = 'lrtip',
+            autoWidth = TRUE, 
+            paging = F,
+            scrollCollapse=T,
+            scrollX = T,
+            scrollY = '100px'
+          )
+        )
+        
       }) 
-          
+      
+      shinyalert(type = 'success', 
+                 text = "Shifted!",
+                 closeOnClickOutside = T,
+                 timer = 1500,
+                 showConfirmButton = F)
     }) 
     
     observeEvent(input$shift_maximum, {
@@ -1548,10 +1539,26 @@ server <- function(input, output) {
       output$lag_values_df_out <- DT::renderDataTable({
         req(input$read_sheets)
         req(input$sheets)
-        as.data.frame(lag_values_df())
+        lag_values_df <- t(as.data.frame(lag_values_df()))
+        rownames(lag_values_df) <- NULL
+        datatable(
+          lag_values_df,
+          options = list(
+            sDom = 'lrtip',
+            autoWidth = TRUE, 
+            paging = F,
+            scrollCollapse=T,
+            scrollX = T
+          )
+        )
+        
       }) 
       
-      
+      shinyalert(type = 'success', 
+                 text = "Shifted!",
+                 closeOnClickOutside = T,
+                 timer = 1500,
+                 showConfirmButton = F)
     }) 
 
     
@@ -1610,14 +1617,9 @@ server <- function(input, output) {
       
     }, ignoreNULL = FALSE)
     
+    
     # Save SHIFTED curves as excel file
-    
 
-# DEBUGGING ---------------------------------------------------------------
-    output$read_sheets_value_out <- renderPrint({input$plots_shift_omit})
-    
-    
-    
     output$SavePltsShift <- downloadHandler(
       filename = function() {filename(input$read_sheets$name, "Shifted.xlsx")},
       content = function(file) {
@@ -1641,7 +1643,7 @@ server <- function(input, output) {
 
     shifted_average <- eventReactive(eventExpr = {input$plots_average_shifted}, valueExpr = {
 
-      df_t <- time_col_name(shifted_df())
+      df_t <- time_col_name(shifted_dataframe())
       
       df_t <- df_t %>% 
         add_column(Average = rowMeans(df_t[-grep('^Time$', colnames(df_t))]))
@@ -1649,27 +1651,22 @@ server <- function(input, output) {
       return(df_t)
       
       
-      }) # shifted_average / eventReactive
+      }) 
 
 
     # Rendering lower plot for shifted average
     observeEvent(input$plots_average_shifted, {
       
       output$plot_average_lower <- renderPlotly({
-        req(shifted_df())
+        req(shifted_dataframe())
         
         
-        ggplotly_render(shifted_average()[, c('Time', 'Average')], 
-                        baseline = T, 
-                        b_min = input$min_t_shift, 
-                        b_max = input$max_t_shift, 
-                        region = T, 
-                        r_min = input$start_t_shift, 
-                        r_max = input$end_t_shift)
-        }) # output$plot_average_lower
+        ggplotly_render(shifted_average()[, c('Time', 'Average')])
+        
+        })
       
       
-    }) # /level 1, observeEvent input$plots_average_shifted
+    }) 
     
     
     # Initial Average
@@ -1684,7 +1681,7 @@ server <- function(input, output) {
       return(df_t)
       
       
-    }) # shifted_average / eventReactive
+    }) 
     
     
     # Rendering lower plot for shifted average
@@ -1694,18 +1691,12 @@ server <- function(input, output) {
         req(dt_to_shift())
         
         
-        ggplotly_render(init_average()[, c('Time', 'Average')], 
-                        baseline = T, 
-                        b_min = input$min_t_shift, 
-                        b_max = input$max_t_shift, 
-                        region = T, 
-                        r_min = input$start_t_shift, 
-                        r_max = input$end_t_shift)
+        ggplotly_render(init_average()[, c('Time', 'Average')])
       
-        }) # output$plot_average_upper
+        }) 
       
       
-    }) # /level 1, observeEvent input$plots_average_init
+    })
     
     
     
