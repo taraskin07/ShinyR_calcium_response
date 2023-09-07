@@ -1072,8 +1072,11 @@ server <- function(input, output) {
                         rcolor = color_palette(df_ratio_clean(), rmcellValues$colors2000),
                         sorting = input$legend_order2,
                         baseline = T, 
-                        b_min = 0, 
-                        b_max = 120, 
+                        b_min = input$min_time, 
+                        b_max = input$max_time,
+                        region = T, 
+                        r_min = input$start_time, 
+                        r_max = input$end_time,
                         ready = FALSE
                         )
         
@@ -1090,8 +1093,11 @@ server <- function(input, output) {
                         rcolor = color_palette(df_Num_clean(), rmcellValues$colors2000),
                         sorting = input$legend_order2,
                         baseline = T, 
-                        b_min = 0, 
-                        b_max = 120, 
+                        b_min = input$min_time, 
+                        b_max = input$max_time,
+                        region = T, 
+                        r_min = input$start_time, 
+                        r_max = input$end_time,
                         ready = FALSE
         )
         
@@ -1108,8 +1114,11 @@ server <- function(input, output) {
                         rcolor = color_palette(df_Den_clean(), rmcellValues$colors2000),
                         sorting = input$legend_order2,
                         baseline = T, 
-                        b_min = 0, 
-                        b_max = 120, 
+                        b_min = input$min_time, 
+                        b_max = input$max_time, 
+                        region = T, 
+                        r_min = input$start_time, 
+                        r_max = input$end_time,
                         ready = FALSE
         )
         
@@ -1126,8 +1135,11 @@ server <- function(input, output) {
                         rcolor = color_palette(df_custom_ratio_clean(), rmcellValues$colors2000),
                         sorting = input$legend_order2,
                         baseline = T, 
-                        b_min = 0, 
-                        b_max = 120, 
+                        b_min = input$min_time, 
+                        b_max = input$max_time,
+                        region = T, 
+                        r_min = input$start_time, 
+                        r_max = input$end_time,
                         ready = FALSE
         )
         
@@ -1163,7 +1175,7 @@ server <- function(input, output) {
       output$plotNum2 <- renderPlotly({
         req(df_Num_clean())
         
-        plot_object <- display_single_plot(df_Num_clean(), input$numInput2)
+        plot_object <- display_single_plot(df_Num_clean(), input$numInput2, ready = F, lines = T)
         pl <- plot_wrapper(plot_object, input$slider_output1, input$slider_output2, input$slider_output3, input$slider_output4)
         
         return(ggplotly(pl))
@@ -1174,7 +1186,7 @@ server <- function(input, output) {
       output$plotDen2 <- renderPlotly({
         req(df_Den_clean())
         
-        plot_object <- display_single_plot(df_Den_clean(), input$denInput2)
+        plot_object <- display_single_plot(df_Den_clean(), input$denInput2, ready = F, lines = T)
         pl <- plot_wrapper(plot_object, input$slider_output1, input$slider_output2, input$slider_output3, input$slider_output4)
         
         return(ggplotly(pl))
@@ -1185,7 +1197,7 @@ server <- function(input, output) {
       output$plot_custom_ratio2 <- renderPlotly({
         req(df_custom_ratio_clean())
         
-        plot_object <- display_single_plot(df_custom_ratio_clean(), input$customRatioInput2)
+        plot_object <- display_single_plot(df_custom_ratio_clean(), input$customRatioInput2, ready = F, lines = T)
         pl <- plot_wrapper(plot_object, input$slider_output1, input$slider_output2, input$slider_output3, input$slider_output4)
         
         return(ggplotly(pl))
@@ -1277,6 +1289,26 @@ server <- function(input, output) {
     })    
     
     
+    
+    # To take into account excluded cells and calculate hao many bad cells are 
+    df_excluded_cells_list <- eventReactive(eventExpr = {input$clean_file},
+                                            valueExpr = {
+                                              req(input$clean_file)
+                                              
+                                              sheet_names <- excel_sheets(input$clean_file$datapath)
+                                              
+                                              if ('excluded_cells' %in% sheet_names) {
+                                                # If 'excluded_cells' sheet exists, read it
+                                                df <- read_excel(input$clean_file$datapath, sheet = 'excluded_cells')
+                                              } else {
+                                                # If 'excluded_cells' sheet doesn't exist, create an empty dataframe
+                                                df <- data.frame()
+                                              }
+
+                                              return(df)
+                                            })
+    
+    
 # Summary for amplitudes
     
     # Num
@@ -1308,22 +1340,50 @@ server <- function(input, output) {
                                     })
     
     
-# Save DATA ANALIZING AMPLITUDES as excel file
+# Save DATA ANALIZING AMPLITUDES as excel file-----------------------------------------------
     
     output$SaveXlsAmpl <- downloadHandler(
-      filename = function() {filename(input$dataTS, "Amplitudes.xlsx")},
-      content = function(file) {write_xlsx(list('Numerator'=df_Num_amplitude(), 
-                                                'Denominator'=df_Den_amplitude(), 
-                                                'Ratio' = df_ratio_amplitude(), 
-                                                'custom_ratio' = df_custom_ratio_amplitude(),
-                                                'Num_summary' = df_Num_summary(),
-                                                'Den_summary' = df_Den_summary(),
-                                                'Ratio_summary' = df_ratio_summary(),
-                                                'Custom_ratio_summary' = df_custom_ratio_summary()
-                                                ), path = file)}
-    )
-    
-    
+      filename = function() {filename(input$clean_file, "Amplitudes.xlsx")},
+      content = function(file) {
+        
+        wb <- createWorkbook()
+        
+        if (input$clRatio) {
+          sheet1 <- addWorksheet(wb, sheetName = "Ratio")
+          writeDataTable(wb, sheet1, df_ratio_amplitude())
+          
+          sheet2 <- addWorksheet(wb, sheetName = "Ratio_summary")
+          writeDataTable(wb, sheet2, df_ratio_summary())
+        }
+        
+        if (input$clNum) {
+          sheet3 <- addWorksheet(wb, sheetName = "Numerator")
+          writeDataTable(wb, sheet3, df_Num_amplitude())
+          
+          sheet4 <- addWorksheet(wb, sheetName = "Num_summary")
+          writeDataTable(wb, sheet4, df_Num_summary())
+        }
+        
+        if (input$clDen) {
+          sheet5 <- addWorksheet(wb, sheetName = "Denominator")
+          writeDataTable(wb, sheet5, df_Den_amplitude())
+          
+          sheet6 <- addWorksheet(wb, sheetName = "Den_summary")
+          writeDataTable(wb, sheet6, df_Den_summary())
+        }
+        
+        
+        if (input$clNum & input$clDen) {
+          sheet7 <- addWorksheet(wb, sheetName = "custom_ratio")
+          writeDataTable(wb, sheet7, df_custom_ratio_amplitude())
+          
+          sheet8 <- addWorksheet(wb, sheetName = "Custom_ratio_summary")
+          writeDataTable(wb, sheet8, df_custom_ratio_summary())
+        }
+        
+        saveWorkbook(wb, file)
+        
+        })
     
 
 # Shifting curves / box 1 ---------------------------------------------------------

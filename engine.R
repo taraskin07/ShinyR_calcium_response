@@ -19,7 +19,8 @@ library(data.table)
 library(shinyWidgets)
 library(shinyShortcut)
 library(shinyalert)
-library(shinyjs)})
+library(shinyjs)
+library(formatR)})
 
 # source('modules.R')
 
@@ -636,7 +637,7 @@ find_amplitude <- function(clean_df, min_time, max_time, start_time, end_time) {
 
 
 
-find_amplitude_380 <- function(clean_df, min_time, max_time, start_time, end_time) {
+find_amplitude_Den <- function(clean_df, min_time, max_time, start_time, end_time) {
   
   # Obtaining long-format dataframe
   df_long <- clean_df %>% 
