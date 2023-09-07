@@ -14,10 +14,13 @@ library(gtools)
 library(tidyverse)
 library(DescTools)
 library(randomcoloR)
+library(zoo)
+library(data.table)
 library(shinyWidgets)
 library(shinyShortcut)
 library(shinyalert)
-library(shinyjs)})
+library(shinyjs)
+library(formatR)})
 
 # source('modules.R')
 
@@ -34,7 +37,6 @@ customDT <- function(datatbl, scrollY = '850px') {
                                   scrollY = scrollY,
                                   selection = list(target = 'column'),
                                   search = list(smart = F)
-  
                                   )
                    )
          )
@@ -370,6 +372,36 @@ ggplotly_render <- function(df_n,
   
 }
 
+plot_wrapper <- function(plot_object, slider1, slider2, slider3, slider4) {
+  
+  if (!is.null(slider1)) {
+    plot_object <- plot_object +
+      geom_vline(xintercept = slider1[2], colour="blue", linetype = "dotted", size=1) +
+      geom_vline(xintercept = slider1[1], colour="blue", linetype = "dotted", size=1) 
+  }
+  
+  if (!is.null(slider2)) {
+    plot_object <- plot_object +
+      geom_vline(xintercept = slider2[2], colour="darkgreen", linetype = "dotted", size=1) +
+      geom_vline(xintercept = slider2[1], colour="darkgreen", linetype = "dotted", size=1) 
+  }
+  
+  if (!is.null(slider3)) {
+    plot_object <- plot_object +
+      geom_vline(xintercept = slider3[2], colour="red", linetype = "dotted", size=1) +
+      geom_vline(xintercept = slider3[1], colour="red", linetype = "dotted", size=1) 
+  }
+  
+  if (!is.null(slider4)) {
+    plot_object <- plot_object +
+      geom_vline(xintercept = slider4[2], colour="#00BBBB", linetype = "dotted", size=1) +
+      geom_vline(xintercept = slider4[1], colour="#00BBBB", linetype = "dotted", size=1) 
+  }
+  
+  return(plot_object)
+  
+}
+
 
 random_color_generator <- function(df_n) {
   
@@ -411,13 +443,27 @@ color_palette <- function(df, colors2000) {
 
 # Creating a subset for a single plot to display --------------------------------------------------
 
-display_single_plot <- function(df, cell_name) {
+display_single_plot <- function(df, cell_name, ready = T, lines = F) {
 
   df <- time_col_name(df, name_only = T)
   
-  plot <- ggplotly_render(df[c('Time', cell_name)], ready = T)
+  if (ready == T) {
+    
+    plot <- ggplotly_render(df[c('Time', cell_name)], ready = ready)
   
-  return(ggplotly(plot))
+    return(ggplotly(plot))
+  
+  } else if (lines == T) {
+    
+    plot <- ggplotly_render(df[c('Time', cell_name)], ready = FALSE)
+    
+    return(plot)
+    
+  } else {
+    
+    return(df[c('Time', cell_name)])
+    
+    }
   
 }
 
@@ -464,6 +510,8 @@ finding_cell_name <- function(data, number){
   if (length(cell_name)>1) {stop("More than one column with similar name!")}
   return(cell_name)}
 
+
+# ERASE LATER -------------------------------------------------------------
 
 # get_col_names alternative
 
@@ -589,7 +637,7 @@ find_amplitude <- function(clean_df, min_time, max_time, start_time, end_time) {
 
 
 
-find_amplitude_380 <- function(clean_df, min_time, max_time, start_time, end_time) {
+find_amplitude_Den <- function(clean_df, min_time, max_time, start_time, end_time) {
   
   # Obtaining long-format dataframe
   df_long <- clean_df %>% 
@@ -702,8 +750,203 @@ return(as.data.frame(ampl_calculating))
 # Shifting curves ---------------------------------------------------------
 
 
+# Function finds the response-specific maximum for each trace 
+# and creates resulting list of indexes = response-specific maximums
+# "k" parameter stands for time in seconds for a moving window
+finding_local_maximum <- function(ts_table, k = 150) {
+  
+  # Correcting Time column if not Time and not first in the dataframe
+  dfts <- time_col_name(ts_table, name_only = T)
+  
+  # Creating k=step value
+  timeStep <- unique(diff(dfts$Time))
+  
+  if (length(timeStep) != 1) {
+    stop('Check the Time column step! It should be equal!')
+  }
+  
+  k <- k/timeStep
+  
+  # Values from the dataframe without Time column
+  values <- as_tibble(dfts[-1])
+  
+  # Moving average for each trace, k stands for window based on index value
+  means <- as_tibble(rollmean(dfts[-1], k=k))
+  
+  # Moving maximum with the same window value
+  max_values <- as_tibble(rollmax(dfts[-1], k=k))
+  
+  # Second derivative to find local maximum regions
+  derivative2 <- lapply(means, Compose, diff, sign, diff)
+  
+  # Local maximum regions (starting point)
+  indexes <- lapply(derivative2, function(x) which(x==-2))
+  
+  # Output list of traces with time values, representing maximum - response
+  maxValues <- list()
+  
+  # Creating output list, for each trace name in moving maximum dataframe
+  # For Shiny R only
+  withProgress(message = "Calculating...", value = 0, {
+    count <- 0
+  for (name in names(max_values)) {
+    
+    # sequence of maximum values for the current trace
+    value <- max_values[[name]]
+    
+    # sequence of indexes, representing the starting points of local maximum regions (current trace)
+    index <- indexes[[name]]
+    
+    # finding which index gives the maximum value, so local maximum is the response
+    index_for_max <- which.max(value[index])
+    
+    
+    # Slice for region of interest
+    row_indexes_for_max <- index[index_for_max]:(index[index_for_max]+k)
+    
+    # Obtaining values for the current trace
+    current_column <- values[[name]]
+    
+    # Index, that represents maximum value for the response
+    maximum_index <- index[index_for_max] + 
+      which.max(current_column[row_indexes_for_max]) - 1
+    
+    # Saving in the resulting dataframe
+    maxValues[[name]] <- maximum_index
+    
+    # For Shiny R only
+    count <- count + 1
+    incProgress(1/length(names(max_values)), detail = paste("Processing trace", count))
+  }
+  })
+  
+  list_of_ids <- maxValues
+  
+  
+  # Establishing the earliest maximum among all the traces
+  lowest_value <- min(unlist(list_of_ids))
+  
+  # And its name
+  trace_name <- names(which.min(unlist(list_of_ids)))
+  
+  # Creating list of lag values as compared to the one with the earliest maximum
+  difference <- sapply(list_of_ids, function(x) x-lowest_value)
+  
+  
+  
+  return(difference)
+  
+}
+
+# Shifting curves (matching maximums)
+shift_to_match_maximum <- function(df_to_shift, difference) {
+  
+  # For Shiny R only
+  withProgress(message = "Shifting...", value = 0, {
+    count <- 0
+  for (element in names(difference)) {
+    
+    df_to_shift[[element]] <- shift(df_to_shift[[element]], 
+                                    n=difference[[element]], 
+                                    type = 'lead')
+    # For Shiny R only
+    count <- count + 1
+    incProgress(1/length(names(difference)), detail = paste("Shifting trace", count))
+  }
+    
+  })
+  
+  return(df_to_shift)
+}
+
+
+
+# Shifting curves (CCF)
+CCF_matrix <- function(df_to_shift, lower, upper, max_lag) {
+  
+  # Correcting Time column if not Time and not first in the dataframe
+  df_time <- time_col_name(df_to_shift, name_only = T)
+  
+  # Subsetting according the range (lower-upper)
+  subset_timerange <- as.data.frame(subset(df_time, (Time >= lower & Time <= upper)))[-1]
+  
+  # Creating CCF matrix
+  CCF_matrix = matrix(numeric(), 
+                      nrow = ncol(subset_timerange), 
+                      ncol = ncol(subset_timerange))
+  rownames(CCF_matrix) = colnames(subset_timerange)
+  colnames(CCF_matrix) = colnames(subset_timerange)
+  
+  # For shiny R only
+  withProgress(message = "Calculating...", value = 0, {
+    
+  count <- 0
+  len <- length(colnames(subset_timerange))
+    
+  for (columnName in colnames(subset_timerange)) {
+    count <- count + 1
+    for (rowName in colnames(subset_timerange)) {
+      mtrx <- ccf(subset_timerange[columnName], 
+                  subset_timerange[rowName], 
+                  lag.max = max_lag, 
+                  na.action=na.omit, 
+                  plot=FALSE)
+      data_table <- data.frame(ACF=mtrx$acf, Lag=mtrx$lag)
+      lag_for_max_acf <- data_table$Lag[which.max(data_table$ACF)]
+      CCF_matrix[rowName, columnName] = lag_for_max_acf
+    }
+    
+    # For shiny R only
+    incProgress(1/len, detail = paste("Processing trace", count))
+  }
+  
+  })  
+  return(CCF_matrix)
+} 
+
+# For Shiny R interactive only
+shift_with_CCF <- function(df_to_shift, CCF_matrix, max_lag) {
+  
+  # Correcting Time column if not Time and not first in the dataframe
+  df_time <- time_col_name(df_to_shift, name_only = T)
+  
+  if (max(CCF_matrix) == max_lag) {
+    
+    shinyalert(type = 'error', 
+               text = "Lag value for some trace is the same as the maximum lag value entered!\nYou should consider to increase the maximum lag value or use another algorithm!",
+               closeOnClickOutside = T,
+               showConfirmButton = T)
+
+  }
+  
+  # Columns contain information about a trace that should be the reference (CCF < 0)
+  # So minimum in CCF_matrix == reference
+  # Rows for the case when CCF > 0
+  # So maximum in CCF_matrix == reference
+  
+  column_sums <- colSums(CCF_matrix)
+  left_trace_column <- names(which(column_sums == min(column_sums)))
+  min_column_sums <- min(column_sums)
+  
+  
+  
+  for (nm in colnames(df_time)[-1]) {
+    
+    df_time[[nm]] <- shift(df_time[[nm]], 
+                           n = CCF_matrix[nm, left_trace_column])
+  }
+  
+  
+  return(df_time)
+  
+}
+
+
+
+
+
 # Basic function to determine lag and its sign between two series of values
-shift <- function(maximum_after, maximum_before, max_lag) {
+lag_and_sign <- function(maximum_after, maximum_before, max_lag) {
   
   # Cross-correlation function, omits any NA values and skip plot rendering
   mtrx <- ccf(maximum_after, maximum_before, lag.max = max_lag, na.action=na.omit, plot=FALSE)
@@ -720,18 +963,11 @@ shift <- function(maximum_after, maximum_before, max_lag) {
 }
 
 
-# Borrowed function to add columns with different length to dataframe (empty values are NA) 
-cbind.fill <- function(...){
-  nm <- list(...) 
-  nm <- lapply(nm, as.matrix)
-  n <- max(sapply(nm, nrow)) 
-  do.call(cbind, lapply(nm, function (x) 
-    rbind(x, matrix(, n-nrow(x), ncol(x))))) 
-}
 
 
 
-# Function to find curve with maximum that is closer to the left (earlier time) and shift the reference to it
+
+# Function to find curve with maximum that is closer to the left (earlier time) and lag_and_sign the reference to it
 finding_shifted_curve <- function(df, main_cell_number, lower, upper, max_lag) {
   
   # Fixing the 'Time' column if necessary
@@ -764,7 +1000,7 @@ finding_shifted_curve <- function(df, main_cell_number, lower, upper, max_lag) {
   # Finding the cell with the earliest maximum, skipping the Time column (coln_df instead of list_of_names)
   for (cell in coln_df) {
     
-    if (shift(subset_timerange[, cell], subset_timerange[, reference], max_lag) < 0) {
+    if (lag_and_sign(subset_timerange[, cell], subset_timerange[, reference], max_lag) < 0) {
       # print(paste0('7    ',cell))
       reference <- cell
       
@@ -775,7 +1011,7 @@ finding_shifted_curve <- function(df, main_cell_number, lower, upper, max_lag) {
   
   # Shifting main series to the left in order to correlate with the reference (with the earliest maximum)
   # Position of the maximum CCF (ACF) value = lag to choose
-  lag_for_max_acf <- shift(subset_timerange[, main_cell], subset_timerange[, reference], max_lag)
+  lag_for_max_acf <- lag_and_sign(subset_timerange[, main_cell], subset_timerange[, reference], max_lag)
   # print(lag_for_max_acf)
   # print(length(subset_timerange[, main_cell]))
   
@@ -819,7 +1055,7 @@ shifting_curves <- function(df, shifted_main_cell_values, lower, upper, max_lag,
   
   for (cell in coln_df) {
     
-    lag_for_max_acf <- shift(subset_timerange[, cell], shifted_main_cell_values, max_lag)
+    lag_for_max_acf <- lag_and_sign(subset_timerange[, cell], shifted_main_cell_values, max_lag)
     
 
     
@@ -873,7 +1109,7 @@ shifting_curves_info <- function(lag_data, df, shifted_main_cell_values, lower, 
   
   for (cell in coln_df) {
     
-    lag_for_max_acf <- shift(subset_timerange[, cell], shifted_main_cell_values, max_lag)
+    lag_for_max_acf <- lag_and_sign(subset_timerange[, cell], shifted_main_cell_values, max_lag)
     # print(paste0('Lag for ', cell, ': ', lag_for_max_acf))
     df_to_merge <- data.frame(A = cell, B = lag_for_max_acf)
 
@@ -1082,6 +1318,8 @@ replace_columns_in_dfs <- function(df_full, df_part) {
 }
 
 
+# Miscellaneous -----------------------------------------------------------
+
 
 # Opposite to intersect() function
 
@@ -1091,6 +1329,29 @@ outersect <- function(x, y, ...) {
   setdiff(big.vec, unique(duplicates))
 }
 
+# Compose function for lapply
+
+Compose <- function(x, ...)
+{
+  lst <- list(...)
+  for(i in rev(seq_along(lst)))
+    x <- lst[[i]](x)
+  x
+}
+
+
+# Borrowed function to add columns with different length to dataframe (empty values are NA) 
+cbind.fill <- function(...){
+  nm <- list(...) 
+  nm <- lapply(nm, as.matrix)
+  n <- max(sapply(nm, nrow)) 
+  do.call(cbind, lapply(nm, function (x) 
+    rbind(x, matrix(, n-nrow(x), ncol(x))))) 
+}
+
+
+
+# Rotation ----------------------------------------------------------------
 
 
 # Rotating every single plot one by one
@@ -1263,40 +1524,3 @@ polygon_function <- function(df_rotated, r_min, r_max, averb) {
 
 
 
-
-# polygon_function <- function(df_rotated, r_min, r_max, region, averb) {
-#   
-#   df_rotated <- time_col_name(df_rotated)
-#   init_name <- colnames(df_rotated)[2]
-#   colnames(df_rotated)[2] <- 'Current'
-#   
-#   area <- subset(df_rotated, (Time < (r_min + region) & Time > (r_min - region)))
-#   
-#   y <- averb
-#   y2 <-  min(area[area$Current > averb, ]['Current'])
-#   y1 <-  max(area[area$Current <= averb, ]['Current'])
-#   
-#   x1 <- area[area$Current == y1, ][["Time"]]
-#   x2 <- area[area$Current == y2, ][["Time"]]
-#   
-#   x <- x1+(y-y1)*(x2-x1)/(y2-y1)
-#   
-#   subset_poly <- subset(df_rotated, (Time <= r_max & Time >= r_min))
-#   
-#   polygonX <- subset_poly$Time
-#   polygonY <- subset_poly$Current
-#   
-#   
-#   polygonX <- c(polygonX, r_max, r_min)
-#   polygonY <- c(polygonY, y, y)
-#   
-#   
-#   polygonX <- c(polygonX, rep(x, length.out=(nrow(df_rotated)-length(polygonX))))
-#   polygonY <- c(polygonY, rep(y, length.out=(nrow(df_rotated)-length(polygonY))))
-#   
-#   data_poly <- data.frame(X=polygonX, Y=polygonY)
-#   polyX <- rep(polygonX, length.out=nrow(df_rotated))
-#   
-#   return(geom_polygon(mapping=aes(polygonX, polygonY), fill = 'green'))
-# }
-# 
