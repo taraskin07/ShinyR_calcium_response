@@ -400,16 +400,6 @@ server <- function(input, output) {
 
 # Preliminary analysis/ 3d box, plots------------------------------------------------
 
-  # # Debugging------------------------------------------------
-  # output$inputValues <- renderPrint({
-  #   inputList <- reactiveValuesToList(input)
-  #   inputList
-  # })
-  
-  
-  
-  
-  
 # Rendering SelectInput for columns choosing process
   
     observeEvent(input$basicStat, {
@@ -549,7 +539,7 @@ server <- function(input, output) {
     
 # Button to obtain new dataframes without bad cells information    
     
-    
+
     # Now creating reactive values list of cells to exclude
     rmcellValues <- reactiveValues()
     
@@ -685,9 +675,6 @@ server <- function(input, output) {
 
 # New dataframes without excluded column names
     
-    
-    
-    
     observeEvent(input$new_dataframes,{
       
       req(df_ratio_excluded())
@@ -815,85 +802,76 @@ server <- function(input, output) {
       })
     
 
-# Debugging section -------------------------------------------------------
 
-      output$df_Num_ready_db <- DT::renderDataTable({
-        req(input$dataTS)
-        req(input$cNum)
-        req(input$new_dataframes)
-        df_Num_ready()
-        }) 
-      
-      
-      output$df_Num_excluded_db <- DT::renderDataTable({
-        req(input$dataTS)
-        req(input$cNum)
-        req(input$new_dataframes)
-        df_Num_excluded()
-      })
-      
-      
-      output$rmcellValues_cList <- renderPrint({
-        rmcellValues$cList
-      })
     
     
 
 # Analyzing amplitude -----------------------------------------------------    
     
     
-# All 4 tables of CLEAN DATA rendering
-    
-
-    # Num
-
-    df_Num_clean <- eventReactive(eventExpr = {input$clean_file
-      input$clNum},
-                    valueExpr = {
-                      req(input$clean_file)
-                      req(input$clNum)
-                      read_excel(input$clean_file$datapath,
-                                 sheet='Numerator')
-                      })
-    
-    output$cl_Num <- DT::renderDataTable({
-      req(input$clean_file)
-      req(input$clNum)
-      df_Num_clean()
-                                            }) # level 1 - output$cl_Num
-    
-
-    # Den
-
-    df_Den_clean <- eventReactive(eventExpr = {input$clean_file
-      input$clDen},
-      valueExpr = {
-        req(input$clean_file)
-        req(input$clDen)
-        read_excel(input$clean_file$datapath,
-                   sheet='Denominator')
+# Reading sheet names in Excel file
+      
+      sheets_in_a_clean_file <-  eventReactive(eventExpr = {input$clean_file},
+                                             valueExpr ={
+                                               excel_sheets(input$clean_file$datapath)
+                                             })
+      
+# Following the user's choice for sheets to process
+      
+      observe({
         
-      }
-    ) 
-    
-    
-    output$cl_Den <- DT::renderDataTable({
-      req(input$clean_file)
-      req(input$clDen)
-      df_Den_clean()
-    }) 
-    
-    
-
+        if (input$clRatio == F) {
+          shinyjs::disable("sheetClRatio")
+        } else if (input$clRatio == T) {
+          shinyjs::enable("sheetClRatio")
+        }
+        if (input$clNum == F) {
+          shinyjs::disable("sheetClNum")
+        } else if (input$clNum == T) {
+          shinyjs::enable("sheetClNum")
+        }
+        if (input$clDen == F) {
+          shinyjs::disable("sheetClDen")
+        } else if (input$clDen == T) {
+          shinyjs::enable("sheetClDen")
+        }
+      })
+      
+      
+# Suggesting sheets and updating input information 
+      
+      observeEvent(input$clean_file, {
+        
+        updateSelectInput(inputId = 'sheetClRatio',
+                          choices = sheets_in_a_clean_file(),
+                          selected = str_extract(sheets_in_a_clean_file(), '^[Rr]atio$')
+        )
+        
+        updateSelectInput(inputId = 'sheetClNum',
+                          choices = sheets_in_a_clean_file(),
+                          selected = str_extract(sheets_in_a_clean_file(), '^340$')
+        )
+        
+        updateSelectInput(inputId = 'sheetClDen',
+                          choices = sheets_in_a_clean_file(),
+                          selected = str_extract(sheets_in_a_clean_file(), '^380$')
+        )
+        
+      })
+      
+      
+# All 4 tables of CLEAN DATA rendering
+      
+      
+      
     # Ratio 
-
-    df_ratio_clean <- eventReactive(eventExpr = {input$clean_file
-      input$clRatio},
+    df_ratio_clean <- eventReactive(eventExpr = {input$sheetClRatio
+      input$clean_file},
       valueExpr = {
         req(input$clean_file)
         req(input$clRatio)
         read_excel(input$clean_file$datapath,
-                   sheet='ratio')
+                   sheet=input$sheetClRatio)
         
       }
     ) 
@@ -903,17 +881,49 @@ server <- function(input, output) {
       req(input$clean_file)
       req(input$clRatio)
       df_ratio_clean()
-    }) 
-
+    })     
 
     
-    # Custom Ratio 
+    # Num
+    df_Num_clean <- eventReactive(eventExpr = {input$sheetClNum},
+                    valueExpr = {
+                      req(input$clean_file)
+                      read_excel(input$clean_file$datapath,
+                                 sheet=input$sheetClNum)
+                      })
     
-    df_custom_ratio_clean <- eventReactive(eventExpr = {input$clean_file},
+    output$cl_Num <- DT::renderDataTable({
+      req(input$clean_file)
+      req(input$clNum)
+      df_Num_clean()
+                                            }) 
+    
+
+    # Den
+    df_Den_clean <- eventReactive(eventExpr = {input$sheetClDen},
       valueExpr = {
         req(input$clean_file)
         read_excel(input$clean_file$datapath,
-                   sheet='custom_ratio')
+                   sheet=input$sheetClDen)
+      }
+    ) 
+    
+    
+    output$cl_Den <- DT::renderDataTable({
+      req(input$clean_file)
+      req(input$clDen)
+      df_Den_clean()
+    }) 
+
+    
+    # Custom Ratio 
+    df_custom_ratio_clean <- eventReactive(eventExpr = {input$sheetClNum
+                                                        input$sheetClDen},
+      valueExpr = {
+        req(input$clean_file)
+        req(input$clDen)
+        req(input$clNum)
+        custom_ratio(df_Num_clean(), df_Den_clean())
         
       }
     ) 
@@ -927,18 +937,281 @@ server <- function(input, output) {
     })    
    
     
-# Excluded cells    
-    df_excluded_cells_list <- eventReactive(eventExpr = {input$clean_file},
-                                            valueExpr = {
-                                              req(input$clean_file)
-                                              read_excel(input$clean_file$datapath,
-                                                         sheet='excluded_cells')
-                                              }) # level 1 - df_excluded_cells_list  
     
-    # Calculating amplitudes
+    observeEvent(input$clean_file, {
+      
+      output$tabUI2 <- renderUI({
+        
+        if (input$tab2 == "R") {
+          selectInput("ratioInput2", "Ratio cells names", 
+                      choices = colnames(df_ratio_clean())[!grepl("^[Tt]ime", colnames(df_ratio_clean()))], 
+                      selectize = FALSE, 
+                      selected = shiny::isolate(input$ratioInput2))
+          
+        } else if (input$tab2 == "N") {
+          selectInput("numInput2", "Numerator cells names", 
+                      choices = colnames(df_Num_clean())[!grepl("^[Tt]ime", colnames(df_Num_clean()))], 
+                      selectize = FALSE, 
+                      selected = shiny::isolate(input$numInput2))
+          
+        } else if (input$tab2 == "D") {
+          selectInput("denInput2", "Denominator cells names", 
+                      choices = colnames(df_Den_clean())[!grepl("^[Tt]ime", colnames(df_Den_clean()))], 
+                      selectize = FALSE, 
+                      selected = shiny::isolate(input$denInput2))
+          
+        } else if (input$tab2 == "ND") {
+          selectInput("customRatioInput2", "Num/Den cells names", 
+                      choices = colnames(df_custom_ratio_clean())[!grepl("^[Tt]ime", colnames(df_custom_ratio_clean()))], 
+                      selectize = FALSE, 
+                      selected = shiny::isolate(input$customRatioInput2)
+          )
+        }
+        
+        
+      })
+      
+      time_column_name <- reactive({
+        df_ratio_clean()[grepl("^[Tt]ime", colnames(df_ratio_clean()))]
+        })
+      
+      
+      
+      output$slider <- renderUI({
+        
+        min_time <- min(time_column_name())
+        
+        max_time <- max(time_column_name())
+        
+        quater <- round((max_time - min_time)/4, digits =0)
+        
+        
+        if (input$peaks_amount == 1) {
+          
+          sliderInput("slider_output1", "Range 1:",
+                      min = min_time, max = max_time,
+                      value = c(0,quater))
+          
+        } else if (input$peaks_amount == 2) {
+          
+          tagList(
+            
+            sliderInput("slider_output1", "Range 1:",
+                        min = min_time, max = max_time,
+                        value = c(0,quater)),
+            sliderInput("slider_output2", "Range 2:",
+                        min = min(time_column_name()), max = max(time_column_name()),
+                        value = c(quater,2*quater))
+          )
+          
+        } else if (input$peaks_amount == 3) {
+          
+          tagList(
+            
+          sliderInput("slider_output1", "Range 1:",
+                      min = min_time, max = max_time,
+                      value = c(0,quater)),
+          
+          sliderInput("slider_output2", "Range 2:",
+                      min = min(time_column_name()), max = max(time_column_name()),
+                      value = c(quater,2*quater)),
+          
+          sliderInput("slider_output3", "Range 3:",
+                      min = min(time_column_name()), max = max(time_column_name()),
+                      value = c(2*quater,3*quater))
+          )
+          
+        } else if (input$peaks_amount == 4) {
+          
+          tagList(
+          
+          sliderInput("slider_output1", "Range 1:",
+                      min = min_time, max = max_time,
+                      value = c(0,quater)),
+          
+          sliderInput("slider_output2", "Range 2:",
+                      min = min(time_column_name()), max = max(time_column_name()),
+                      value = c(quater,2*quater)),
+          
+          sliderInput("slider_output3", "Range 3:",
+                      min = min(time_column_name()), max = max(time_column_name()),
+                      value = c(2*quater,3*quater)),
+          
+          sliderInput("slider_output4", "Range 4:",
+                      min = min(time_column_name()), max = max(time_column_name()),
+                      value = c(3*quater,max_time))
+          )
+          
+        }
+        
+
+        
+      })
+      
+      
+      
+      output$verbatim <- renderText({
+        
+        typeof(input$slider_output4)
+        
+        })
+      
+
+      
+    })
     
-# Num
+# Rendering ALL plots
+
+    observeEvent(input$plot_all2, {
+      
+      
+      
+      output$plot_ratio2 <- renderPlotly({
+        req(input$plot_all2, df_ratio_clean())
+        plot_object <- ggplotly_render(df_ratio_clean(), 
+                        rcolor = color_palette(df_ratio_clean(), rmcellValues$colors2000),
+                        sorting = input$legend_order2,
+                        baseline = T, 
+                        b_min = input$min_time, 
+                        b_max = input$max_time,
+                        region = T, 
+                        r_min = input$start_time, 
+                        r_max = input$end_time,
+                        ready = FALSE
+                        )
+        
+        pl <- plot_wrapper(plot_object, input$slider_output1, input$slider_output2, input$slider_output3, input$slider_output4)
+        
+        return(ggplotly(pl))
+        
+        })
+      
+      
+      output$plotNum2 <- renderPlotly({
+        req(input$plot_all2, df_Num_clean())
+        plot_object <- ggplotly_render(df_Num_clean(), 
+                        rcolor = color_palette(df_Num_clean(), rmcellValues$colors2000),
+                        sorting = input$legend_order2,
+                        baseline = T, 
+                        b_min = input$min_time, 
+                        b_max = input$max_time,
+                        region = T, 
+                        r_min = input$start_time, 
+                        r_max = input$end_time,
+                        ready = FALSE
+        )
+        
+        pl <- plot_wrapper(plot_object, input$slider_output1, input$slider_output2, input$slider_output3, input$slider_output4)
+        
+        return(ggplotly(pl))
+        
+      })
+      
+      
+      output$plotDen2 <- renderPlotly({
+        req(input$plot_all2, df_Den_clean())
+        plot_object <- ggplotly_render(df_Den_clean(), 
+                        rcolor = color_palette(df_Den_clean(), rmcellValues$colors2000),
+                        sorting = input$legend_order2,
+                        baseline = T, 
+                        b_min = input$min_time, 
+                        b_max = input$max_time, 
+                        region = T, 
+                        r_min = input$start_time, 
+                        r_max = input$end_time,
+                        ready = FALSE
+        )
+        
+        pl <- plot_wrapper(plot_object, input$slider_output1, input$slider_output2, input$slider_output3, input$slider_output4)
+        
+        return(ggplotly(pl))
+        
+      })
+      
+      
+      output$plot_custom_ratio2 <- renderPlotly({
+        req(input$plot_all2, df_custom_ratio_clean())
+        plot_object <- ggplotly_render(df_custom_ratio_clean(), 
+                        rcolor = color_palette(df_custom_ratio_clean(), rmcellValues$colors2000),
+                        sorting = input$legend_order2,
+                        baseline = T, 
+                        b_min = input$min_time, 
+                        b_max = input$max_time,
+                        region = T, 
+                        r_min = input$start_time, 
+                        r_max = input$end_time,
+                        ready = FALSE
+        )
+        
+        pl <- plot_wrapper(plot_object, input$slider_output1, input$slider_output2, input$slider_output3, input$slider_output4)
+        
+        return(ggplotly(pl))
+        
+      })
+      
+      
+    }) 
     
+    
+    
+    
+    
+# Rendering SINGLE plot
+    
+    observeEvent(input$plot_single2, {
+      
+      
+      output$plot_ratio2 <- renderPlotly({
+        req(df_ratio_clean())
+        
+        plot_object <- display_single_plot(df_ratio_clean(), input$ratioInput2, ready = F, lines = T)
+        pl <- plot_wrapper(plot_object, input$slider_output1, input$slider_output2, input$slider_output3, input$slider_output4)
+        
+        return(ggplotly(pl))
+        
+      })     
+      
+      
+      output$plotNum2 <- renderPlotly({
+        req(df_Num_clean())
+        
+        plot_object <- display_single_plot(df_Num_clean(), input$numInput2, ready = F, lines = T)
+        pl <- plot_wrapper(plot_object, input$slider_output1, input$slider_output2, input$slider_output3, input$slider_output4)
+        
+        return(ggplotly(pl))
+        
+      }) 
+      
+      
+      output$plotDen2 <- renderPlotly({
+        req(df_Den_clean())
+        
+        plot_object <- display_single_plot(df_Den_clean(), input$denInput2, ready = F, lines = T)
+        pl <- plot_wrapper(plot_object, input$slider_output1, input$slider_output2, input$slider_output3, input$slider_output4)
+        
+        return(ggplotly(pl))
+        
+      }) 
+      
+      
+      output$plot_custom_ratio2 <- renderPlotly({
+        req(df_custom_ratio_clean())
+        
+        plot_object <- display_single_plot(df_custom_ratio_clean(), input$customRatioInput2, ready = F, lines = T)
+        pl <- plot_wrapper(plot_object, input$slider_output1, input$slider_output2, input$slider_output3, input$slider_output4)
+        
+        return(ggplotly(pl))
+        
+      })
+      
+      
+    }) 
+    
+
+# Calculating amplitudes --------------------------------------------------
+
+    
+    # Num
     df_Num_amplitude <- eventReactive(eventExpr = {input$amplitudeStat
       input$clNum},
       valueExpr = {
@@ -957,8 +1230,7 @@ server <- function(input, output) {
     })
     
     
-# Ratio
-    
+    # Ratio
     df_ratio_amplitude <- eventReactive(eventExpr = {input$amplitudeStat
       input$clRatio},
       valueExpr = {
@@ -976,9 +1248,8 @@ server <- function(input, output) {
       df_ratio_amplitude()
     })
     
-    
-# Custom Ratio
-    
+
+    # Custom Ratio
     df_custom_ratio_amplitude <- eventReactive(eventExpr = {input$amplitudeStat},
       valueExpr = {
         req(input$clean_file)
@@ -997,9 +1268,9 @@ server <- function(input, output) {
     
     
     
-    # IN THIS CASE WE NEED TO FIND MINIMUM INSTEAD! 
-# Den
+# IN THIS CASE WE NEED TO FIND MINIMUM INSTEAD! 
     
+    # Den
     df_Den_amplitude <- eventReactive(eventExpr = {input$amplitudeStat
       input$clDen},
       valueExpr = {
@@ -1016,6 +1287,26 @@ server <- function(input, output) {
       req(input$clDen)
       df_Den_amplitude()
     })    
+    
+    
+    
+    # To take into account excluded cells and calculate hao many bad cells are 
+    df_excluded_cells_list <- eventReactive(eventExpr = {input$clean_file},
+                                            valueExpr = {
+                                              req(input$clean_file)
+                                              
+                                              sheet_names <- excel_sheets(input$clean_file$datapath)
+                                              
+                                              if ('excluded_cells' %in% sheet_names) {
+                                                # If 'excluded_cells' sheet exists, read it
+                                                df <- read_excel(input$clean_file$datapath, sheet = 'excluded_cells')
+                                              } else {
+                                                # If 'excluded_cells' sheet doesn't exist, create an empty dataframe
+                                                df <- data.frame()
+                                              }
+
+                                              return(df)
+                                            })
     
     
 # Summary for amplitudes
@@ -1049,130 +1340,336 @@ server <- function(input, output) {
                                     })
     
     
-# Save DATA ANALIZING AMPLITUDES as excel file
+# Save DATA ANALIZING AMPLITUDES as excel file-----------------------------------------------
     
     output$SaveXlsAmpl <- downloadHandler(
-      filename = function() {filename(input$dataTS, "Amplitudes.xlsx")},
-      content = function(file) {write_xlsx(list('Numerator'=df_Num_amplitude(), 
-                                                'Denominator'=df_Den_amplitude(), 
-                                                'Ratio' = df_ratio_amplitude(), 
-                                                'custom_ratio' = df_custom_ratio_amplitude(),
-                                                'Num_summary' = df_Num_summary(),
-                                                'Den_summary' = df_Den_summary(),
-                                                'Ratio_summary' = df_ratio_summary(),
-                                                'Custom_ratio_summary' = df_custom_ratio_summary()
-                                                ), path = file)}
-    )
-    
-    
+      filename = function() {filename(input$clean_file, "Amplitudes.xlsx")},
+      content = function(file) {
+        
+        wb <- createWorkbook()
+        
+        if (input$clRatio) {
+          sheet1 <- addWorksheet(wb, sheetName = "Ratio")
+          writeDataTable(wb, sheet1, df_ratio_amplitude())
+          
+          sheet2 <- addWorksheet(wb, sheetName = "Ratio_summary")
+          writeDataTable(wb, sheet2, df_ratio_summary())
+        }
+        
+        if (input$clNum) {
+          sheet3 <- addWorksheet(wb, sheetName = "Numerator")
+          writeDataTable(wb, sheet3, df_Num_amplitude())
+          
+          sheet4 <- addWorksheet(wb, sheetName = "Num_summary")
+          writeDataTable(wb, sheet4, df_Num_summary())
+        }
+        
+        if (input$clDen) {
+          sheet5 <- addWorksheet(wb, sheetName = "Denominator")
+          writeDataTable(wb, sheet5, df_Den_amplitude())
+          
+          sheet6 <- addWorksheet(wb, sheetName = "Den_summary")
+          writeDataTable(wb, sheet6, df_Den_summary())
+        }
+        
+        
+        if (input$clNum & input$clDen) {
+          sheet7 <- addWorksheet(wb, sheetName = "custom_ratio")
+          writeDataTable(wb, sheet7, df_custom_ratio_amplitude())
+          
+          sheet8 <- addWorksheet(wb, sheetName = "Custom_ratio_summary")
+          writeDataTable(wb, sheet8, df_custom_ratio_summary())
+        }
+        
+        saveWorkbook(wb, file)
+        
+        })
     
 
 # Shifting curves / box 1 ---------------------------------------------------------
 
+    
     # Getting the list of sheets in excel file
     sheets_in_the_file = eventReactive(eventExpr = {input$read_sheets},
-                                       valueExpr ={
+                                       valueExpr = {
         excel_sheets(input$read_sheets$datapath)
     })
     
+    
     # Creating SelectInput list with values = sheets
     observeEvent(input$read_sheets,{
+      
       updateSelectInput(inputId = "sheets",
                         choices = sheets_in_the_file(),
                         selected = str_extract(sheets_in_the_file(), '^[Rr]atio$')
                         )
-            })
+      })
+      
     
 
-
-    
     # Rendering datatable related to selected sheet
     dt_to_shift <- eventReactive(eventExpr = {input$read_sheets
                                               input$sheets},
-                  valueExpr = {read_excel(input$read_sheets$datapath, sheet = input$sheets)})
-    
+      
+      valueExpr = {
+        req(input$read_sheets, input$sheets)
+        
+        
+        read_excel(input$read_sheets$datapath, sheet = input$sheets)})
     
     output$dt_to_shift_out <- DT::renderDataTable({
       req(input$read_sheets)
       req(input$sheets)
       customDT(dt_to_shift(), scrollY = '200px')
     }) 
- 
- 
+    
+    # Resulting dataframe with shifted/not shifted values
+    reactive_df_to_shift <- reactiveVal(NULL)
+    
+    observeEvent(dt_to_shift(), {
+
+      updateSelectInput(inputId = "cellShiftInput",
+                        choices = colnames(time_col_name(dt_to_shift(), name_only = T))[-1],
+                        selected = colnames(time_col_name(dt_to_shift(), name_only = T))[2])
+      
+      reactive_df_to_shift(dt_to_shift())
+    }) 
+    
+    
 # Shifting curves / box 2 -------------------------------------------------
-    
-    
+
     # Rendering initial plot single
     observeEvent(input$plots_init_single, {
       output$plot_shift_upper <- renderPlotly({
         req(input$sheets,
-            input$cell_to_plot_shift,
-            input$min_t_shift,
-            input$max_t_shift,
+            input$cellShiftInput,
             input$start_t_shift,
             input$end_t_shift)
-        ggplotly_render(single_plot(dt_to_shift(), 
-                                    input$cell_to_plot_shift), 
-                                    baseline = T, 
-                                    b_min = input$min_t_shift, 
-                                    b_max = input$max_t_shift, 
-                                    region = T, 
-                                    r_min = input$start_t_shift, 
-                                    r_max = input$end_t_shift)
+        ggplotly_render(display_single_plot(dt_to_shift(), 
+                                    input$cellShiftInput, 
+                                    ready = F), 
+                        region = T, 
+                        r_min = input$start_t_shift, 
+                        r_max = input$end_t_shift)
         })
-    }) # /level 1, observeEvent input$plots_init_single
-    
+    })
     
     # Rendering initial plot all
     observeEvent(input$plots_init_all, {
       output$plot_shift_upper <- renderPlotly({
         req(input$sheets)
         ggplotly_render(dt_to_shift(), 
-                        baseline = T, 
-                        b_min = input$min_t_shift, 
-                        b_max = input$max_t_shift, 
                         region = T, 
                         r_min = input$start_t_shift, 
                         r_max = input$end_t_shift,
                         rcolor = color_palette(dt_to_shift(), rmcellValues$colors2000))})
-    }) # /level 1, observeEvent input$plots_init_all
-    
-    
-    # Shifting curves
-    
-    # Lag values datatable
-    
-    lag_values_df <- eventReactive(eventExpr = {input$shift_curves}, valueExpr = {
-      
-      req(input$read_sheets)
-      req(input$sheets)
-      shifted_main_cell_values <- finding_shifted_curve(dt_to_shift(), main_cell_number = input$cell_to_plot_shift, lower = input$start_t_shift, upper = input$end_t_shift, max_lag = input$max_lag)
-      
-      #Resulting dataframe
-      lag_data <- data.frame(A = character(), B = numeric())
-      colnames(lag_data) <- c('Cell_name', colnames(shifted_main_cell_values)[1])
-      
-      shifted_info <- shifting_curves_info(lag_data, dt_to_shift(), shifted_main_cell_values, lower = input$start_t_shift, upper = input$end_t_shift, max_lag = input$max_lag)
-      return(shifted_info)
-      })
-    
-    output$lag_values_df_out <- DT::renderDataTable({
-      req(input$read_sheets)
-      req(input$sheets)
-      lag_values_df()
     }) 
     
     
-    # Shifted datatable
-    shifted_df <- eventReactive(eventExpr = {input$shift_curves
-                                             input$plots_shift_omit}, valueExpr = {
+# Shifting curves-----------------------------------------------------------------------
+    
+    
+    
+    observeEvent(input$shift_reset, {
+      req(dt_to_shift())
+      reactive_df_to_shift(dt_to_shift())
+      lag_values_df(NULL)
       
+      runjs('
+            document.getElementById("shift_reset").style.backgroundColor = "green";
+            document.getElementById("shift_maximum").style.backgroundColor = "";
+            document.getElementById("shift_curves").style.backgroundColor = "";
+            ')
+
+      
+    })
+    
+    
+    
+    # Lag values datatable and shifting using CCF
+    lag_values_df <- reactiveVal(NULL)
+
+    observeEvent(input$shift_curves, {
       req(input$read_sheets)
       req(input$sheets)
-      shifted_main_cell_values <- finding_shifted_curve(dt_to_shift(), main_cell_number = input$cell_to_plot_shift, lower = input$start_t_shift, upper = input$end_t_shift, max_lag = input$max_lag)
-      shifted_result <- shifting_curves(dt_to_shift(), shifted_main_cell_values, lower = input$start_t_shift, upper = input$end_t_shift, max_lag = input$max_lag)
       
-      if((input$plots_shift_omit[1]%%2) == 1) {
+      runjs('
+            var otherButtonColor = document.getElementById("shift_maximum").style.backgroundColor;
+            if (otherButtonColor === "green") {
+            
+                document.getElementById("shift_maximum").style.backgroundColor = "red";
+                document.getElementById("shift_curves").style.backgroundColor = "red";
+                
+            } else {
+            
+                document.getElementById("shift_curves").style.backgroundColor = "green";
+            }
+            
+            document.getElementById("shift_reset").style.backgroundColor = "";
+                
+            ')
+      
+
+      
+      lag_values_df(CCF_matrix(reactive_df_to_shift(), 
+                               lower = input$start_t_shift,
+                               upper = input$end_t_shift,
+                               max_lag = input$max_lag))
+      
+      shifted_df <- eventReactive(input$plots_shift_omit, {
+        shifted_result <- 
+        shift_with_CCF(dt_to_shift(), 
+                       lag_values_df(), 
+                       max_lag = input$max_lag)
+          
+          if(input$plots_shift_omit == T) {
+            shifted_result <- na.omit(shifted_result)
+            return(shifted_result)
+          } else {return(shifted_result)}
+          
+      }, ignoreNULL = FALSE)
+      
+      reactive_df_to_shift(shifted_df())
+      
+      output$lag_values_df_out <- DT::renderDataTable({
+        req(input$read_sheets)
+        req(input$sheets)
+        
+        datatable(
+          lag_values_df(),
+          options = list(
+            sDom = 'lrtip',
+            autoWidth = TRUE, 
+            paging = F,
+            scrollCollapse=T,
+            scrollX = T,
+            scrollY = '100px'
+          )
+        )
+        
+      }) 
+      
+      shinyalert(type = 'success', 
+                 text = "Shifted!",
+                 closeOnClickOutside = T,
+                 timer = 1500,
+                 showConfirmButton = F)
+    }) 
+    
+    observeEvent(input$shift_maximum, {
+      req(input$read_sheets)
+      req(input$sheets)
+      
+      runjs('
+              var otherButtonColor = document.getElementById("shift_curves").style.backgroundColor;
+              if (otherButtonColor === "green") {
+              
+                  document.getElementById("shift_maximum").style.backgroundColor = "red";
+                  document.getElementById("shift_curves").style.backgroundColor = "red";
+                
+              } else {
+              
+                  document.getElementById("shift_maximum").style.backgroundColor = "green";
+                
+              }
+              
+              document.getElementById("shift_reset").style.backgroundColor = "";
+              
+            ')
+  
+      shifted <- shiny::isolate(reactive_df_to_shift())
+      
+      lag_values_df(finding_local_maximum(shifted, 
+                                          input$response_window))
+      
+      shifted_df <- eventReactive(input$plots_shift_omit, {
+        
+        shifted_result <- shift_to_match_maximum(shifted, lag_values_df())
+        
+        if(input$plots_shift_omit == T) {
+          shifted_result <- na.omit(shifted_result)
+          return(shifted_result)
+        } else {return(shifted_result)}
+        
+        
+        }, ignoreNULL = FALSE)
+      
+      reactive_df_to_shift(shifted_df())
+      
+      output$lag_values_df_out <- DT::renderDataTable({
+        req(input$read_sheets)
+        req(input$sheets)
+        lag_values_df <- t(as.data.frame(lag_values_df()))
+        rownames(lag_values_df) <- NULL
+        datatable(
+          lag_values_df,
+          options = list(
+            sDom = 'lrtip',
+            autoWidth = TRUE, 
+            paging = F,
+            scrollCollapse=T,
+            scrollX = T
+          )
+        )
+        
+      }) 
+      
+      shinyalert(type = 'success', 
+                 text = "Shifted!",
+                 closeOnClickOutside = T,
+                 timer = 1500,
+                 showConfirmButton = F)
+    }) 
+
+    
+    
+    
+    # Rendering lower plot
+    observeEvent(input$plots_shift_single, {
+      
+      output$plot_shift_lower <- renderPlotly({
+        req(input$sheets)
+        ggplotly_render(display_single_plot(shifted_dataframe(), 
+                                            input$cellShiftInput,
+                                            ready = F), 
+                        region = T, 
+                        r_min = input$start_t_shift, 
+                        r_max = input$end_t_shift)
+        })
+      
+      
+    })
+    
+    observeEvent(input$plots_shift_all, {
+      
+      output$plot_shift_lower <- renderPlotly({
+        req(input$sheets)
+        ggplotly_render(shifted_dataframe(), 
+                        region = T, 
+                        r_min = input$start_t_shift, 
+                        r_max = input$end_t_shift,
+                        rcolor = color_palette(shifted_dataframe(), rmcellValues$colors2000))
+        }) 
+
+    
+      
+    }) 
+    
+    shifted_dataframe <- eventReactive(eventExpr = {
+      input$plots_shift_omit
+      input$plots_shift_all
+      input$plots_shift_single
+      input$shift_maximum
+      input$shift_reset
+      input$plots_init_all
+      input$plots_init_single
+      input$shift_curves}, 
+      
+      valueExpr = {
+      
+      shifted_result <- reactive_df_to_shift()
+      
+      if(input$plots_shift_omit == T) {
         shifted_result <- na.omit(shifted_result)
         return(shifted_result)
       } else {return(shifted_result)}
@@ -1180,63 +1677,22 @@ server <- function(input, output) {
       
     }, ignoreNULL = FALSE)
     
-
-    
-    # Rendering lower plot
-    observeEvent(input$plots_shift_single, {
-      
-      output$plot_shift_lower <- renderPlotly({
-        req(input$sheets)
-        ggplotly_render(single_plot(shifted_df(), input$cell_to_plot_shift), 
-                        baseline = T, 
-                        b_min = input$min_t_shift, 
-                        b_max = input$max_t_shift, 
-                        region = T, 
-                        r_min = input$start_t_shift, 
-                        r_max = input$end_t_shift)
-        }) # output$plot_shift_lower
-      
-      
-    }) # /level 1, observeEvent input$plots_shift_single
-    
-    observeEvent(input$plots_shift_all, {
-      
-      output$plot_shift_lower <- renderPlotly({
-        req(input$sheets)
-        ggplotly_render(shifted_df(), 
-                        baseline = T, 
-                        b_min = input$min_t_shift, 
-                        b_max = input$max_t_shift, 
-                        region = T, 
-                        r_min = input$start_t_shift, 
-                        r_max = input$end_t_shift,
-                        rcolor = color_palette(shifted_df(), rmcellValues$colors2000))
-        }) # output$plot_shift_lower
-
-    
-      
-    }) # /level 1, observeEvent input$plots_shift_all
-    
-    
     
     # Save SHIFTED curves as excel file
-    
-    read_sheets_value <- reactive({
-      
-      if((input$plots_shift_omit[1]%%2) == 1) {
-        return(TRUE)
-      }
-      
-      })
-    output$read_sheets_value_out <- renderPrint({read_sheets_value()})
-    
+
     output$SavePltsShift <- downloadHandler(
       filename = function() {filename(input$read_sheets$name, "Shifted.xlsx")},
       content = function(file) {
-        df_list <- list('current' = shifted_df(),
-                        'lags' = lag_values_df())
-        names(df_list) <- c(input$sheets, paste0(input$sheets, '_lags'))
-        write_xlsx(df_list, path = file)
+        
+        wb <- createWorkbook()
+        
+          sheet1 <- addWorksheet(wb, sheetName = input$sheets)
+          writeDataTable(wb, sheet1, shifted_dataframe())
+          sheet2 <- addWorksheet(wb, sheetName = paste0(input$sheets, '_lagMatrix'))
+          writeDataTable(wb, sheet2, as.data.frame(lag_values_df()))
+        
+        saveWorkbook(wb, file)
+
         }
     )
     
@@ -1247,7 +1703,7 @@ server <- function(input, output) {
 
     shifted_average <- eventReactive(eventExpr = {input$plots_average_shifted}, valueExpr = {
 
-      df_t <- time_col_name(shifted_df())
+      df_t <- time_col_name(shifted_dataframe())
       
       df_t <- df_t %>% 
         add_column(Average = rowMeans(df_t[-grep('^Time$', colnames(df_t))]))
@@ -1255,27 +1711,22 @@ server <- function(input, output) {
       return(df_t)
       
       
-      }) # shifted_average / eventReactive
+      }) 
 
 
     # Rendering lower plot for shifted average
     observeEvent(input$plots_average_shifted, {
       
       output$plot_average_lower <- renderPlotly({
-        req(shifted_df())
+        req(shifted_dataframe())
         
         
-        ggplotly_render(shifted_average()[, c('Time', 'Average')], 
-                        baseline = T, 
-                        b_min = input$min_t_shift, 
-                        b_max = input$max_t_shift, 
-                        region = T, 
-                        r_min = input$start_t_shift, 
-                        r_max = input$end_t_shift)
-        }) # output$plot_average_lower
+        ggplotly_render(shifted_average()[, c('Time', 'Average')])
+        
+        })
       
       
-    }) # /level 1, observeEvent input$plots_average_shifted
+    }) 
     
     
     # Initial Average
@@ -1290,7 +1741,7 @@ server <- function(input, output) {
       return(df_t)
       
       
-    }) # shifted_average / eventReactive
+    }) 
     
     
     # Rendering lower plot for shifted average
@@ -1300,18 +1751,12 @@ server <- function(input, output) {
         req(dt_to_shift())
         
         
-        ggplotly_render(init_average()[, c('Time', 'Average')], 
-                        baseline = T, 
-                        b_min = input$min_t_shift, 
-                        b_max = input$max_t_shift, 
-                        region = T, 
-                        r_min = input$start_t_shift, 
-                        r_max = input$end_t_shift)
+        ggplotly_render(init_average()[, c('Time', 'Average')])
       
-        }) # output$plot_average_upper
+        }) 
       
       
-    }) # /level 1, observeEvent input$plots_average_init
+    })
     
     
     
