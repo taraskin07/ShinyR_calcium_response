@@ -50,7 +50,7 @@ ui <- navbarPage(
         ),
         
         
-        checkboxInput("cNum", "sheet Numerator", FALSE),
+        checkboxInput("cNum", "sheet Numerator", TRUE),
         selectInput(
           'sheetNum',
           'Select sheet for Numerator',
@@ -60,7 +60,7 @@ ui <- navbarPage(
         ),
         
         
-        checkboxInput("cDen", "sheet Denominator", FALSE),
+        checkboxInput("cDen", "sheet Denominator", TRUE),
         selectInput(
           'sheetDen',
           'Select sheet for Denominator',
@@ -300,7 +300,7 @@ ui <- navbarPage(
         ),
         
         
-        checkboxInput("clNum", "sheet Numerator", FALSE),
+        checkboxInput("clNum", "sheet Numerator", TRUE),
         selectInput(
           'sheetClNum',
           'Select sheet for Numerator',
@@ -310,7 +310,7 @@ ui <- navbarPage(
         ),
         
         
-        checkboxInput("clDen", "sheet Denominator", FALSE),
+        checkboxInput("clDen", "sheet Denominator", TRUE),
         selectInput(
           'sheetClDen',
           'Select sheet for Denominator',
@@ -407,7 +407,7 @@ ui <- navbarPage(
         numericInput("min_time", "Baseline START: (sec)", 0),
         numericInput("max_time", "Baseline END: (sec)", 120),
         tags$hr(),
-        numericInput("start_time", "Region of interest START: (sec)", 150),
+        numericInput("start_time", "Region of interest START: (sec)", 125),
         numericInput("end_time", "Region of interest END: (sec)", 330),
         tags$hr(),
         actionButton("amplitudeStat", "Calculate amplitudes"),
@@ -500,8 +500,8 @@ ui <- navbarPage(
         
         tags$br("Enter timeframe for the baseline and region to analyze"),
         tags$hr(),
-        numericInput("start_t_shift", "Region to analyze START: (sec)", 0),
-        numericInput("end_t_shift", "Region to analyze END: (sec)", 500),
+        numericInput("start_t_shift", "Region to analyze START: (sec)", 120),
+        numericInput("end_t_shift", "Region to analyze END: (sec)", 330),
         tags$hr(),
         selectInput(
           "cellShiftInput",
@@ -560,7 +560,7 @@ ui <- navbarPage(
             switchInput(
               inputId = "plots_shift_omit",
               label = "Omit NA values in columns",
-              value = FALSE,
+              value = TRUE,
               size = "normal",
               onStatus = "statusON",
               offStatus = "statusOFF",

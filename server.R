@@ -492,7 +492,7 @@ server <- function(input, output) {
       type = 'success',
       text = "The statistics have been calculated!",
       closeOnClickOutside = T,
-      timer = 2000,
+      timer = 1250,
       showConfirmButton = F
     )
     
@@ -728,7 +728,7 @@ server <- function(input, output) {
       type = 'success',
       text = "New tables without excluded traces are obtained!",
       closeOnClickOutside = T,
-      timer = 2000,
+      timer = 1250,
       showConfirmButton = F
     )
     
@@ -1814,7 +1814,7 @@ server <- function(input, output) {
       type = 'success',
       text = "Shifted!",
       closeOnClickOutside = T,
-      timer = 1500,
+      timer = 1250,
       showConfirmButton = F
     )
   })
@@ -1884,7 +1884,7 @@ server <- function(input, output) {
       type = 'success',
       text = "Shifted!",
       closeOnClickOutside = T,
-      timer = 1500,
+      timer = 1250,
       showConfirmButton = F
     )
   })
@@ -3060,10 +3060,8 @@ server <- function(input, output) {
         df_slice <- rotated_df[, c(1, idx)]
         b <-
           b_find(df_slice, input$baseline_start, input$baseline_end)
-        intersections_df <-
-          dataframe_with_intersections(df_slice, input$area_start, input$area_end, b)
-        dfres <-
-          polygon_function(intersections_df, input$area_start, input$area_end, b)
+        intersections_df <- dataframe_with_intersections(df_slice, input$area_start, input$area_end, b)
+        dfres <- polygon_function(intersections_df, input$area_start, input$area_end, b)
         dfres[, 1] <- intersections_df[, 1]
         
         auc_upper <-  AUC(

@@ -905,6 +905,7 @@ finding_local_maximum <- function(ts_table, k = 150) {
   derivative2 <- lapply(means, Compose, diff, sign, diff)
   
   # Local maximum regions (starting point)
+  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   indexes <- lapply(derivative2, function(x)
     which(x == -2))
   
@@ -912,8 +913,13 @@ finding_local_maximum <- function(ts_table, k = 150) {
   maxValues <- list()
   
   # Creating output list, for each trace name in moving maximum dataframe
+  
+  
+  
   # For Shiny R only
-  withProgress(message = "Calculating...", value = 0, {
+  # withProgress(message = "Calculating...", value = 0, {
+  
+  
     count <- 0
     for (name in names(max_values)) {
       # sequence of maximum values for the current trace
@@ -942,9 +948,17 @@ finding_local_maximum <- function(ts_table, k = 150) {
       
       # For Shiny R only
       count <- count + 1
-      incProgress(1 / length(names(max_values)), detail = paste("Processing trace", count))
+      
+      
+      
+      # incProgress(1 / length(names(max_values)), detail = paste("Processing trace", count))
+      
+      
+      
     }
-  })
+    
+    
+  # })
   
   list_of_ids <- maxValues
   
