@@ -878,7 +878,8 @@ summarize_amplitudes <- function(amplitude, excl_df) {
 
 # Function finds the response-specific maximum for each trace
 # and creates resulting list of indices = response-specific maximums
-finding_local_maximum <- function(ts_table, start_time, end_time) {
+# "k" parameter stands for time in seconds for a moving window
+finding_local_maximum <- function(ts_table, k = 150, r1, r2) {
   # Correcting Time column if not Time and not first in the dataframe
   dfts <- time_col_name(ts_table, name_only = T)
   
@@ -897,24 +898,168 @@ finding_local_maximum <- function(ts_table, start_time, end_time) {
     stop('Check the Time column step! It should be equal!')
   }
   
-  index1 <- min(which(dfts$Time >= start_time))
-  index2 <- max(which(dfts$Time <= end_time))
+  k <- k %/% timeStep
+  k_adj <- k
+  
+  # Values from the dataframe without Time column
+  values <- as_tibble(dfts[-1])
+  
+  # Moving average for each trace, k stands for window based on index value
+  means <- as_tibble(rollmean(dfts[-1], k = k))
+  
+  # Moving maximum with the same window value
+  max_values <- as_tibble(rollmax(dfts[-1], k = k))
+  
+  # Second derivative to find local maximum regions
+  derivative2 <- lapply(means, Compose, diff, sign, diff)
+  
+  # Local maximum regions (starting point)
+  indices <- lapply(derivative2, function(x)
+    which(x == -2))
+  
+
+  # Adjusting k value for cases where no maximum was found because of wrong window value
+  boolean_val <- any(sapply(indices, function(x) length(x) == 0))
+  
+  if (boolean_val) {
+    degree <- 1
+    new_step <- 1
+    cycles <- 1
+    
+    while (boolean_val) {
+      # Check the conditions
+      if (k_adj == 2) {
+        
+        # shinyalert(
+        #   type = 'error',
+        #   text = "Traces differ too much.\nIt is not possible to locate maximum for all of them automatically.\nTry to narrow the region of interest or exclude more traces!",
+        #   closeOnClickOutside = T,
+        #   showConfirmButton = T
+        # )
+        
+        break  # Stop the while loop
+        stop("Restart the program!")
+      }
+      
+      k_adj <- k + new_step*(-1)^degree
+      
+      # Moving average for each trace, k stands for window based on index value
+      means <- as_tibble(rollmean(dfts[-1], k = k_adj))
+      
+      # Moving maximum with the same window value
+      max_values <- as_tibble(rollmax(dfts[-1], k = k_adj))
+      
+      # Second derivative to find local maximum regions
+      derivative2 <- lapply(means, Compose, diff, sign, diff)
+      
+      
+      degree <- degree + 1
+      
+      if (cycles%%2 == 0) {
+        new_step <- new_step + 1
+      }
+      
+      cycles <- cycles + 1
+      
+      
+      # Local maximum regions (starting point)
+      indices <- lapply(derivative2, function(x)
+        which(x == -2))
+      
+      # New time for the response window
+      adjusted <- k_adj*timeStep
+      
+      # Finding row indices for the region of interest
+      index1 <- min(which(dfts$Time >= r1-adjusted))
+      index2 <- max(which(dfts$Time <= r2-adjusted))
+      
+      for (index in seq_along(indices)) {
+        
+        # Only those indices that lie in the range of interest are significant
+        indices[[index]] <- indices[[index]][(indices[[index]] >= index1) & (indices[[index]] <= index2)]
+      }
+      
+
+      boolean_val <- any(sapply(indices, function(x) length(x) == 0))
+    }
+    
+
+
+    
+    # shinyalert(
+    #   type = 'info',
+    #   text = paste("Response time was adjusted to", adjusted, "seconds!"),
+    #   closeOnClickOutside = T,
+    #   showConfirmButton = T
+    # )
+
+
+  }
   
   
-  max_indices <- apply(dfts[index1:index2,], 2, which.max)
   
-  initial_indicies <- max_indices + index1 - 1
+  # Output list of traces with time values, representing maximum - response
+  maxValues <- list()
   
-  indices_list <- initial_indicies[-1]
+  # Creating output list, for each trace name in moving maximum dataframe
+  
+  
+  
+  # # For Shiny R only
+  # withProgress(message = "Calculating...", value = 0, {
+  
+  
+    count <- 0
+    for (name in names(max_values)) {
+      # sequence of maximum values for the current trace
+      value <- max_values[[name]]
+      
+      # sequence of indices, representing the starting points of local maximum regions (current trace)
+      index <- indices[[name]]
+      
+      # finding which index gives the maximum value, so local maximum is the response
+      index_for_max <- which.max(value[index])
+      
+      
+      # Slice for region of interest
+      row_indices_for_max <-
+        index[index_for_max]:(index[index_for_max] + k)
+      
+      # Obtaining values for the current trace
+      current_column <- values[[name]]
+      
+      # Index, that represents maximum value for the response
+      maximum_index <- index[index_for_max] +
+        which.max(current_column[row_indices_for_max]) - 1
+      
+      # Saving in the resulting dataframe
+      maxValues[[name]] <- maximum_index
+      
+      # For Shiny R only
+      count <- count + 1
+      
+      
+      
+      # incProgress(1 / length(names(max_values)), detail = paste("Processing trace", count))
+      
+      
+      
+    }
+    
+    
+  # })
+  
+  list_of_ids <- maxValues
+  
   
   # Establishing the earliest maximum among all the traces
-  lowest_value <- min(unlist(indices_list))
+  lowest_value <- min(unlist(list_of_ids))
   
   # And its name
-  trace_name <- names(which.min(unlist(indices_list)))
+  trace_name <- names(which.min(unlist(list_of_ids)))
   
   # Creating list of lag values as compared to the one with the earliest maximum
-  difference <- sapply(indices_list, function(x)
+  difference <- sapply(list_of_ids, function(x)
     x - lowest_value)
   
   

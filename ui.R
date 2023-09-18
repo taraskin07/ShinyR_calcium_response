@@ -530,18 +530,7 @@ ui <- navbarPage(
         )),
         tags$strong(class = "red-text", "!!! OR !!!"),
         tags$br(style = "line-height: 0.1;"),
-        tags$div(
-          div(
-            style = "display: inline-block; width: 59%;",
-            numericInput("response_window", "Enter response time: (sec)", 100)
-          ),
-          div(
-            style = "display: inline-block; width: 40%;",
-            actionButton("shift_maximum", "Shift Maximum", width = "100%")
-          )
-          
-        ),
-        
+        actionButton("shift_maximum", "Shift Maximum", width = "100%"),
         tags$hr(),
         actionButton("shift_reset", "Reset all shifting"),
         tags$hr(style = 'border-style: inset;'),

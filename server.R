@@ -1844,8 +1844,9 @@ server <- function(input, output) {
     
     shifted <- shiny::isolate(reactive_df_to_shift())
     
-    lag_values_df(finding_local_maximum(shifted,
-                                        input$response_window))
+        lag_values_df(finding_local_maximum(shifted,
+                                        start_time=input$start_t_shift,
+                                        end_time=input$end_t_shift))
     
     shifted_df <- eventReactive(input$plots_shift_omit, {
       shifted_result <- shift_to_match_maximum(shifted, lag_values_df())
