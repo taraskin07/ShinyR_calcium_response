@@ -1775,7 +1775,21 @@ server <- function(input, output) {
       )
     )
     
+    # Show maximum lag in the end 
+    max_lag <- reactiveVal(NULL)
+    
     shifted_df <- eventReactive(input$plots_shift_omit, {
+      
+      # Separate part for max_lag value
+      df_time <- time_col_name(dt_to_shift(), name_only = T)
+      
+      list_subtracted <- named_list_of_lag(df_time, lag_values_df())
+      
+      max_shift <- min(unlist(list_subtracted))
+      
+      max_lag(-max_shift)
+      
+      # Main part
       shifted_result <-
         shift_with_CCF(dt_to_shift(),
                        lag_values_df(),
@@ -1812,10 +1826,9 @@ server <- function(input, output) {
     
     shinyalert(
       type = 'success',
-      text = "Shifted!",
+      text = paste("Shifted!\nThe amount of time points that are removed from the beginning is", max_lag()),
       closeOnClickOutside = T,
-      timer = 1250,
-      showConfirmButton = F
+      showConfirmButton = T
     )
   })
   
@@ -1962,7 +1975,7 @@ server <- function(input, output) {
       writeData(wb, sheet1, shifted_dataframe())
       sheet2 <-
         addWorksheet(wb, sheetName = paste0(input$sheets, '_lagMatrix'))
-      writeData(wb, sheet2, as.data.frame(lag_values_df()))
+      writeData(wb, sheet2, as.data.frame(lag_values_df()), rowNames = TRUE)
       
       saveWorkbook(wb, file)
       

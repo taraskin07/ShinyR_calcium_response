@@ -967,19 +967,35 @@ CCF_matrix <- function(df_to_shift, lower, upper, max_lag) {
     count <- 0
     len <- length(colnames(subset_timerange))
     
-    for (columnName in colnames(subset_timerange)) {
+    for (i in 1:ncol(subset_timerange)) {
+      
+      columnName <- colnames(subset_timerange)[[i]]
       count <- count + 1
-      for (rowName in colnames(subset_timerange)) {
-        mtrx <- ccf(
-          subset_timerange[columnName],
-          subset_timerange[rowName],
-          lag.max = max_lag,
-          na.action = na.omit,
-          plot = FALSE
-        )
-        data_table <- data.frame(ACF = mtrx$acf, Lag = mtrx$lag)
-        lag_for_max_acf <- data_table$Lag[which.max(data_table$ACF)]
-        CCF_matrix[rowName, columnName] = lag_for_max_acf
+      
+      for (j in i:ncol(subset_timerange)) {
+        
+        rowName <- colnames(subset_timerange)[[j]]
+        
+        if (j == i) {
+          
+          CCF_matrix[rowName, columnName] = 0
+          
+        } else {
+          
+          mtrx <- ccf(
+            subset_timerange[columnName],
+            subset_timerange[rowName],
+            lag.max = max_lag,
+            na.action = na.omit,
+            plot = FALSE
+          )
+          
+          data_table <- data.frame(ACF = mtrx$acf, Lag = mtrx$lag)
+          lag_for_max_acf <- data_table$Lag[which.max(data_table$ACF)]
+          CCF_matrix[rowName, columnName] = lag_for_max_acf
+          CCF_matrix[columnName, rowName] = -lag_for_max_acf
+        }
+        
       }
       
       # For shiny R only
@@ -1011,15 +1027,28 @@ shift_with_CCF <- function(df_to_shift, CCF_matrix, max_lag) {
   # So maximum in CCF_matrix == reference
   
   column_sums <- colSums(CCF_matrix)
-  left_trace_column <- names(which(column_sums == min(column_sums)))
-  min_column_sums <- min(column_sums)
+  left_trace_column <- names(which(column_sums == min(column_sums)))[[1]]
   
-  
-  
+  list_subtracted <- named_list_of_lag(df_time, CCF_matrix)
+
   for (nm in colnames(df_time)[-1]) {
-    df_time[[nm]] <- shift(df_time[[nm]],
-                           n = CCF_matrix[nm, left_trace_column])
+    
+    df_time[[nm]] <- shift(df_time[[nm]], list_subtracted[[nm]])
+    
   }
+  
+  # for (nm in colnames(df_time)[-1]) {
+  #   
+  #   n = CCF_matrix[nm, left_trace_column]
+  #   
+  #   if (n <= 0) {
+  #     df_time[[nm]] <- shift(df_time[[nm]], n)
+  #   } else {
+  #     df_time[[nm]] <- df_time[[nm]]
+  #   }
+  #   
+  #   
+  # }
   
   
   return(df_time)
@@ -1027,7 +1056,23 @@ shift_with_CCF <- function(df_to_shift, CCF_matrix, max_lag) {
 }
 
 
+named_list_of_lag <- function(df_time, CCF_matrix) {
+  
+  named_list <- list() 
+  
+  for (nm in colnames(df_time)[-1]) {
+    n = CCF_matrix[nm, left_trace_column]
+    
+    named_list[[nm]] <- n 
+  }
+  
+  max_shift <- max(unlist(named_list))
+  
+  list_subtracted <- lapply(named_list, function(x) x - max_shift)
+  
 
+  return(list_subtracted)
+}
 
 
 # Basic function to determine lag and its sign between two series of values
