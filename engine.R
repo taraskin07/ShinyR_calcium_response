@@ -1020,14 +1020,7 @@ shift_with_CCF <- function(df_to_shift, CCF_matrix, max_lag) {
     )
     
   }
-  
-  # Columns contain information about a trace that should be the reference (CCF < 0)
-  # So minimum in CCF_matrix == reference
-  # Rows for the case when CCF > 0
-  # So maximum in CCF_matrix == reference
-  
-  column_sums <- colSums(CCF_matrix)
-  left_trace_column <- names(which(column_sums == min(column_sums)))[[1]]
+
   
   list_subtracted <- named_list_of_lag(df_time, CCF_matrix)
 
@@ -1057,6 +1050,14 @@ shift_with_CCF <- function(df_to_shift, CCF_matrix, max_lag) {
 
 
 named_list_of_lag <- function(df_time, CCF_matrix) {
+  
+  # Columns contain information about a trace that should be the reference (CCF < 0)
+  # So minimum in CCF_matrix == reference
+  # Rows for the case when CCF > 0
+  # So maximum in CCF_matrix == reference
+  
+  column_sums <- colSums(CCF_matrix)
+  left_trace_column <- names(which(column_sums == min(column_sums)))[[1]]
   
   named_list <- list() 
   
