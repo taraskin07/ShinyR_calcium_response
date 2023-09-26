@@ -870,7 +870,7 @@ finding_local_maximum <- function(ts_table, start_time, end_time) {
   dfts <- time_col_name(ts_table, name_only = T)
   
   # Creating k=step value
-  timeStep <- unique(diff(dfts$Time))
+  timeStep <- unique(decim(diff(dfts$Time), 2))
   
   
   if (length(timeStep) != 1) {

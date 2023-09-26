@@ -2184,6 +2184,8 @@ server <- function(input, output, session) {
       selected = str_extract(data_sheets_in_file(), '^[Rr]atio$')
     )
     
+    
+    
   })
   
   # Later it will be used to save changes in dataframe after single correction
@@ -2199,8 +2201,26 @@ server <- function(input, output, session) {
     dataframe_to_process(read_excel(input$read_curves$datapath, sheet = input$data_sheets))
     
     dfts <- time_col_name(dataframe_to_process(), name_only = T)
+    
+    list_of_numbers <- colnames(dfts)
+    
+    list_of_numbers <- as.numeric(na.omit(stringr::str_extract(list_of_numbers, "\\b\\D*?0*([1-9][0-9]*)",
+                                                               group = 1)))
+      
+      updateNumericInput(session = session, 
+                         "cell_to_plot_to_rotate", 
+                         min = min(list_of_numbers), 
+                         max = max(list_of_numbers), 
+                         value = list_of_numbers[[1]])
+    
+      updateNumericInput(session = session, 
+                         "rotated_plots", 
+                         min = min(list_of_numbers), 
+                         max = max(list_of_numbers), 
+                         value = list_of_numbers[[1]])
+    
     # Creating k=step value
-    timeStep <- unique(diff(dfts$Time))
+    timeStep <- unique(decim(diff(dfts$Time), 2))
     
     if (length(timeStep) != 1) {
       
@@ -2323,11 +2343,11 @@ server <- function(input, output, session) {
   
   
   
-  
+  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!---------------------------------------------
   # Plotting single graph and rotate
   observeEvent(ignoreInit = TRUE,
                list(input$plot_single_to_rotate,
-                    input$cell_to_plot_to_rotate),
+                    cell_to_rotate()),
                {
                  output$plot_single_out <- renderPlotly({
                    req(data_to_rotate())
@@ -2335,7 +2355,7 @@ server <- function(input, output, session) {
                    
                    
                    render_plot <-
-                     getting_a_slice_of_df(data_to_rotate(), input$cell_to_plot_to_rotate)
+                     getting_a_slice_of_df(data_to_rotate(), cell_to_rotate())
                    
                    
                    plot <- ggplotly_render(
@@ -2950,7 +2970,7 @@ server <- function(input, output, session) {
     
   }, valueExpr = {
     df_slice <-
-      getting_a_slice_of_df(dataframe_to_process(), input$rotated_plots)
+      getting_a_slice_of_df(dataframe_to_process(), rotated_cell())
     
     return(df_slice)
   })
