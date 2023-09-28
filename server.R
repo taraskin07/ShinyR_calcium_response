@@ -1399,6 +1399,12 @@ server <- function(input, output, session) {
   
   # Calculating amplitudes --------------------------------------------------
   
+  observeEvent(input$amplitudeStat, {
+    runjs(
+      'document.getElementById("amplitudeStat").style.backgroundColor = "green";'
+    )
+    
+  })
   
   # Num
   df_Num_amplitude <-
@@ -1445,6 +1451,7 @@ server <- function(input, output, session) {
       )
       
     })
+  
   
   output$df_ratio_amplitude_out <- DT::renderDataTable({
     req(input$clean_file)
@@ -2084,7 +2091,8 @@ server <- function(input, output, session) {
   # Limiting numbers to identify cells/traces-------------------
   cell_to_rotate <- eventReactive(eventExpr = {
     input$read_curves
-    input$cell_to_plot_to_rotate},
+    input$cell_to_plot_to_rotate
+    input$plot_single_to_rotate},
 
     valueExpr = {
       
@@ -2130,7 +2138,8 @@ server <- function(input, output, session) {
   
   rotated_cell <- eventReactive(eventExpr = {
     input$read_curves
-    input$rotated_plots},
+    input$rotated_plots
+    input$render_rotated_plots},
     
     valueExpr = {
       
@@ -2343,7 +2352,7 @@ server <- function(input, output, session) {
   
   
   
-  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!---------------------------------------------
+
   # Plotting single graph and rotate
   observeEvent(ignoreInit = TRUE,
                list(input$plot_single_to_rotate,

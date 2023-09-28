@@ -416,7 +416,13 @@ ui <- navbarPage(
         numericInput("start_time", "Region of interest START: (sec)", 125),
         numericInput("end_time", "Region of interest END: (sec)", 330),
         tags$hr(),
-        actionButton("amplitudeStat", "Calculate amplitudes"),
+        
+        actionButton("amplitudeStat", 
+                     "Calculate amplitudes",
+                     style = "color: white;
+                     background-color: blue;
+                     border-color: black"),
+        
         tags$br(),
         tags$hr(),
         
@@ -865,9 +871,7 @@ ui <- navbarPage(
         numericInput("baseline_start", "Baseline START: (sec)", 0),
         numericInput("baseline_end", "Baseline END: (sec)", 120),
         tags$hr(),
-        tags$hr(),
         
-        # !!!!!!!!!!!!!!!!!!!!!!!!!!!--------------------------------------------------------------------
         numericInput("area_start", "Calculate area START: (sec)", 550, step = 5),
         numericInput("area_end", "Calculate area END: (sec)", 750, step = 5),
         tags$hr(),
